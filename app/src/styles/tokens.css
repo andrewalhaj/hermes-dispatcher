@@ -1,0 +1,100 @@
+/* Hermes Task Dispatcher — design tokens.
+   ALL visual values flow from these CSS custom properties. */
+:root {
+  /* Surfaces */
+  --bg: #080b11;
+  --s1: #0b0f17;
+  --s2: #0c1119;
+  --s3: #0e131e;
+  --s4: #11151f;
+  --s5: #070a0f;
+
+  /* Accent + semantic */
+  --ac: #f6b73c;
+  --success: #4ade80;
+  --error: #fb6f6f;
+  --info: #8fb4ec;
+  --code: #9b8cff;
+
+  /* Text */
+  --text-primary: #f4f6fb;
+  --text-body: #b6bccc;
+  --text-muted: #9aa0b4;
+  --text-faint: #6a7088;
+
+  /* Lines / hover */
+  --border: rgba(255, 255, 255, 0.06);
+  --hover: rgba(255, 255, 255, 0.05);
+
+  /* Fonts */
+  --font-display: "Space Grotesk", system-ui, sans-serif;
+  --font-ui: "Inter", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Tabular numerals for mono / numeric readouts */
+.mono,
+[data-numeric] {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Keyframes used across the dashboard */
+@keyframes hspin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes hpulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(0.5);
+    opacity: 0.4;
+  }
+}
+@keyframes blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+@keyframes hpanelin {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.995);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes hcellin {
+  from {
+    opacity: 0;
+    transform: scale(0.82);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes hcmdin {
+  from {
+    opacity: 0;
+    transform: translateY(7px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

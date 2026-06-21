@@ -1,0 +1,201 @@
+import { useState } from 'react'
+import type { PanelId } from '../data/types'
+import { ACCENT, agentRows } from '../data/agents'
+import { BrandIcon } from './icons'
+import NavItem from './NavItem'
+import Overview from './panels/Overview'
+import Placeholder from './panels/Placeholder'
+
+interface NavGroup {
+  header: string
+  items: { panel: PanelId; label: string }[]
+}
+
+const NAV_GROUPS: NavGroup[] = [
+  {
+    header: 'Workspace',
+    items: [
+      { panel: 'overview', label: 'Overview' },
+      { panel: 'chat', label: 'Chat' },
+      { panel: 'kanban', label: 'Kanban' },
+      { panel: 'agents', label: 'Agents' },
+    ],
+  },
+  {
+    header: 'System',
+    items: [
+      { panel: 'plugins', label: 'Skills' },
+      { panel: 'memory', label: 'Memory' },
+      { panel: 'logs', label: 'Logs' },
+      { panel: 'insights', label: 'Insights' },
+      { panel: 'profiles', label: 'Profiles' },
+      { panel: 'settings', label: 'Settings' },
+    ],
+  },
+]
+
+const PANEL_LABELS: Record<PanelId, string> = {
+  overview: 'Overview',
+  chat: 'Chat',
+  kanban: 'Kanban',
+  agents: 'Agents',
+  plugins: 'Skills',
+  memory: 'Memory',
+  logs: 'Logs',
+  insights: 'Insights',
+  profiles: 'Profiles',
+  settings: 'Settings',
+}
+
+const groupHeaderStyle: React.CSSProperties = {
+  fontSize: 10,
+  fontWeight: 700,
+  textTransform: 'uppercase',
+  letterSpacing: '0.1em',
+  color: '#565d72',
+  padding: '0 9px',
+  marginBottom: 8,
+}
+
+export default function Shell() {
+  const [activePanel, setActivePanel] = useState<PanelId>('overview')
+  const accent = ACCENT
+  const rows = agentRows(accent)
+
+  return (
+    <div
+      style={{ '--ac': accent } as React.CSSProperties}
+      className="flex h-screen overflow-hidden"
+    >
+      {/* Left rail */}
+      <nav
+        className="relative z-30 flex flex-none flex-col"
+        style={{
+          width: 240,
+          background: 'linear-gradient(180deg, #0d121d, #090d15)',
+          borderRight: '1px solid var(--border)',
+          minHeight: 0,
+        }}
+      >
+        {/* Brand */}
+        <div
+          className="flex items-center gap-3"
+          style={{ padding: '22px 18px 18px', borderBottom: '1px solid var(--border)' }}
+        >
+          <span
+            className="inline-flex flex-none items-center justify-center"
+            style={{
+              width: 38,
+              height: 38,
+              borderRadius: 11,
+              background: `linear-gradient(135deg, ${accent}, #c2410c)`,
+              boxShadow: `0 0 22px color-mix(in oklab, ${accent} 50%, transparent), 0 4px 16px rgba(0,0,0,0.5)`,
+            }}
+          >
+            <BrandIcon />
+          </span>
+          <div style={{ lineHeight: 1.2, minWidth: 0 }}>
+            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 14, letterSpacing: '0.02em', color: '#f0f2f8' }}>
+              HERMES
+            </div>
+            <div style={{ fontSize: 11, color: '#6a7088', marginTop: 1 }}>Task Dispatcher</div>
+          </div>
+          <span
+            className="mono"
+            style={{
+              marginLeft: 'auto',
+              flex: 'none',
+              fontSize: 9.5,
+              fontWeight: 500,
+              color: accent,
+              background: `color-mix(in oklab, ${accent} 12%, transparent)`,
+              border: `1px solid color-mix(in oklab, ${accent} 26%, transparent)`,
+              borderRadius: 6,
+              padding: '2px 6px',
+            }}
+          >
+            v2.0
+          </span>
+        </div>
+
+        {/* Nav groups */}
+        <div className="flex-1 overflow-y-auto overflow-x-hidden" style={{ padding: '14px 12px' }}>
+          {NAV_GROUPS.map((group, gi) => (
+            <div key={group.header} style={{ marginBottom: gi === 0 ? 18 : 0 }}>
+              <div style={groupHeaderStyle}>{group.header}</div>
+              <div className="flex flex-col" style={{ gap: 2 }}>
+                {group.items.map((item) => (
+                  <NavItem
+                    key={item.panel}
+                    panel={item.panel}
+                    label={item.label}
+                    active={activePanel === item.panel}
+                    accent={accent}
+                    onSelect={setActivePanel}
+                  />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Live agent status list */}
+        <div style={{ marginTop: 'auto', padding: '14px 12px 18px', borderTop: '1px solid var(--border)' }}>
+          <div style={{ ...groupHeaderStyle, padding: '0 5px', marginBottom: 10 }}>Agents</div>
+          <div className="flex flex-col" style={{ gap: 5 }}>
+            {rows.map((ag) => (
+              <button
+                key={ag.key}
+                onClick={() => setActivePanel('chat')}
+                className="flex w-full items-center justify-between"
+                style={{
+                  gap: 9,
+                  padding: '8px 11px',
+                  borderRadius: 10,
+                  background: 'rgba(255,255,255,0.028)',
+                  border: '1px solid rgba(255,255,255,0.07)',
+                  cursor: 'pointer',
+                  transition: 'border-color 0.15s',
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.16)')}
+                onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)')}
+              >
+                <span className="flex min-w-0 items-center" style={{ gap: 9 }}>
+                  <span
+                    className="flex-none"
+                    style={{ width: 7, height: 7, borderRadius: '50%', background: ag.dot, boxShadow: ag.dotGlow }}
+                  />
+                  <span
+                    className="mono overflow-hidden text-ellipsis whitespace-nowrap"
+                    style={{ fontSize: 11.5, fontWeight: 500, color: '#c6cad8' }}
+                  >
+                    {ag.name}
+                  </span>
+                </span>
+                <span
+                  className="flex-none"
+                  style={{
+                    fontSize: 9,
+                    fontWeight: 700,
+                    letterSpacing: '0.05em',
+                    padding: '2px 7px',
+                    borderRadius: 99,
+                    color: ag.badgeColor,
+                    background: ag.badgeBg,
+                  }}
+                >
+                  {ag.badge}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </nav>
+
+      {/* Main content */}
+      <main className="flex flex-1 flex-col" style={{ minWidth: 0, minHeight: 0 }}>
+        {activePanel === 'overview' ? <Overview accent={accent} /> : <Placeholder name={PANEL_LABELS[activePanel]} />}
+      </main>
+    </div>
+  )
+}
