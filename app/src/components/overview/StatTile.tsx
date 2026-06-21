@@ -4,15 +4,17 @@ import { PathIcon } from '../icons'
 
 interface StatTileProps {
   stat: StatTileData
+  onClick?: () => void
 }
 
-export default function StatTile({ stat }: StatTileProps) {
+export default function StatTile({ stat, onClick }: StatTileProps) {
   const [hover, setHover] = useState(false)
   // Glow position within the tile; starts at the data-driven resting point.
   const [glow, setGlow] = useState<{ x: string; y: string }>({ x: stat.glowX, y: stat.glowY })
 
   return (
     <div
+      onClick={onClick}
       onMouseMove={(e) => {
         const r = e.currentTarget.getBoundingClientRect()
         setGlow({ x: `${e.clientX - r.left}px`, y: `${e.clientY - r.top}px` })

@@ -1,11 +1,13 @@
 import { useMemo, useState } from 'react'
 import { buildOverview } from '../../data/overview'
+import { tileBlurb } from '../../data/info'
 import { ChevronDown, MachineIcon } from '../icons'
 import StatTile from '../overview/StatTile'
 import Sparkline from '../overview/Sparkline'
 import SwarmCanvas from '../overview/SwarmCanvas'
 import { useSystemMonitor } from '../overview/useSystemMonitor'
 import type { MachineId } from '../overview/useSystemMonitor'
+import { useInfo } from '../TileInfoDrawer'
 
 interface OverviewProps {
   accent: string
@@ -27,6 +29,7 @@ export default function Overview({ accent }: OverviewProps) {
   const ov = useMemo(() => buildOverview(accent), [accent])
   const sys = useSystemMonitor()
   const [sysMenu, setSysMenu] = useState(false)
+  const { openInfo } = useInfo()
 
   return (
     <div className="flex flex-1 flex-col" style={{ minHeight: 0 }}>
@@ -74,13 +77,45 @@ export default function Overview({ accent }: OverviewProps) {
           {/* Stat tiles */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12 }}>
             {ov.stats.map((st) => (
-              <StatTile key={st.label} stat={st} />
+              <StatTile
+                key={st.label}
+                stat={st}
+                onClick={() =>
+                  openInfo({
+                    category: 'Overview metric',
+                    title: st.label,
+                    value: st.value,
+                    accent: st.accent,
+                    desc: tileBlurb(st.label),
+                    stats: [
+                      { label: 'Current value', value: st.value },
+                      { label: 'Tenants', value: 'all' },
+                    ],
+                    actionLabel: st.sub,
+                  })
+                }
+              />
             ))}
           </div>
 
           {/* Agent breakdown + activity heatmap (two agent cards) */}
           <div style={{ display: 'grid', gridTemplateColumns: 'minmax(280px, 1fr) minmax(360px, 1.3fr)', gap: 16 }}>
-            <div style={{ background: 'var(--s3)', border: '1px solid var(--border)', borderRadius: 14, padding: 18 }}>
+            <div
+              onClick={() =>
+                openInfo({
+                  category: 'Overview · Chart',
+                  title: 'Agent Breakdown',
+                  accent,
+                  desc: 'How currently tracked tasks are distributed across the worker fleet. Larger arcs mean an agent is carrying more of the active load.',
+                  stats: [
+                    { label: 'Total tasks', value: ov.ringTotal },
+                    { label: 'Agents', value: String(ov.breakdown.length) },
+                    { label: 'Busiest', value: ov.breakdown[0]?.name ?? '—' },
+                  ],
+                })
+              }
+              style={{ background: 'var(--s3)', border: '1px solid var(--border)', borderRadius: 14, padding: 18, cursor: 'pointer' }}
+            >
               <div style={{ ...cardLabelStyle, marginBottom: 14 }}>Agent Breakdown</div>
               <div className="flex flex-wrap items-center" style={{ gap: 18 }}>
                 <div style={{ position: 'relative', width: 168, height: 168, flex: 'none' }}>
@@ -108,7 +143,22 @@ export default function Overview({ accent }: OverviewProps) {
               </div>
             </div>
 
-            <div style={{ background: 'var(--s3)', border: '1px solid var(--border)', borderRadius: 14, padding: 18 }}>
+            <div
+              onClick={() =>
+                openInfo({
+                  category: 'Overview · Chart',
+                  title: 'Agent Activity Heatmap',
+                  accent: '#2dd4bf',
+                  desc: 'Per-agent activity intensity over the last 24 hours. Brighter cells are hours with more dispatched work.',
+                  stats: [
+                    { label: 'Window', value: 'Last 24h' },
+                    { label: 'Resolution', value: 'Hourly' },
+                    { label: 'Peak hour', value: '14:00' },
+                  ],
+                })
+              }
+              style={{ background: 'var(--s3)', border: '1px solid var(--border)', borderRadius: 14, padding: 18, cursor: 'pointer' }}
+            >
               <div className="flex items-center justify-between" style={{ marginBottom: 16 }}>
                 <div style={cardLabelStyle}>Agent Activity Heatmap</div>
                 <span style={{ fontSize: 10.5, color: '#2dd4bf', background: 'rgba(45,212,191,0.1)', border: '1px solid rgba(45,212,191,0.28)', borderRadius: 6, padding: '2px 8px' }}>Last 24h</span>
@@ -182,7 +232,23 @@ export default function Overview({ accent }: OverviewProps) {
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                 {sys.metrics.map((m) => (
-                  <div key={m.key} style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 10, padding: '9px 11px 7px' }}>
+                  <div
+                    key={m.key}
+                    onClick={() =>
+                      openInfo({
+                        category: `System monitor · ${sys.machineLabel}`,
+                        title: m.label,
+                        value: `${m.cur} ${m.unit}`,
+                        accent: m.stroke,
+                        desc: tileBlurb(m.label),
+                        stats: [
+                          { label: 'Current', value: `${m.cur} ${m.unit}` },
+                          { label: 'Machine', value: sys.machineLabel },
+                        ],
+                      })
+                    }
+                    style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 10, padding: '9px 11px 7px', cursor: 'pointer' }}
+                  >
                     <div className="flex items-center justify-between">
                       <span className="inline-flex items-center" style={{ gap: 6, fontSize: 11, color: '#9298ab' }}>
                         <span style={{ width: 6, height: 6, borderRadius: '50%', background: m.dot }} />
@@ -233,7 +299,22 @@ export default function Overview({ accent }: OverviewProps) {
             </div>
 
             {/* Agent swarm */}
-            <div className="relative overflow-hidden" style={{ background: 'var(--s3)', border: '1px solid var(--border)', borderRadius: 14, minHeight: 286 }}>
+            <div
+              onClick={() =>
+                openInfo({
+                  category: 'Overview · Live',
+                  title: 'Agent Swarm',
+                  accent: '#9b8cff',
+                  desc: 'A live particle field visualizing emergent coordination between agents. Denser clusters indicate agents collaborating on related tasks.',
+                  stats: [
+                    { label: 'Mode', value: 'Emergent' },
+                    { label: 'Agents', value: '5' },
+                  ],
+                })
+              }
+              className="relative overflow-hidden"
+              style={{ background: 'var(--s3)', border: '1px solid var(--border)', borderRadius: 14, minHeight: 286, cursor: 'pointer' }}
+            >
               <SwarmCanvas accent={accent} />
               <div className="relative flex items-center justify-between" style={{ zIndex: 1, padding: 18 }}>
                 <div className="inline-flex items-center" style={{ gap: 8 }}>

@@ -38,6 +38,12 @@ const NAV_PATHS: Record<PanelId, React.ReactNode> = {
     </>
   ),
   insights: <path d="M18 20V10M12 20V4M6 20v-6" />,
+  sessions: (
+    <>
+      <rect x="3" y="4" width="18" height="14" rx="2" />
+      <path d="M3 9h18M8 21h8" />
+    </>
+  ),
   profiles: (
     <>
       <circle cx="12" cy="8" r="4" />
