@@ -44,7 +44,7 @@ export default function Skills({ accent }: SkillsProps) {
   const [syncStatus, setSyncStatus] = useState<Record<string, string>>({})
 
   useEffect(() => {
-    fetch('/api/skills')
+    fetch('/api/skills?platform=telegram')
       .then((r) => r.json())
       .then((data: SkillSummary[]) => {
         setSkills(data)
@@ -57,7 +57,7 @@ export default function Skills({ accent }: SkillsProps) {
   const toggle = async (id: string) => {
     const newState = !enabled[id]
     try {
-      const res = await fetch(`/api/skills/${encodeURIComponent(id)}/enabled`, {
+      const res = await fetch(`/api/skills/${encodeURIComponent(id)}/enabled?platform=telegram`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ enabled: newState }),
