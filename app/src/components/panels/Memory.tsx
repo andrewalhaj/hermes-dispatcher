@@ -13,6 +13,8 @@ interface MemoryProps {
 interface FilesData {
   memory: string
   user: string
+  soul: string
+  agents: string
   memory_chars: number
   user_chars: number
   memory_cap: number
@@ -104,8 +106,12 @@ export default function Memory({ accent = ACCENT }: MemoryProps) {
   const [filesData, setFilesData] = useState<FilesData | null>(null)
   const [memContent, setMemContent] = useState('')
   const [userContent, setUserContent] = useState('')
+  const [soulContent, setSoulContent] = useState('')
+  const [agentsContent, setAgentsContent] = useState('')
   const [memStatus, setMemStatus] = useState('')
   const [userStatus, setUserStatus] = useState('')
+  const [soulStatus, setSoulStatus] = useState('')
+  const [agentsStatus, setAgentsStatus] = useState('')
 
   const onSelect = (node: MemNode) => setSel(galaxyDecor(node))
   // Keep canvas always mounted (hidden behind editor) so the RAF loop persists
@@ -129,6 +135,8 @@ export default function Memory({ accent = ACCENT }: MemoryProps) {
         setFilesData(d)
         setMemContent(d.memory)
         setUserContent(d.user)
+        setSoulContent(d.soul ?? '')
+        setAgentsContent(d.agents ?? '')
       })
       .catch(() => {/* leave empty on error */})
   }, [tab, filesData])
@@ -147,9 +155,11 @@ export default function Memory({ accent = ACCENT }: MemoryProps) {
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
-  const saveFile = async (file: 'memory' | 'user') => {
-    const content = file === 'memory' ? memContent : userContent
-    const setStatus = file === 'memory' ? setMemStatus : setUserStatus
+  const saveFile = async (file: 'memory' | 'user' | 'soul' | 'agents') => {
+    const contentMap = { memory: memContent, user: userContent, soul: soulContent, agents: agentsContent }
+    const statusSetters = { memory: setMemStatus, user: setUserStatus, soul: setSoulStatus, agents: setAgentsStatus }
+    const content = contentMap[file]
+    const setStatus = statusSetters[file]
     try {
       const res = await fetch('/api/memory/files', {
         method: 'PUT',
@@ -163,7 +173,9 @@ export default function Memory({ accent = ACCENT }: MemoryProps) {
         prev
           ? file === 'memory'
             ? { ...prev, memory_chars: data.chars }
-            : { ...prev, user_chars: data.chars }
+            : file === 'user'
+              ? { ...prev, user_chars: data.chars }
+              : prev
           : prev
       )
     } catch {
@@ -305,7 +317,7 @@ export default function Memory({ accent = ACCENT }: MemoryProps) {
         >
           <EditorPanel
             label="Memory"
-            subtitle="MEMORY.md"
+            subtitle="default · MEMORY.md"
             value={memContent}
             onChange={setMemContent}
             chars={memContent.length}
@@ -316,13 +328,35 @@ export default function Memory({ accent = ACCENT }: MemoryProps) {
           />
           <EditorPanel
             label="User Profile"
-            subtitle="USER.md"
+            subtitle="default · USER.md"
             value={userContent}
             onChange={setUserContent}
             chars={userContent.length}
             cap={filesData?.user_cap ?? 1375}
             status={userStatus}
             onSave={() => saveFile('user')}
+            accent={accent}
+          />
+          <EditorPanel
+            label="Soul"
+            subtitle="default · SOUL.md"
+            value={soulContent}
+            onChange={setSoulContent}
+            chars={soulContent.length}
+            cap={99999}
+            status={soulStatus}
+            onSave={() => saveFile('soul')}
+            accent={accent}
+          />
+          <EditorPanel
+            label="Agents"
+            subtitle="default · AGENTS.md"
+            value={agentsContent}
+            onChange={setAgentsContent}
+            chars={agentsContent.length}
+            cap={99999}
+            status={agentsStatus}
+            onSave={() => saveFile('agents')}
             accent={accent}
           />
         </div>
