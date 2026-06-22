@@ -160,7 +160,6 @@ export default function Chat({ accent }: ChatProps) {
   const [draft, setDraft] = useState('')
   const [running, setRunning] = useState(false)
   const [agentMenu, setAgentMenu] = useState(false)
-  const [histOpen, setHistOpen] = useState(false)
   const [viewSession, setViewSession] = useState<PastSession | null>(null)
   const [composerMenu, setComposerMenu] = useState<string | null>(null)
   const [profile, setProfile] = useState('default')
@@ -202,7 +201,6 @@ export default function Chat({ accent }: ChatProps) {
   const todayStr = new Date().toDateString()
 
   useEffect(() => {
-    if (viewSession) return
     const el = listRef.current
     if (el) el.scrollTop = el.scrollHeight
   }, [thread.length, running, viewSession])
@@ -505,71 +503,7 @@ export default function Chat({ accent }: ChatProps) {
             <span style={{ width: 7, height: 7, borderRadius: '50%', background: live.color, boxShadow: `0 0 7px ${live.color}` }} />
             {live.label}
           </span>
-          <div style={{ position: 'relative' }}>
-            <button
-              onClick={() => setHistOpen((v) => !v)}
-              title="Past sessions"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#161b27', color: '#9298ab', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '6px 11px', fontSize: 12, fontFamily: 'inherit', cursor: 'pointer' }}
-            >
-              <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                <path d="M3 3v5h5" />
-                <path d="M3.05 13A9 9 0 1 0 6 5.3L3 8" />
-                <path d="M12 7v5l4 2" />
-              </svg>
-              History
-              {pastList.length > 0 && <span className="mono" style={{ fontSize: 10, color: '#6a7088' }}>{pastList.length}</span>}
-            </button>
-            {histOpen && (
-              <>
-                <div onClick={() => setHistOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 20 }} />
-                <div style={{ position: 'absolute', right: 0, top: 'calc(100% + 7px)', width: 264, background: '#0c1119', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 12, overflow: 'hidden', boxShadow: '0 16px 44px rgba(0,0,0,0.6)', zIndex: 30, animation: 'hcmdin 0.16s cubic-bezier(0.16,1,0.3,1)' }}>
-                  <div style={{ padding: '10px 13px 6px', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.09em', color: '#565d72' }}>Past sessions</div>
-                  <div style={{ padding: 5, display: 'flex', flexDirection: 'column', gap: 2, maxHeight: 300, overflowY: 'auto' }}>
-                    {pastList.length === 0 ? (
-                      <div style={{ padding: '10px 11px', fontSize: 12, color: '#565d72' }}>No past sessions yet.</div>
-                    ) : (
-                      pastList.map((p) => (
-                        <div
-                          key={p.id}
-                          onClick={async () => {
-                            try {
-                              const res = await fetch(`/api/chat/sessions/${p.id}/messages`)
-                              const msgs = await res.json() as Message[]
-                              setViewSession({ ...p, msgs })
-                              localStorage.setItem('hermes-chat-last-session', p.id)
-                              setHistOpen(false)
-                            } catch (err) {
-                              console.error('Failed to load session messages:', err)
-                              setViewSession({ ...p, msgs: [] })
-                              localStorage.setItem('hermes-chat-last-session', p.id)
-                              setHistOpen(false)
-                            }
-                          }}
-                          style={{ display: 'flex', flexDirection: 'column', gap: 2, padding: '9px 11px', borderRadius: 9, cursor: 'pointer' }}
-                          onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.05)')}
-                          onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-                        >
-                          <span style={{ fontSize: 12.5, fontWeight: 500, color: '#e4e6ee' }}>{p.title}</span>
-                          <span style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 10.5, color: '#6a7088' }}>
-                            {p.when} <span style={{ color: '#3c4254' }}>·</span> {p.msgs.length} messages
-                          </span>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
-          <button
-            onClick={() => setThreads((s) => ({ ...s, [activeAgent]: [] }))}
-            title="Reset conversation"
-            style={{ background: '#161b27', color: '#9298ab', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '6px 12px', fontSize: 12, fontFamily: 'inherit', cursor: 'pointer' }}
-            onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#fb6f6f'; e.currentTarget.style.color = '#fb6f6f' }}
-            onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; e.currentTarget.style.color = '#9298ab' }}
-          >
-            Reset
-          </button>
+
         </div>
       </div>
 
