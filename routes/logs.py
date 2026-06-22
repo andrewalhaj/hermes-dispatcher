@@ -42,10 +42,18 @@ def _newest_log(directory: Path) -> Path | None:
 def _get_lines(source: str, lines: int) -> list[str]:
     if source == "hermes":
         log_dir = HERMES_HOME / "logs"
-        newest = _newest_log(log_dir)
-        if newest is None:
-            return []
-        return _tail(newest, lines)
+        # Prefer agent.log + gateway.log specifically; fall back to newest *.log
+        preferred = ["agent.log", "gateway.log"]
+        result: list[str] = []
+        for name in preferred:
+            p = log_dir / name
+            if p.exists():
+                result.extend(_tail(p, lines // len(preferred)))
+        if not result:
+            newest = _newest_log(log_dir)
+            if newest:
+                result = _tail(newest, lines)
+        return result
 
     if source == "kanban":
         log_dir = HERMES_HOME / "kanban" / "logs"
@@ -62,7 +70,7 @@ def _get_lines(source: str, lines: int) -> list[str]:
     if source == "system":
         try:
             proc = subprocess.run(
-                ["journalctl", "-u", "hermes-webui", "--no-pager", "-n", "100"],
+                ["journalctl", "-u", "hermes-dashboard", "--no-pager", "-n", "100"],
                 capture_output=True,
                 text=True,
                 timeout=10,
