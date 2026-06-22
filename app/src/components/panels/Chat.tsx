@@ -162,9 +162,9 @@ export default function Chat({ accent }: ChatProps) {
   const [agentMenu, setAgentMenu] = useState(false)
   const [viewSession, setViewSession] = useState<PastSession | null>(null)
   const [composerMenu, setComposerMenu] = useState<string | null>(null)
-  const [profile, setProfile] = useState('default')
-  const [model, setModel] = useState('Claude Sonnet 4.6')
-  const [reason, setReason] = useState('xhigh')
+  const [profile] = useState('default')
+  const [model, setModel] = useState(() => localStorage.getItem('hermes-chat-model') || 'Claude Sonnet 4.6')
+  const [reason, setReason] = useState(() => localStorage.getItem('hermes-chat-reason') || 'xhigh')
   const [planMainOpen, setPlanMainOpen] = useState<Record<string, boolean>>({})
   const [planStepOpen, setPlanStepOpen] = useState<Record<string, boolean>>({})
 
@@ -183,7 +183,7 @@ export default function Chat({ accent }: ChatProps) {
     : []
 
   const [sessionId] = useState(() => crypto.randomUUID())
-  const [profileOpts, setProfileOpts] = useState<string[]>(PROFILE_OPTIONS)
+  const [, setProfileOpts] = useState<string[]>(PROFILE_OPTIONS)
   const [modelOpts, setModelOpts] = useState<string[]>(MODEL_OPTIONS)
   const [hermesSessions, setHermesSessions] = useState<PastSession[] | null>(null)
 
@@ -722,21 +722,15 @@ export default function Chat({ accent }: ChatProps) {
               {composerMenu !== null && <div onClick={() => setComposerMenu(null)} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />}
 
               <ComposerDropdown
-                menuKey="profile" value={profile} options={profileOpts} open={composerMenu === 'profile'} variant="accent" minWidth={168}
-                onToggle={() => setComposerMenu((m) => (m === 'profile' ? null : 'profile'))}
-                onPick={(v) => { setProfile(v); setComposerMenu(null) }}
-                icon={<svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><circle cx={12} cy={8} r={4} /><path d="M4 21a8 8 0 0 1 16 0" /></svg>}
-              />
-              <ComposerDropdown
                 menuKey="model" value={model} options={modelOpts} open={composerMenu === 'model'} variant="pill" minWidth={190}
                 onToggle={() => setComposerMenu((m) => (m === 'model' ? null : 'model'))}
-                onPick={(v) => { setModel(v); setComposerMenu(null) }}
+                onPick={(v) => { setModel(v); localStorage.setItem('hermes-chat-model', v); setComposerMenu(null) }}
                 icon={<svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="#9298ab" strokeWidth={2}><circle cx={12} cy={12} r={3} /><path d="M12 2v3M12 19v3M2 12h3M19 12h3" /></svg>}
               />
               <ComposerDropdown
                 menuKey="reasoning" value={reason} options={REASON_OPTIONS} open={composerMenu === 'reasoning'} variant="pill" minWidth={160}
                 onToggle={() => setComposerMenu((m) => (m === 'reasoning' ? null : 'reasoning'))}
-                onPick={(v) => { setReason(v); setComposerMenu(null) }}
+                onPick={(v) => { setReason(v); localStorage.setItem('hermes-chat-reason', v); setComposerMenu(null) }}
                 icon={<svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="#9298ab" strokeWidth={2}><circle cx={12} cy={12} r={9} /><path d="M12 3v18" /></svg>}
               />
             </div>
