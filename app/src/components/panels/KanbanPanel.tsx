@@ -124,26 +124,6 @@ export default function KanbanPanel({ accent }: KanbanPanelProps) {
     })
   }
 
-  function runDispatcher() {
-    // Mock: promote up to 3 ready tasks → running, assigning round-robin workers.
-    const pool = ['swarm-worker-b', 'coder-d', 'coder-e']
-    let i = 0
-    let count = 0
-    setTasks((prev) =>
-      prev.map((t) => {
-        if (t.status === 'ready' && i < pool.length) {
-          count++
-          return { ...t, status: 'running' as LaneId, assignee: pool[i++], ageSec: 0 }
-        }
-        return t
-      }),
-    )
-    window.setTimeout(
-      () => show(count ? `Dispatched ${count} task${count > 1 ? 's' : ''} → Running` : 'Nothing to dispatch · no ready tasks'),
-      0,
-    )
-  }
-
   const dragging = !!draggingId
 
   return (
@@ -302,53 +282,7 @@ export default function KanbanPanel({ accent }: KanbanPanelProps) {
           </button>
         </div>
 
-        {/* Run dispatcher */}
-        <button
-          onClick={runDispatcher}
-          title="Run dispatcher"
-          className="inline-flex flex-none items-center justify-center"
-          style={{
-            width: 34,
-            height: 34,
-            background: accent,
-            color: '#1c1404',
-            border: 'none',
-            borderRadius: 8,
-            cursor: 'pointer',
-            boxShadow: `0 4px 14px color-mix(in oklab, ${accent} 28%, transparent)`,
-          }}
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="#1c1404">
-            <path d="M13 2L3 14h7v8l10-12h-7z" />
-          </svg>
-        </button>
 
-        {/* Filters (tenant) */}
-        <div className="relative">
-          <select
-            value={tenantFilter}
-            onChange={(e) => setTenantFilter(e.target.value)}
-            title="Filter by tenant"
-            style={{
-              background: '#11151f',
-              color: '#c6cad8',
-              border: '1px solid rgba(255,255,255,0.1)',
-              borderRadius: 8,
-              padding: '8px 13px',
-              fontSize: 12,
-              fontFamily: 'inherit',
-              cursor: 'pointer',
-              outline: 'none',
-            }}
-          >
-            <option value="all">All tenants</option>
-            {tenants.map((t) => (
-              <option key={t} value={t}>
-                {t}
-              </option>
-            ))}
-          </select>
-        </div>
       </div>
 
       {/* Lanes */}

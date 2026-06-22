@@ -14,6 +14,8 @@ REFS_DIR = HERMES_HOME / "references"
 
 MEMORY_FILE = MEMORIES_DIR / "MEMORY.md"
 USER_FILE = MEMORIES_DIR / "USER.md"
+SOUL_FILE = HERMES_HOME / "SOUL.md"
+AGENTS_FILE = HERMES_HOME / "AGENTS.md"
 
 MEMORY_CAP = 2200
 USER_CAP = 1375
@@ -92,9 +94,13 @@ def _parse_entries(text: str, tier: str, id_prefix: str) -> list[dict]:
 def get_files():
     memory_text = _read_safe(MEMORY_FILE)
     user_text = _read_safe(USER_FILE)
+    soul_text = _read_safe(SOUL_FILE)
+    agents_text = _read_safe(AGENTS_FILE)
     return {
         "memory": memory_text,
         "user": user_text,
+        "soul": soul_text,
+        "agents": agents_text,
         "memory_chars": len(memory_text),
         "user_chars": len(user_text),
         "memory_cap": MEMORY_CAP,
@@ -109,10 +115,16 @@ class PutFilesBody(BaseModel):
 
 @router.put("/files")
 def put_files(body: PutFilesBody):
-    if body.file not in ("memory", "user"):
-        raise HTTPException(status_code=400, detail="file must be 'memory' or 'user'")
+    if body.file not in ("memory", "user", "soul", "agents"):
+        raise HTTPException(status_code=400, detail="file must be 'memory', 'user', 'soul', or 'agents'")
 
-    target = MEMORY_FILE if body.file == "memory" else USER_FILE
+    targets = {
+        "memory": MEMORY_FILE,
+        "user": USER_FILE,
+        "soul": SOUL_FILE,
+        "agents": AGENTS_FILE,
+    }
+    target = targets[body.file]
 
     # Back up existing file before overwriting
     if target.exists():

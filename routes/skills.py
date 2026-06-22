@@ -6,7 +6,7 @@ from typing import Any
 from datetime import datetime
 
 import yaml
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 
 router = APIRouter()
@@ -25,18 +25,26 @@ def _parse_frontmatter(text: str) -> dict:
         return {}
 
 
-def _load_disabled_skills() -> set[str]:
-    """Load the set of disabled skill ids from config.yaml."""
+def _load_disabled_skills(platform: str | None = None) -> set[str]:
+    """Load the set of disabled skill ids from config.yaml.
+
+    Merges the global ``skills.disabled`` list with the platform-specific
+    ``skills.platform_disabled.<platform>`` list when ``platform`` is given.
+    """
     if not CONFIG_PATH.exists():
         return set()
     try:
         config = yaml.safe_load(CONFIG_PATH.read_text(encoding="utf-8"))
-        if config and "skills" in config and "disabled" in config["skills"]:
-            disabled = config["skills"]["disabled"]
-            return set(disabled) if isinstance(disabled, list) else set()
+        if not config:
+            return set()
+        sk = config.get("skills", {}) or {}
+        disabled = set(sk.get("disabled", []) or [])
+        if platform:
+            plat = sk.get("platform_disabled", {}) or {}
+            disabled |= set(plat.get(platform, []) or [])
+        return disabled
     except Exception:
-        pass
-    return set()
+        return set()
 
 
 def _set_disabled_skills(disabled_ids: set[str]) -> None:
@@ -112,9 +120,9 @@ def _skill_entry(skill_md: Path, disabled_ids: set[str]) -> dict[str, Any]:
 
 
 @router.get("/skills")
-async def list_skills() -> list[dict]:
+async def list_skills(platform: str = Query(default="telegram")) -> list[dict]:
     index = _build_index()
-    disabled_ids = _load_disabled_skills()
+    disabled_ids = _load_disabled_skills(platform=platform)
     results = []
     for skill_id, skill_md in index.items():
         try:
@@ -186,21 +194,43 @@ class ToggleBody(BaseModel):
 
 
 @router.put("/skills/{id}/enabled")
-async def toggle_skill(id: str, body: ToggleBody) -> dict:
-    """Enable or disable a skill by updating config.yaml."""
+async def toggle_skill(id: str, body: ToggleBody, platform: str = Query(default="telegram")) -> dict:
+    """Enable or disable a skill by updating config.yaml.
+
+    When ``platform`` is set (default ``telegram``), the toggle writes to
+    ``skills.platform_disabled.<platform>``. Pass an empty ``platform`` to
+    toggle the global ``skills.disabled`` list instead.
+    """
     index = _build_index()
     if id not in index:
         raise HTTPException(status_code=404, detail="Skill not found")
-    
-    disabled_ids = _load_disabled_skills()
-    if body.enabled:
-        # Remove from disabled list
-        disabled_ids.discard(id)
+
+    if not platform:
+        # Global toggle
+        disabled_ids = _load_disabled_skills()
+        if body.enabled:
+            disabled_ids.discard(id)
+        else:
+            disabled_ids.add(id)
+        _set_disabled_skills(disabled_ids)
     else:
-        # Add to disabled list
-        disabled_ids.add(id)
-    
-    _set_disabled_skills(disabled_ids)
+        # Platform-specific toggle
+        try:
+            config = yaml.safe_load(CONFIG_PATH.read_text(encoding="utf-8")) or {}
+            sk = config.setdefault("skills", {})
+            plat_disabled = sk.setdefault("platform_disabled", {})
+            plat_list = set(plat_disabled.get(platform, []) or [])
+            if body.enabled:
+                plat_list.discard(id)
+            else:
+                plat_list.add(id)
+            plat_disabled[platform] = sorted(list(plat_list))
+            CONFIG_PATH.write_text(yaml.dump(config, default_flow_style=False), encoding="utf-8")
+        except HTTPException:
+            raise
+        except Exception:
+            raise HTTPException(status_code=500, detail="Failed to update config.yaml")
+
     return {"ok": True, "enabled": body.enabled}
 
 

@@ -201,23 +201,18 @@ async def get_insights() -> dict:
         logger.error(f"top_skills: {e}", exc_info=True)
         result["top_skills"] = []
 
-    # tokens_input and tokens_output (from state.db messages)
+    # tokens from sessions table (messages.token_count is never populated)
     try:
         with sqlite3.connect(f"file:{_state_db()}?mode=ro", uri=True, check_same_thread=False) as conn:
-            # Try to get token counts from messages table if available
-            cur = conn.execute(
-                "SELECT SUM(CASE WHEN role='user' THEN token_count ELSE 0 END), "
-                "SUM(CASE WHEN role='assistant' THEN token_count ELSE 0 END) "
-                "FROM messages WHERE timestamp >= ? AND token_count IS NOT NULL",
-                (week_ago,),
-            )
-            row = cur.fetchone()
+            row = conn.execute(
+                "SELECT SUM(input_tokens), SUM(output_tokens) FROM sessions WHERE started_at >= ?",
+                (today_midnight,),
+            ).fetchone()
             result["tokens_input"] = int(row[0] or 0)
             result["tokens_output"] = int(row[1] or 0)
     except Exception as e:
         logger.error(f"tokens: {e}", exc_info=True)
-        # Fallback: estimate based on message counts
-        result["tokens_input"] = 5000 + (result.get("messages_today", 0) * 150)
-        result["tokens_output"] = 8000 + (result.get("messages_today", 0) * 250)
+        result["tokens_input"] = 0
+        result["tokens_output"] = 0
 
     return result

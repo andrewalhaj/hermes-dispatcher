@@ -44,7 +44,7 @@ export default function Skills({ accent }: SkillsProps) {
   const [syncStatus, setSyncStatus] = useState<Record<string, string>>({})
 
   useEffect(() => {
-    fetch('/api/skills')
+    fetch('/api/skills?platform=telegram')
       .then((r) => r.json())
       .then((data: SkillSummary[]) => {
         setSkills(data)
@@ -57,7 +57,7 @@ export default function Skills({ accent }: SkillsProps) {
   const toggle = async (id: string) => {
     const newState = !enabled[id]
     try {
-      const res = await fetch(`/api/skills/${encodeURIComponent(id)}/enabled`, {
+      const res = await fetch(`/api/skills/${encodeURIComponent(id)}/enabled?platform=telegram`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ enabled: newState }),
@@ -134,7 +134,7 @@ export default function Skills({ accent }: SkillsProps) {
     <div className="relative flex flex-1 flex-col" style={{ minWidth: 0, minHeight: 0 }}>
       <header style={{ flex: 'none', padding: '16px 26px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
         <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 20, color: 'var(--text-primary)' }}>Skills</div>
-        <div style={{ fontSize: 12, color: '#6a7088', marginTop: 2 }}>tools the agent can call — click a skill for details, toggle to enable</div>
+        <div style={{ fontSize: 12, color: '#6a7088', marginTop: 2 }}>tools the agent can call — click a skill for details, toggle to enable · <span style={{ color: '#f5a623' }}>changes take effect on next session</span></div>
       </header>
 
       <div className="flex-1 overflow-y-auto" style={{ minHeight: 0, padding: '22px 26px 32px' }}>
