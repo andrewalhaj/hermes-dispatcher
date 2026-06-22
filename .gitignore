@@ -1,1 +1,39 @@
+# ── Python (FastAPI backend) ────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# ── Node (root-level safety net; app/ has its own) ──────────
+node_modules/
+dist/
+dist-ssr/
+
+# ── Environment / secrets (NEVER commit) ────────────────────
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# ── Worker / task scratch artifacts ─────────────────────────
+.task_*
+PROMPT_*.md
+_verify_*.py
+*.log
+
+# ── Local databases (state lives in ~/.hermes, not the repo) ─
+*.db
+*.sqlite
+*.sqlite3
+
+# ── Editor / OS ─────────────────────────────────────────────
 .serena/
+.vscode/
+.idea/
+.DS_Store

@@ -1,4 +1,6 @@
-import { AG_STATUS, agentOps, fleetSummary } from '../../data/fleet'
+import { useState, useEffect } from 'react'
+import { AG_STATUS, agentOps, fleetSummary, fetchAgentOps, fetchFleetSummary } from '../../data/fleet'
+import type { AgentOp, FleetMetric } from '../../data/fleet'
 import { tileBlurb } from '../../data/info'
 import { useInfo } from '../TileInfoDrawer'
 
@@ -8,15 +10,33 @@ interface AgentsProps {
 
 export default function Agents({ accent }: AgentsProps) {
   const { openInfo } = useInfo()
-  const ops = agentOps(accent)
-  const summary = fleetSummary(accent)
+  const [ops, setOps] = useState<AgentOp[]>(() => agentOps(accent))
+  const [summary, setSummary] = useState<FleetMetric[]>(() => fleetSummary(accent))
+
+  useEffect(() => {
+    let cancelled = false
+
+    const refresh = async () => {
+      const [newOps, newSummary] = await Promise.all([fetchAgentOps(), fetchFleetSummary()])
+      if (cancelled) return
+      if (newOps.length > 0) setOps(newOps)
+      if (newSummary.length > 0) setSummary(newSummary)
+    }
+
+    refresh()
+    const interval = setInterval(refresh, 15_000)
+    return () => {
+      cancelled = true
+      clearInterval(interval)
+    }
+  }, [])
 
   return (
     <div className="flex flex-1 flex-col" style={{ minWidth: 0, minHeight: 0 }}>
       <header style={{ flex: 'none', padding: '16px 26px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
         <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 20, color: 'var(--text-primary)' }}>Agent operations</div>
         <div style={{ fontSize: 12, color: '#6a7088', marginTop: 2 }}>
-          Live status across the worker pool — Hermes, rvc-runner, atlas-etl, npc-builder, ops-bot.
+          Live status across the worker pool — Hermes, executor, coder-c, coder-d, coder-e.
         </div>
       </header>
 

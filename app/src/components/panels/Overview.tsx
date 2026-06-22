@@ -1,13 +1,12 @@
-import { useMemo, useState } from 'react'
-import { buildOverview } from '../../data/overview'
+import { useMemo } from 'react'
+import { buildOverview, PALETTE } from '../../data/overview'
 import { tileBlurb } from '../../data/info'
-import { ChevronDown, MachineIcon } from '../icons'
 import StatTile from '../overview/StatTile'
 import Sparkline from '../overview/Sparkline'
 import SwarmCanvas from '../overview/SwarmCanvas'
 import { useSystemMonitor } from '../overview/useSystemMonitor'
-import type { MachineId } from '../overview/useSystemMonitor'
 import { useInfo } from '../TileInfoDrawer'
+import { useOverviewData } from '../overview/useOverviewData'
 
 interface OverviewProps {
   accent: string
@@ -20,15 +19,23 @@ const cardLabelStyle: React.CSSProperties = {
   color: 'var(--text-faint)',
 }
 
-const MACHINES: { key: MachineId; label: string }[] = [
-  { key: 'studio', label: 'Mac Studio' },
-  { key: 'mini', label: 'Mac Mini' },
-]
-
 export default function Overview({ accent }: OverviewProps) {
-  const ov = useMemo(() => buildOverview(accent), [accent])
-  const sys = useSystemMonitor()
-  const [sysMenu, setSysMenu] = useState(false)
+  const live = useOverviewData()
+  const ov = useMemo(
+    () =>
+      buildOverview(accent, {
+        sparklineCounts: live.sparkline.map((s) => s.count),
+        activeAgents: live.active_agents,
+        running: live.kanban_summary.running,
+        ready: live.kanban_summary.ready,
+        blocked: live.kanban_summary.blocked,
+        totalTasks: live.total_tasks,
+        agentBreakdown: live.agent_breakdown,
+        agentActivity: live.agent_activity,
+      }),
+    [accent, live],
+  )
+  const sys = useSystemMonitor(live.system)
   const { openInfo } = useInfo()
 
   return (
@@ -87,10 +94,7 @@ export default function Overview({ accent }: OverviewProps) {
                     value: st.value,
                     accent: st.accent,
                     desc: tileBlurb(st.label),
-                    stats: [
-                      { label: 'Current value', value: st.value },
-                      { label: 'Tenants', value: 'all' },
-                    ],
+                    stats: [{ label: 'Current value', value: st.value }],
                     actionLabel: st.sub,
                   })
                 }
@@ -98,7 +102,7 @@ export default function Overview({ accent }: OverviewProps) {
             ))}
           </div>
 
-          {/* Agent breakdown + activity heatmap (two agent cards) */}
+          {/* Agent breakdown + activity heatmap */}
           <div style={{ display: 'grid', gridTemplateColumns: 'minmax(280px, 1fr) minmax(360px, 1.3fr)', gap: 16 }}>
             <div
               onClick={() =>
@@ -143,49 +147,50 @@ export default function Overview({ accent }: OverviewProps) {
               </div>
             </div>
 
-            <div
-              onClick={() =>
-                openInfo({
-                  category: 'Overview · Chart',
-                  title: 'Agent Activity Heatmap',
-                  accent: '#2dd4bf',
-                  desc: 'Per-agent activity intensity over the last 24 hours. Brighter cells are hours with more dispatched work.',
-                  stats: [
-                    { label: 'Window', value: 'Last 24h' },
-                    { label: 'Resolution', value: 'Hourly' },
-                    { label: 'Peak hour', value: '14:00' },
-                  ],
-                })
-              }
-              style={{ background: 'var(--s3)', border: '1px solid var(--border)', borderRadius: 14, padding: 18, cursor: 'pointer' }}
-            >
-              <div className="flex items-center justify-between" style={{ marginBottom: 16 }}>
-                <div style={cardLabelStyle}>Agent Activity Heatmap</div>
-                <span style={{ fontSize: 10.5, color: '#2dd4bf', background: 'rgba(45,212,191,0.1)', border: '1px solid rgba(45,212,191,0.28)', borderRadius: 6, padding: '2px 8px' }}>Last 24h</span>
-              </div>
-              <div className="flex flex-col" style={{ gap: 7 }}>
-                {ov.heatRows.map((row) => (
-                  <div key={row.key} className="flex items-center" style={{ gap: 10 }}>
-                    <div className="flex flex-none items-center" style={{ width: 92, gap: 6 }}>
-                      <span style={{ color: row.color }}>{row.icon}</span>
-                      <b className="mono overflow-hidden text-ellipsis whitespace-nowrap" style={{ fontSize: 10.5, fontWeight: 500, color: '#aeb3c4' }}>{row.name}</b>
+            {ov.heatRows.length > 0 && (
+              <div
+                onClick={() =>
+                  openInfo({
+                    category: 'Overview · Chart',
+                    title: 'Agent Activity Heatmap',
+                    accent: '#2dd4bf',
+                    desc: 'Per-agent activity intensity over the last 24 hours. Brighter cells are hours with more dispatched work.',
+                    stats: [
+                      { label: 'Window', value: 'Last 24h' },
+                      { label: 'Resolution', value: 'Hourly' },
+                    ],
+                  })
+                }
+                style={{ background: 'var(--s3)', border: '1px solid var(--border)', borderRadius: 14, padding: 18, cursor: 'pointer' }}
+              >
+                <div className="flex items-center justify-between" style={{ marginBottom: 16 }}>
+                  <div style={cardLabelStyle}>Agent Activity Heatmap</div>
+                  <span style={{ fontSize: 10.5, color: '#2dd4bf', background: 'rgba(45,212,191,0.1)', border: '1px solid rgba(45,212,191,0.28)', borderRadius: 6, padding: '2px 8px' }}>Last 24h</span>
+                </div>
+                <div className="flex flex-col" style={{ gap: 7 }}>
+                  {ov.heatRows.map((row) => (
+                    <div key={row.key} className="flex items-center" style={{ gap: 10 }}>
+                      <div className="flex flex-none items-center" style={{ width: 92, gap: 6 }}>
+                        <span style={{ color: row.color }}>{row.icon}</span>
+                        <b className="mono overflow-hidden text-ellipsis whitespace-nowrap" style={{ fontSize: 10.5, fontWeight: 500, color: '#aeb3c4' }}>{row.name}</b>
+                      </div>
+                      <div className="flex-1" style={{ display: 'grid', gridTemplateColumns: 'repeat(24, 1fr)', gap: 2 }}>
+                        {row.cells.map((c, i) => (
+                          <div key={i} style={{ aspectRatio: '1', borderRadius: 2, background: c.bg, animation: `hcellin 0.45s ease backwards`, animationDelay: c.delay }} />
+                        ))}
+                      </div>
                     </div>
-                    <div className="flex-1" style={{ display: 'grid', gridTemplateColumns: 'repeat(24, 1fr)', gap: 2 }}>
-                      {row.cells.map((c, i) => (
-                        <div key={i} style={{ aspectRatio: '1', borderRadius: 2, background: c.bg, animation: `hcellin 0.45s ease backwards`, animationDelay: c.delay }} />
-                      ))}
-                    </div>
-                  </div>
-                ))}
-                <div className="flex items-center justify-end" style={{ gap: 6, marginTop: 4, fontSize: 10, color: 'var(--text-faint)' }}>
-                  <span>Less</span>
-                  {['rgba(255,255,255,0.04)', `color-mix(in oklab, ${accent} 26%, transparent)`, `color-mix(in oklab, ${accent} 48%, transparent)`, `color-mix(in oklab, ${accent} 72%, transparent)`, accent].map((bg, i) => (
-                    <span key={i} style={{ width: 11, height: 11, borderRadius: 2, background: bg }} />
                   ))}
-                  <span>More</span>
+                  <div className="flex items-center justify-end" style={{ gap: 6, marginTop: 4, fontSize: 10, color: 'var(--text-faint)' }}>
+                    <span>Less</span>
+                    {['rgba(255,255,255,0.04)', `color-mix(in oklab, ${accent} 26%, transparent)`, `color-mix(in oklab, ${accent} 48%, transparent)`, `color-mix(in oklab, ${accent} 72%, transparent)`, accent].map((bg, i) => (
+                      <span key={i} style={{ width: 11, height: 11, borderRadius: 2, background: bg }} />
+                    ))}
+                    <span>More</span>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
 
           {/* System monitor + swarm */}
@@ -197,37 +202,7 @@ export default function Overview({ accent }: OverviewProps) {
                   <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#4ade80', boxShadow: '0 0 7px #4ade80', animation: 'blink 2s ease-in-out infinite' }} />
                   <span style={cardLabelStyle}>System Monitor</span>
                 </div>
-                <div className="relative">
-                  <button
-                    onClick={() => setSysMenu((v) => !v)}
-                    className="inline-flex items-center"
-                    style={{ gap: 6, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 20, padding: '4px 10px', fontSize: 11.5, fontWeight: 600, color: '#c6cad8', fontFamily: 'inherit', cursor: 'pointer' }}
-                  >
-                    <MachineIcon />
-                    {sys.machineLabel}
-                    <ChevronDown />
-                  </button>
-                  {sysMenu && (
-                    <div style={{ position: 'absolute', right: 0, top: '100%', marginTop: 6, background: 'var(--s2)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 11, overflow: 'hidden', boxShadow: '0 14px 40px rgba(0,0,0,0.6)', zIndex: 20, minWidth: 140, animation: 'hcmdin 0.15s ease' }}>
-                      {MACHINES.map((m) => (
-                        <div
-                          key={m.key}
-                          onClick={() => {
-                            sys.setMachine(m.key)
-                            setSysMenu(false)
-                          }}
-                          className="flex items-center"
-                          style={{ gap: 8, padding: '9px 12px', fontSize: 12.5, color: '#d4d8e4', cursor: 'pointer', background: m.key === sys.machine ? `color-mix(in oklab, ${accent} 12%, transparent)` : 'transparent' }}
-                          onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.05)')}
-                          onMouseLeave={(e) => (e.currentTarget.style.background = m.key === sys.machine ? `color-mix(in oklab, ${accent} 12%, transparent)` : 'transparent')}
-                        >
-                          <MachineIcon />
-                          {m.label}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>{sys.hostLabel}</span>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
@@ -236,15 +211,12 @@ export default function Overview({ accent }: OverviewProps) {
                     key={m.key}
                     onClick={() =>
                       openInfo({
-                        category: `System monitor · ${sys.machineLabel}`,
+                        category: 'System monitor',
                         title: m.label,
-                        value: `${m.cur} ${m.unit}`,
+                        value: `${m.cur}${m.unit}`,
                         accent: m.stroke,
                         desc: tileBlurb(m.label),
-                        stats: [
-                          { label: 'Current', value: `${m.cur} ${m.unit}` },
-                          { label: 'Machine', value: sys.machineLabel },
-                        ],
+                        stats: [{ label: 'Current', value: `${m.cur}${m.unit}` }],
                       })
                     }
                     style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 10, padding: '9px 11px 7px', cursor: 'pointer' }}
@@ -254,14 +226,14 @@ export default function Overview({ accent }: OverviewProps) {
                         <span style={{ width: 6, height: 6, borderRadius: '50%', background: m.dot }} />
                         {m.label}
                       </span>
-                      <span className="mono" style={{ fontSize: 11.5, color: m.valColor }}>{m.cur} {m.unit}</span>
+                      <span className="mono" style={{ fontSize: 11.5, color: m.valColor }}>{m.cur}{m.unit}</span>
                     </div>
                     <Sparkline line={m.line} area={m.area} stroke={m.stroke} fill={m.fill} />
                   </div>
                 ))}
               </div>
 
-              {/* System memory */}
+              {/* Memory % sparkline */}
               <div className="flex items-center" style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border)', gap: 11 }}>
                 <span className="inline-flex flex-none items-center justify-center" style={{ width: 32, height: 32, borderRadius: 9, background: 'rgba(251,111,111,0.12)', border: '1px solid rgba(251,111,111,0.28)', color: '#fb6f6f' }}>
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
@@ -271,31 +243,32 @@ export default function Overview({ accent }: OverviewProps) {
                 </span>
                 <div className="flex-1" style={{ minWidth: 0 }}>
                   <div className="flex items-center justify-between">
-                    <span style={{ fontSize: 12, color: '#c6cad8' }}>System Memory</span>
-                    <span className="mono" style={{ fontSize: 12, color: '#e4e6ee' }}>{sys.mem.cur} GB</span>
+                    <span style={{ fontSize: 12, color: '#c6cad8' }}>Memory %</span>
+                    <span className="mono" style={{ fontSize: 12, color: '#e4e6ee' }}>{sys.mem.cur}%</span>
                   </div>
                   <Sparkline line={sys.mem.line} area={sys.mem.area} stroke="#fb6f6f" fill={sys.mem.fill} height={22} />
                 </div>
               </div>
 
-              {/* Per-agent memory */}
-              <div style={{ marginTop: 12 }}>
-                <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-faint)', marginBottom: 9 }}>Per-Agent Memory</div>
-                <div className="flex flex-col" style={{ gap: 9 }}>
-                  {sys.agents.map((a) => (
-                    <div key={a.key} className="flex items-center" style={{ gap: 10 }}>
-                      <span className="flex-none" style={{ width: 8, height: 8, borderRadius: '50%', background: a.color }} />
-                      <div className="flex-1" style={{ minWidth: 0 }}>
-                        <div className="flex items-center justify-between">
-                          <span style={{ fontSize: 12, color: '#c6cad8' }}>{a.name}</span>
-                          <span className="mono" style={{ fontSize: 11.5, color: '#fb6f6f' }}>{a.cur}MB</span>
+              {/* Per-agent memory — hidden when list is empty */}
+              {live.agent_memory.length > 0 && (
+                <div style={{ marginTop: 12 }}>
+                  <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-faint)', marginBottom: 9 }}>Per-Agent Memory</div>
+                  <div className="flex flex-col" style={{ gap: 9 }}>
+                    {live.agent_memory.map((a, i) => (
+                      <div key={a.name} className="flex items-center" style={{ gap: 10 }}>
+                        <span className="flex-none" style={{ width: 8, height: 8, borderRadius: '50%', background: PALETTE[i % PALETTE.length] }} />
+                        <div className="flex-1" style={{ minWidth: 0 }}>
+                          <div className="flex items-center justify-between">
+                            <span style={{ fontSize: 12, color: '#c6cad8' }}>{a.name}</span>
+                            <span className="mono" style={{ fontSize: 11.5, color: '#fb6f6f' }}>{a.rss_mb}MB</span>
+                          </div>
                         </div>
-                        <Sparkline line={a.line} area={a.area} stroke={a.color} fill={a.fill} height={15} />
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Agent swarm */}
@@ -306,10 +279,7 @@ export default function Overview({ accent }: OverviewProps) {
                   title: 'Agent Swarm',
                   accent: '#9b8cff',
                   desc: 'A live particle field visualizing emergent coordination between agents. Denser clusters indicate agents collaborating on related tasks.',
-                  stats: [
-                    { label: 'Mode', value: 'Emergent' },
-                    { label: 'Agents', value: '5' },
-                  ],
+                  stats: [{ label: 'Agents', value: String(live.active_agents) }],
                 })
               }
               className="relative overflow-hidden"

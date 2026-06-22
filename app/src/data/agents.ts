@@ -5,10 +5,10 @@ export const ACCENT = '#f6b73c'
 /** Worker fleet — mirrors the prototype's CHAT_AGENTS. */
 export const CHAT_AGENTS: ChatAgent[] = [
   { key: 'hermes', name: 'Hermes', role: 'Coordinator', platform: 'Dispatcher', icon: '⚕', color: ACCENT, status: 'online' },
-  { key: 'rvc-runner', name: 'rvc-runner', role: 'GPU bench', platform: 'voice-rt', icon: '◆', color: '#2dd4bf', status: 'online', running: true },
-  { key: 'atlas-etl', name: 'atlas-etl', role: 'ETL worker', platform: 'atlas-crm', icon: '▣', color: '#5aa2f0', status: 'online', running: true },
-  { key: 'npc-builder', name: 'npc-builder', role: 'Content', platform: 'dm-voice-board', icon: '❖', color: '#9b8cff', status: 'idle' },
-  { key: 'ops-bot', name: 'ops-bot', role: 'Infra', platform: 'internal', icon: '⬢', color: '#4ade80', status: 'idle' },
+  { key: 'executor', name: 'executor', role: 'GPU bench', platform: 'voice-rt', icon: '◆', color: '#2dd4bf', status: 'online', running: true },
+  { key: 'coder-c', name: 'coder-c', role: 'ETL worker', platform: 'atlas-crm', icon: '▣', color: '#5aa2f0', status: 'online', running: true },
+  { key: 'coder-d', name: 'coder-d', role: 'Content', platform: 'dm-voice-board', icon: '❖', color: '#9b8cff', status: 'idle' },
+  { key: 'coder-e', name: 'coder-e', role: 'Infra', platform: 'internal', icon: '⬢', color: '#4ade80', status: 'idle' },
 ]
 
 /** Resolve each agent's live-status pill for the left-rail AGENTS list. */

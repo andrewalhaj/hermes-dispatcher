@@ -10,6 +10,7 @@ export type PanelId =
   | 'sessions'
   | 'profiles'
   | 'settings'
+  | 'workspace'
 
 export type AgentStatus = 'online' | 'idle'
 

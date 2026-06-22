@@ -1,0 +1,122 @@
+"""
+Hermes Dispatcher — FastAPI backend
+====================================
+Serves the built React/Vite SPA from app/dist/ and exposes a JSON API
+under /api/*.
+
+Other /api/* routes are filled in by parallel worker cards — add routers via:
+    from <module> import router as <name>_router
+    app.include_router(<name>_router, prefix="/api")
+Keep the include_router structure intact so cards can append routers here.
+"""
+
+import os
+import mimetypes
+from pathlib import Path
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, PlainTextResponse
+from fastapi.routing import APIRouter
+
+# ---------------------------------------------------------------------------
+# Paths
+# ---------------------------------------------------------------------------
+HERMES_HOME: str = os.environ.get("HERMES_HOME", "/root/.hermes")
+KANBAN_DB: Path = Path(HERMES_HOME) / "kanban.db"
+STATE_DB: Path = Path(HERMES_HOME) / "state.db"
+
+APP_DIR: Path = Path(__file__).resolve().parent
+DIST_DIR: Path = APP_DIR / "app" / "dist"
+
+# ---------------------------------------------------------------------------
+# App
+# ---------------------------------------------------------------------------
+app = FastAPI(title="Hermes Dispatcher", version="0.1.0")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# ---------------------------------------------------------------------------
+# /api router
+# ---------------------------------------------------------------------------
+api_router = APIRouter(prefix="/api")
+
+
+@api_router.get("/health")
+async def health() -> dict:
+    return {"ok": True}
+
+
+# Register /api routes BEFORE the catch-all so they are never shadowed.
+app.include_router(api_router)
+
+from routes.logs import router as logs_router
+app.include_router(logs_router, prefix="/api")
+
+from routes.settings import router as settings_router
+app.include_router(settings_router, prefix="/api")
+
+from routes.insights import router as insights_router
+app.include_router(insights_router, prefix="/api")
+
+from routes.skills import router as skills_router
+app.include_router(skills_router, prefix="/api")
+
+from routes.sessions import router as sessions_router
+app.include_router(sessions_router, prefix="/api")
+
+from routes.agents import router as agents_router
+app.include_router(agents_router)
+
+from routes.overview import router as overview_router
+app.include_router(overview_router, prefix="/api")
+
+from routes.workspace import router as workspace_router
+app.include_router(workspace_router, prefix="/api")
+
+from routes.memory import router as memory_router
+app.include_router(memory_router)
+
+from routes.chat import chat_router
+app.include_router(chat_router)
+
+from routes.kanban import router as kanban_router
+app.include_router(kanban_router)
+
+# ---------------------------------------------------------------------------
+# SPA static file fallback
+# Must be registered AFTER all /api routes.
+# ---------------------------------------------------------------------------
+
+@app.get("/{full_path:path}", include_in_schema=False, response_model=None)
+async def spa_fallback(full_path: str) -> FileResponse | PlainTextResponse:
+    index = DIST_DIR / "index.html"
+
+    # Try to serve a real file from dist/ first (JS, CSS, assets, etc.)
+    candidate = DIST_DIR / full_path
+    if candidate.is_file():
+        media_type, _ = mimetypes.guess_type(str(candidate))
+        return FileResponse(candidate, media_type=media_type or "application/octet-stream")
+
+    # Always fall back to index.html for client-side routing
+    if index.is_file():
+        return FileResponse(index, media_type="text/html")
+
+    return PlainTextResponse(
+        "Frontend not built yet — run: cd app && npm install && npm run build",
+        status_code=503,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Entrypoint
+# ---------------------------------------------------------------------------
+if __name__ == "__main__":
+    import uvicorn  # imported locally so it doesn't execute on import
+
+    uvicorn.run(app, host="0.0.0.0", port=8000)

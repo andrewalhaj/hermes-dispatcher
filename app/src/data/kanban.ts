@@ -53,21 +53,21 @@ export function seedTasks(): Task[] {
     { id: 't1', title: 'POC: w-okada install + 3070 latency gate', priority: 8, ageSec: 7200, status: 'ready', tenant: 'dm-voice-board', assignee: null, skills: ['voice-rt'], branch: 'poc/latency-gate', desc: "GO/NO-GO gate. Install w-okada one-click on the DM's Windows 3070 laptop, latency-test one stock RVC model (speak → hear), set output = room speaker + mic = headset, confirm no feedback. Prove latency BEFORE building any NPC content." },
     { id: 't2', title: 'First hero NPC: end-to-end proof', priority: 6, ageSec: 12000, status: 'blocked', tenant: 'dm-voice-board', assignee: null, skills: ['voice-rt', 'content'], branch: '', desc: 'Single NPC, full loop: reference audio → trained voice → live conversion in session. Gated on the latency POC passing.' },
     { id: 't3', title: 'Build the board: hero voices + runtime tuning', priority: 5, ageSec: 95000, status: 'blocked', tenant: 'dm-voice-board', assignee: null, skills: ['content'], branch: '', desc: 'Stand up the full voice board with all hero voices and per-voice runtime tuning. Gated on the hero NPC proof.' },
-    { id: 't4', title: 'Design spec: real-time RVC pipeline', priority: 7, ageSec: 25200, status: 'done', tenant: 'dm-voice-board', assignee: 'npc-builder', skills: ['content'], branch: '', desc: 'Full design doc covering capture, training, routing, and the latency gate.' },
+    { id: 't4', title: 'Design spec: real-time RVC pipeline', priority: 7, ageSec: 25200, status: 'done', tenant: 'dm-voice-board', assignee: 'coder-d', skills: ['content'], branch: '', desc: 'Full design doc covering capture, training, routing, and the latency gate.' },
     { id: 't5', title: 'Triage incoming latency reports', priority: 4, ageSec: 5400, status: 'triage', tenant: 'dm-voice-board', assignee: null, skills: [], branch: '', desc: 'Sort and label new latency reports from playtesters.' },
     { id: 't6', title: 'Capture clean reference audio (3 voices)', priority: 5, ageSec: 9000, status: 'todo', tenant: 'dm-voice-board', assignee: null, skills: ['content'], branch: '', desc: 'Record 3 NPC reference voices, treated room, 48kHz, ~5 min each.' },
     { id: 't7', title: 'Mic routing: VB-Cable + headset isolation', priority: 6, ageSec: 4800, status: 'ready', tenant: 'dm-voice-board', assignee: null, skills: ['voice-rt'], branch: 'audio/routing', desc: 'Route headset mic in, room speaker out, no feedback loop. Verify with the latency rig.' },
-    { id: 't8', title: 'Benchmark RVC models on the 3070', priority: 6, ageSec: 2400, status: 'running', tenant: 'dm-voice-board', assignee: 'rvc-runner', skills: ['gpu-bench'], branch: 'bench/rvc-3070', desc: 'Measure conversion latency + GPU headroom across 4 candidate RVC models.' },
-    { id: 't9', title: 'Contact dedupe job', priority: 3, ageSec: 30000, status: 'done', tenant: 'atlas-crm', assignee: 'atlas-etl', skills: ['etl'], branch: '', desc: 'Fuzzy-match and merge duplicate contacts across imported lists.' },
-    { id: 't10', title: 'Nightly export to S3', priority: 4, ageSec: 1200, status: 'running', tenant: 'atlas-crm', assignee: 'atlas-etl', skills: ['etl'], branch: 'etl/nightly-s3', desc: 'Snapshot the CRM nightly and ship to the S3 cold bucket.' },
+    { id: 't8', title: 'Benchmark RVC models on the 3070', priority: 6, ageSec: 2400, status: 'running', tenant: 'dm-voice-board', assignee: 'executor', skills: ['gpu-bench'], branch: 'bench/rvc-3070', desc: 'Measure conversion latency + GPU headroom across 4 candidate RVC models.' },
+    { id: 't9', title: 'Contact dedupe job', priority: 3, ageSec: 30000, status: 'done', tenant: 'atlas-crm', assignee: 'coder-c', skills: ['etl'], branch: '', desc: 'Fuzzy-match and merge duplicate contacts across imported lists.' },
+    { id: 't10', title: 'Nightly export to S3', priority: 4, ageSec: 1200, status: 'running', tenant: 'atlas-crm', assignee: 'coder-c', skills: ['etl'], branch: 'etl/nightly-s3', desc: 'Snapshot the CRM nightly and ship to the S3 cold bucket.' },
     { id: 't11', title: 'Webhook retry backoff', priority: 5, ageSec: 9600, status: 'todo', tenant: 'atlas-crm', assignee: null, skills: ['etl'], branch: '', desc: 'Add exponential backoff + dead-letter queue for failed outbound webhooks.' },
     { id: 't12', title: 'Rotate API keys', priority: 7, ageSec: 4200, status: 'ready', tenant: 'internal', assignee: null, skills: ['infra'], branch: 'sec/key-rotation', desc: 'Rotate all service API keys and update the secret store. Quarterly cadence.' },
-    { id: 't13', title: 'Upgrade worker pool to py3.12', priority: 4, ageSec: 36000, status: 'done', tenant: 'internal', assignee: 'ops-bot', skills: ['infra'], branch: '', desc: 'Roll all workers to Python 3.12, verify deps, redeploy.' },
+    { id: 't13', title: 'Upgrade worker pool to py3.12', priority: 4, ageSec: 36000, status: 'done', tenant: 'internal', assignee: 'coder-e', skills: ['infra'], branch: '', desc: 'Roll all workers to Python 3.12, verify deps, redeploy.' },
     { id: 't14', title: 'Dashboard: dispatcher metrics', priority: 3, ageSec: 4800, status: 'triage', tenant: 'internal', assignee: null, skills: [], branch: '', desc: 'Build a live view of dispatch throughput, queue depth, and worker utilization.' },
     { id: 't15', title: 'Write NPC dialogue trees', priority: 2, ageSec: 6600, status: 'todo', tenant: 'dm-voice-board', assignee: null, skills: ['content'], branch: '', desc: 'Branching dialogue for the three hero NPCs.' },
-    { id: 't16', title: 'Playtest session #1 notes', priority: 3, ageSec: 21600, status: 'done', tenant: 'dm-voice-board', assignee: 'npc-builder', skills: [], branch: '', desc: 'Write up findings from the first live playtest.' },
+    { id: 't16', title: 'Playtest session #1 notes', priority: 3, ageSec: 21600, status: 'done', tenant: 'dm-voice-board', assignee: 'coder-d', skills: [], branch: '', desc: 'Write up findings from the first live playtest.' },
     { id: 't17', title: 'Fix timezone bug in reports', priority: 6, ageSec: 10200, status: 'blocked', tenant: 'atlas-crm', assignee: null, skills: ['etl'], branch: '', desc: 'Reports render in UTC instead of the tenant timezone. Blocked pending product decision on default tz.' },
-    { id: 't18', title: 'Incident postmortem doc', priority: 5, ageSec: 54000, status: 'done', tenant: 'internal', assignee: 'ops-bot', skills: [], branch: '', desc: 'Postmortem for the dispatcher queue backup on the 9th.' },
+    { id: 't18', title: 'Incident postmortem doc', priority: 5, ageSec: 54000, status: 'done', tenant: 'internal', assignee: 'coder-e', skills: [], branch: '', desc: 'Postmortem for the dispatcher queue backup on the 9th.' },
   ]
 }
 
@@ -81,11 +81,11 @@ export interface Worker {
 
 export function seedWorkers(): Worker[] {
   return [
-    { id: 'w-okada-01', name: 'w-okada-01', skill: 'voice-rt', status: 'idle', taskId: null },
-    { id: 'rvc-runner', name: 'rvc-runner', skill: 'gpu-bench', status: 'busy', taskId: 't8' },
-    { id: 'atlas-etl', name: 'atlas-etl', skill: 'etl', status: 'busy', taskId: 't10' },
-    { id: 'npc-builder', name: 'npc-builder', skill: 'content', status: 'idle', taskId: null },
-    { id: 'ops-bot', name: 'ops-bot', skill: 'infra', status: 'idle', taskId: null },
+    { id: 'swarm-worker-b', name: 'swarm-worker-b', skill: 'voice-rt', status: 'idle', taskId: null },
+    { id: 'executor', name: 'executor', skill: 'gpu-bench', status: 'busy', taskId: 't8' },
+    { id: 'coder-c', name: 'coder-c', skill: 'etl', status: 'busy', taskId: 't10' },
+    { id: 'coder-d', name: 'coder-d', skill: 'content', status: 'idle', taskId: null },
+    { id: 'coder-e', name: 'coder-e', skill: 'infra', status: 'idle', taskId: null },
   ]
 }
 

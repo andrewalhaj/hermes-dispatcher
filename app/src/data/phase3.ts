@@ -37,10 +37,10 @@ const AG_STATUS: Record<AgentOp['status'], { l: string; c: string }> = {
 
 const AGENTS_OPS_RAW = [
   { name: 'Hermes', role: 'Orchestrator', avatar: 'H', color: ACCENT, status: 'online' as const, success: 97, today: 14, completed: 312, total: 322, model: 'Claude Sonnet 4.6', lastActive: 'just now' },
-  { name: 'rvc-runner', role: 'Realtime voice', avatar: 'R', color: '#2dd4bf', status: 'busy' as const, success: 91, today: 6, completed: 88, total: 97, model: 'Claude Opus 4', lastActive: '2m ago' },
-  { name: 'atlas-etl', role: 'ETL automation', avatar: 'A', color: '#5aa2f0', status: 'busy' as const, success: 99, today: 9, completed: 204, total: 206, model: 'Claude Haiku 4', lastActive: 'just now' },
-  { name: 'npc-builder', role: 'NPC content', avatar: 'N', color: '#9b8cff', status: 'idle' as const, success: 88, today: 0, completed: 142, total: 161, model: 'Claude Sonnet 4.6', lastActive: '1h ago' },
-  { name: 'ops-bot', role: 'Infra & ops', avatar: 'O', color: '#4ade80', status: 'idle' as const, success: 95, today: 2, completed: 97, total: 102, model: 'Claude Haiku 4', lastActive: '18m ago' },
+  { name: 'executor', role: 'Realtime voice', avatar: 'R', color: '#2dd4bf', status: 'busy' as const, success: 91, today: 6, completed: 88, total: 97, model: 'Claude Opus 4', lastActive: '2m ago' },
+  { name: 'coder-c', role: 'ETL automation', avatar: 'A', color: '#5aa2f0', status: 'busy' as const, success: 99, today: 9, completed: 204, total: 206, model: 'Claude Haiku 4', lastActive: 'just now' },
+  { name: 'coder-d', role: 'NPC content', avatar: 'N', color: '#9b8cff', status: 'idle' as const, success: 88, today: 0, completed: 142, total: 161, model: 'Claude Sonnet 4.6', lastActive: '1h ago' },
+  { name: 'coder-e', role: 'Infra & ops', avatar: 'O', color: '#4ade80', status: 'idle' as const, success: 95, today: 2, completed: 97, total: 102, model: 'Claude Haiku 4', lastActive: '18m ago' },
 ]
 
 const FLEET_BLURB: Record<string, string> = {
@@ -251,12 +251,12 @@ export interface SessionRow {
 }
 
 const SESSIONS_RAW: SessionRow[] = [
-  { id: '4118', title: 'Benchmark RVC models on the 3070', worker: 'rvc-runner', tenant: 'dm-voice-board', status: 'running', ageSec: 2400, tokens: 184200, model: 'Claude Sonnet 4.6' },
-  { id: '4203', title: 'Nightly export to S3', worker: 'atlas-etl', tenant: 'atlas-crm', status: 'running', ageSec: 1200, tokens: 96400, model: 'Claude Sonnet 4.6' },
-  { id: '4096', title: 'Triage latency reports', worker: 'w-okada-01', tenant: 'dm-voice-board', status: 'idle', ageSec: 5400, tokens: 12800, model: 'Claude Haiku 4' },
-  { id: '2041', title: 'Design spec: real-time RVC pipeline', worker: 'npc-builder', tenant: 'dm-voice-board', status: 'done', ageSec: 25200, tokens: 271500, model: 'Claude Sonnet 4.6' },
-  { id: '3990', title: 'Rotate API keys', worker: 'ops-bot', tenant: 'internal', status: 'error', ageSec: 8600, tokens: 4200, model: 'Claude Sonnet 4.6' },
-  { id: '1990', title: 'Contact dedupe job', worker: 'atlas-etl', tenant: 'atlas-crm', status: 'done', ageSec: 30000, tokens: 142000, model: 'Claude Sonnet 4.6' },
+  { id: '4118', title: 'Benchmark RVC models on the 3070', worker: 'executor', tenant: 'dm-voice-board', status: 'running', ageSec: 2400, tokens: 184200, model: 'Claude Sonnet 4.6' },
+  { id: '4203', title: 'Nightly export to S3', worker: 'coder-c', tenant: 'atlas-crm', status: 'running', ageSec: 1200, tokens: 96400, model: 'Claude Sonnet 4.6' },
+  { id: '4096', title: 'Triage latency reports', worker: 'swarm-worker-b', tenant: 'dm-voice-board', status: 'idle', ageSec: 5400, tokens: 12800, model: 'Claude Haiku 4' },
+  { id: '2041', title: 'Design spec: real-time RVC pipeline', worker: 'coder-d', tenant: 'dm-voice-board', status: 'done', ageSec: 25200, tokens: 271500, model: 'Claude Sonnet 4.6' },
+  { id: '3990', title: 'Rotate API keys', worker: 'coder-e', tenant: 'internal', status: 'error', ageSec: 8600, tokens: 4200, model: 'Claude Sonnet 4.6' },
+  { id: '1990', title: 'Contact dedupe job', worker: 'coder-c', tenant: 'atlas-crm', status: 'done', ageSec: 30000, tokens: 142000, model: 'Claude Sonnet 4.6' },
 ]
 
 const SESS_META: Record<SessionRow['status'], { l: string; c: string }> = {
@@ -343,12 +343,12 @@ export interface LogEntry {
 }
 
 export const LOGS: LogEntry[] = [
-  { id: '1', ts: '2026-06-18T14:32:45Z', level: 'info', service: 'dispatcher', message: 'Dispatched task t8 → rvc-runner', duration: '245ms', status: 'ok', tags: ['dispatch', 'run'] },
+  { id: '1', ts: '2026-06-18T14:32:45Z', level: 'info', service: 'dispatcher', message: 'Dispatched task t8 → executor', duration: '245ms', status: 'ok', tags: ['dispatch', 'run'] },
   { id: '2', ts: '2026-06-18T14:32:42Z', level: 'warning', service: 'kanban-db', message: 'WAL checkpoint contention detected', duration: '1.2s', status: 'warn', tags: ['sqlite', 'perf'] },
-  { id: '3', ts: '2026-06-18T14:32:40Z', level: 'error', service: 'rvc-runner', message: 'GPU OOM during model 3 benchmark', duration: '5.1s', status: '503', tags: ['gpu', 'error'] },
+  { id: '3', ts: '2026-06-18T14:32:40Z', level: 'error', service: 'executor', message: 'GPU OOM during model 3 benchmark', duration: '5.1s', status: '503', tags: ['gpu', 'error'] },
   { id: '4', ts: '2026-06-18T14:32:38Z', level: 'info', service: 'gateway', message: 'Session created for default profile', duration: '156ms', status: '201', tags: ['auth', 'session'] },
   { id: '5', ts: '2026-06-18T14:32:36Z', level: 'debug', service: 'memory', message: 'vector_search · 3 matches · cosine>0.82', duration: '38ms', status: 'ok', tags: ['memory', 'search'] },
-  { id: '6', ts: '2026-06-18T14:32:35Z', level: 'info', service: 'atlas-etl', message: 'Nightly S3 export committed · 1.2M rows', duration: '3.4s', status: 'ok', tags: ['etl', 's3'] },
+  { id: '6', ts: '2026-06-18T14:32:35Z', level: 'info', service: 'coder-c', message: 'Nightly S3 export committed · 1.2M rows', duration: '3.4s', status: 'ok', tags: ['etl', 's3'] },
   { id: '7', ts: '2026-06-18T14:32:32Z', level: 'error', service: 'memory', message: 'Mem0 provider unreachable', duration: '2.3s', status: '502', tags: ['memory', 'error'] },
   { id: '8', ts: '2026-06-18T14:32:30Z', level: 'info', service: 'kanban-db', message: 'Task t1 promoted → ready', duration: '120ms', status: 'ok', tags: ['kanban'] },
   { id: '9', ts: '2026-06-18T14:32:28Z', level: 'warning', service: 'dispatcher', message: 'No idle workers for 3 ready tasks', duration: '145ms', status: '429', tags: ['dispatch', 'warn'] },
@@ -446,7 +446,7 @@ export interface GalaxyData {
 
 const GALAXY_TIERS = [
   { id: 'notes', label: 'Notes', color: '#f6b73c', c: [-2.5, 0.6, 0.5], titles: ['Latency gate is the gate', 'Audio routing via VB-Cable', 'Friday build cadence', 'Feedback loop risk', 'Playtester latency reports', 'Keep Fridays for cutting builds', 'Hero NPC gated on POC', 'Room treatment notes', 'Headset isolation tip', 'RVC warm-up time', 'Stage mic levels', 'Backup voice profiles'] },
-  { id: 'profile', label: 'User Profile', color: '#5aa2f0', c: [2.4, 0.9, -0.8], titles: ['Role: DM & board owner', 'Hardware: RTX 3070 laptop', 'Workers: Mac Studio + Mini', 'Style: terse, decisive', 'Prefers GO/NO-GO gates', 'Timezone: America/Chicago', 'Evening sessions', 'Final say on gates'] },
+  { id: 'profile', label: 'User Profile', color: '#5aa2f0', c: [2.4, 0.9, -0.8], titles: ['Role: DM & board owner', 'Hardware: RTX 3070 laptop', 'Workers: Local host + Mini', 'Style: terse, decisive', 'Prefers GO/NO-GO gates', 'Timezone: America/Chicago', 'Evening sessions', 'Final say on gates'] },
   { id: 'soul', label: 'Agent Soul', color: '#9b8cff', c: [0.2, 2.3, 0.9], titles: ['Tone: direct and calm', 'Answer first, explain if asked', 'Surface blockers early', 'Never start gated work early', 'Reliability over features', 'Prove before building', 'Mission-control voice', 'No filler, no hype'] },
   { id: 'context', label: 'Project Context', color: '#2dd4bf', c: [0.6, -2.1, -0.6], titles: ['Project: dm-voice-board', 'Realtime RVC NPC voices', 'Done = live under latency gate', 'No feedback loop allowed', 'Tenant: dm-voice-board', 'Tenant: atlas-crm', 'Tenant: internal', 'Six-stage pipeline', 'Capture -> train -> route', 'Weekly playtest loop', '3 hero NPCs planned', 'Branch: poc/latency-gate'] },
   { id: 'facts', label: 'Knowledge', color: '#4ade80', c: [-1.4, -1.1, 2.3], titles: ['RVC latency on 3070', 'VB-Cable buffer size', 'S3 cold bucket region', 'Python 3.12 rollout', 'Webhook backoff policy', 'Tenant timezone defaults', 'Dispatcher claim TTL', 'Skill: voice-rt', 'Skill: gpu-bench', 'Skill: etl', 'Kanban column model', 'Run outcome: reclaimed', 'SQLite WAL + connect_closing', 'SSE 0.3s poll', 'Honcho provider', 'Obsidian vault index'] },

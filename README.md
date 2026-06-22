@@ -234,3 +234,39 @@ Single component state in the prototype; map to your store/hooks. Key state:
 - `hermes-board-v2-inline.js` — the nested Kanban board component used by the prototype (reference only).
 
 To preview: open `Hermes Task Dispatcher.dc.html` in a browser with network access.
+
+---
+
+## Running the App
+
+### One-time setup
+
+```bash
+# 1. Create virtualenv and install Python deps
+python3 -m venv .venv && ./.venv/bin/pip install -r requirements.txt
+
+# 2. Build the frontend
+cd app && npm install && npm run build && cd ..
+```
+
+### Start the backend (production-style)
+
+```bash
+./.venv/bin/python server.py
+# Serves on http://localhost:8787
+# Replaces the old `python3 -m http.server 8787`
+# Static files are served from app/dist/; API routes are under /api/
+```
+
+### Dev mode (hot-reload frontend + live API)
+
+```bash
+# Terminal 1 — run the FastAPI backend
+./.venv/bin/python server.py
+
+# Terminal 2 — run Vite dev server (proxies /api → FastAPI on :8787)
+cd app && npm run dev
+```
+
+Vite's dev server proxies any `/api/*` request to `http://localhost:8787`, so
+frontend hot-reload and live API calls work simultaneously.

@@ -8,11 +8,146 @@ import {
   PROFILE_OPTIONS,
   REASON_OPTIONS,
   cannedReply,
+  epochToWhen,
   nowTime,
 } from '../../data/chat'
 import type { ChatAgent, Message, PastSession } from '../../data/types'
 import ComposerDropdown from '../chat/ComposerDropdown'
 import PlanBlock from '../chat/PlanBlock'
+import { COMMANDS } from '../../data/commands'
+
+declare global {
+  interface Window {
+    SpeechRecognition?: any
+    webkitSpeechRecognition?: any
+    mermaid?: any
+    Prism?: any
+  }
+}
+
+// ── Text segment parser ──────────────────────────────────────────────────────
+
+type Segment =
+  | { type: 'text'; content: string }
+  | { type: 'mermaid'; content: string }
+  | { type: 'code'; lang: string; content: string }
+
+function parseMessageText(text: string): Segment[] {
+  const segs: Segment[] = []
+  const re = /```(\w*)\n([\s\S]*?)```/g
+  let last = 0
+  let m: RegExpExecArray | null
+  while ((m = re.exec(text)) !== null) {
+    if (m.index > last) segs.push({ type: 'text', content: text.slice(last, m.index) })
+    const lang = m[1].toLowerCase()
+    if (lang === 'mermaid') {
+      segs.push({ type: 'mermaid', content: m[2] })
+    } else {
+      segs.push({ type: 'code', lang: lang || 'text', content: m[2] })
+    }
+    last = m.index + m[0].length
+  }
+  if (last < text.length) segs.push({ type: 'text', content: text.slice(last) })
+  return segs
+}
+
+// ── Mermaid block ────────────────────────────────────────────────────────────
+
+let _mermaidInited = false
+function ensureMermaidInit() {
+  if (_mermaidInited || !window.mermaid) return
+  window.mermaid.initialize({ startOnLoad: false, theme: 'dark' })
+  _mermaidInited = true
+}
+
+function MermaidBlock({ content }: { content: string }) {
+  const [svg, setSvg] = useState<string | null>(null)
+  const [err, setErr] = useState(false)
+  const idRef = useRef('mmd-' + Math.random().toString(36).slice(2))
+
+  useEffect(() => {
+    if (!window.mermaid) { setErr(true); return }
+    ensureMermaidInit()
+    window.mermaid
+      .render(idRef.current, content)
+      .then((r: { svg: string }) => setSvg(r.svg))
+      .catch(() => setErr(true))
+  }, [content])
+
+  if (err) {
+    return (
+      <pre style={{ margin: '6px 0', padding: '10px 14px', background: 'rgba(0,0,0,0.35)', borderRadius: 8, fontSize: 12.5, overflowX: 'auto', color: '#d8dbe6' }}>
+        {content}
+      </pre>
+    )
+  }
+  if (!svg) {
+    return <div style={{ fontSize: 12, color: '#6a7088', padding: '4px 0' }}>Rendering diagram…</div>
+  }
+  return <div dangerouslySetInnerHTML={{ __html: svg }} style={{ maxWidth: '100%', overflowX: 'auto', margin: '6px 0' }} />
+}
+
+// ── Code block with Prism + copy ─────────────────────────────────────────────
+
+function CodeBlock({ lang, content }: { lang: string; content: string }) {
+  const codeRef = useRef<HTMLElement>(null)
+  const [copied, setCopied] = useState(false)
+
+  useEffect(() => {
+    if (window.Prism && codeRef.current) {
+      window.Prism.highlightElement(codeRef.current)
+    }
+  }, [content])
+
+  function copy() {
+    navigator.clipboard.writeText(content).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1600)
+    })
+  }
+
+  return (
+    <div style={{ position: 'relative', margin: '6px 0' }}>
+      <pre style={{ margin: 0, padding: '10px 44px 10px 14px', background: 'rgba(0,0,0,0.4)', borderRadius: 8, overflowX: 'auto', fontSize: 12.5, lineHeight: 1.5 }}>
+        <code ref={codeRef} className={`language-${lang}`} style={{ fontFamily: 'IBM Plex Mono, monospace' }}>
+          {content}
+        </code>
+      </pre>
+      <button
+        onClick={copy}
+        style={{
+          position: 'absolute', top: 6, right: 6,
+          background: copied ? 'rgba(74,222,128,0.15)' : 'rgba(255,255,255,0.08)',
+          border: `1px solid ${copied ? 'rgba(74,222,128,0.3)' : 'rgba(255,255,255,0.12)'}`,
+          color: copied ? '#4ade80' : '#9298ab',
+          borderRadius: 6, padding: '3px 9px', fontSize: 11, fontFamily: 'inherit', cursor: 'pointer',
+          transition: 'all 0.2s',
+        }}
+      >
+        {copied ? 'Copied' : 'Copy'}
+      </button>
+    </div>
+  )
+}
+
+// ── Message content renderer ─────────────────────────────────────────────────
+
+function MessageContent({ text }: { text: string }) {
+  const segs = parseMessageText(text)
+  return (
+    <>
+      {segs.map((seg, i) => {
+        if (seg.type === 'mermaid') return <MermaidBlock key={i} content={seg.content} />
+        if (seg.type === 'code') return <CodeBlock key={i} lang={seg.lang} content={seg.content} />
+        return (
+          <span key={i} style={{ fontSize: 14, lineHeight: 1.55, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+            {seg.content}
+          </span>
+        )
+      })}
+    </>
+  )
+}
 
 interface ChatProps {
   accent: string
@@ -36,25 +171,75 @@ export default function Chat({ accent }: ChatProps) {
   const [planMainOpen, setPlanMainOpen] = useState<Record<string, boolean>>({})
   const [planStepOpen, setPlanStepOpen] = useState<Record<string, boolean>>({})
 
+  // Voice input
+  const [listening, setListening] = useState(false)
+  const recognitionRef = useRef<any>(null)
+  const silenceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const baseDraftRef = useRef('')
+  const hasSpeech = !!(window.SpeechRecognition || window.webkitSpeechRecognition)
+
+  // Slash commands
+  const [cmdOpen, setCmdOpen] = useState(false)
+  const [cmdIdx, setCmdIdx] = useState(0)
+  const filteredCmds = cmdOpen
+    ? COMMANDS.filter(c => draft.length <= 1 || c.cmd.startsWith(draft.toLowerCase().split(' ')[0]))
+    : []
+
+  const [sessionId] = useState(() => crypto.randomUUID())
+  const [profileOpts, setProfileOpts] = useState<string[]>(PROFILE_OPTIONS)
+  const [modelOpts, setModelOpts] = useState<string[]>(MODEL_OPTIONS)
+  const [hermesSessions, setHermesSessions] = useState<PastSession[] | null>(null)
+
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const listRef = useRef<HTMLDivElement | null>(null)
+  const abortRef = useRef<AbortController | null>(null)
 
   const agent = CHAT_AGENTS.find((a) => a.key === activeAgent) || CHAT_AGENTS[0]
   const thread = threads[activeAgent] || []
   const displayThread = viewSession ? viewSession.msgs.map((m, i) => ({ id: `v${i}`, ...m })) : thread
-  const pastList = PAST_SESSIONS[activeAgent] || []
+  const pastList = activeAgent === 'hermes' && hermesSessions ? hermesSessions : (PAST_SESSIONS[activeAgent] || [])
   const ctxChars = thread.reduce((n, m) => n + m.text.length, 0)
   const ctxNum = Math.min(99, Math.round(ctxChars / 28))
   const ringDash = `${((Math.min(100, Math.round(ctxChars / 28)) / 100) * 56.55).toFixed(1)} 56.55`
+  const todayStr = new Date().toDateString()
 
-  // Auto-scroll to bottom on new messages (not when viewing past).
   useEffect(() => {
     if (viewSession) return
     const el = listRef.current
     if (el) el.scrollTop = el.scrollHeight
   }, [thread.length, running, viewSession])
 
-  useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current) }, [])
+  useEffect(() => {
+    ;(async () => {
+      try {
+        const res = await fetch('/api/profiles')
+        const data = await res.json() as string[]
+        setProfileOpts(data)
+      } catch { /* keep fallback */ }
+
+      try {
+        const res = await fetch('/api/models')
+        const data = await res.json() as { default: string; catalog: string[] }
+        setModelOpts(data.catalog)
+        setModel(data.default)
+      } catch { /* keep fallback */ }
+
+      try {
+        const res = await fetch('/api/chat/sessions')
+        const data = await res.json() as { id: string; title: string; created_at: number }[]
+        setHermesSessions(data.map((s) => ({ id: s.id, title: s.title, when: epochToWhen(s.created_at), msgs: [] })))
+      } catch {
+        setHermesSessions([])
+      }
+    })()
+  }, [])
+
+  useEffect(() => () => {
+    abortRef.current?.abort()
+    if (timerRef.current) clearTimeout(timerRef.current)
+    recognitionRef.current?.stop()
+    if (silenceRef.current) clearTimeout(silenceRef.current)
+  }, [])
 
   function selectAgent(key: string) {
     setActiveAgent(key)
@@ -62,20 +247,133 @@ export default function Chat({ accent }: ChatProps) {
     setViewSession(null)
   }
 
-  function send() {
+  function toggleVoice() {
+    if (listening) {
+      recognitionRef.current?.stop()
+      recognitionRef.current = null
+      setListening(false)
+      if (silenceRef.current) clearTimeout(silenceRef.current)
+      return
+    }
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition
+    if (!SR) return
+    baseDraftRef.current = draft
+    const rec = new SR()
+    rec.continuous = true
+    rec.interimResults = true
+    rec.onresult = (e: any) => {
+      if (silenceRef.current) clearTimeout(silenceRef.current)
+      let interim = ''
+      let finalChunk = ''
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        if (e.results[i].isFinal) finalChunk += e.results[i][0].transcript
+        else interim += e.results[i][0].transcript
+      }
+      if (finalChunk) {
+        baseDraftRef.current = (baseDraftRef.current + ' ' + finalChunk).trim()
+        setDraft(baseDraftRef.current)
+      } else if (interim) {
+        setDraft((baseDraftRef.current + ' ' + interim).trim())
+      }
+      silenceRef.current = setTimeout(() => { rec.stop() }, 2000)
+    }
+    rec.onerror = () => { setListening(false); recognitionRef.current = null }
+    rec.onend = () => {
+      setListening(false)
+      recognitionRef.current = null
+      if (silenceRef.current) clearTimeout(silenceRef.current)
+    }
+    recognitionRef.current = rec
+    rec.start()
+    setListening(true)
+  }
+
+  async function send() {
     const t = draft.trim()
     if (!t || running) return
+    setCmdOpen(false)
+
+    if (t === '/clear') {
+      setThreads((s) => ({ ...s, [activeAgent]: [] }))
+      setDraft('')
+      return
+    }
+    if (t === '/new') {
+      setThreads((s) => ({ ...s, [activeAgent]: [] }))
+      setViewSession(null)
+      setDraft('')
+      return
+    }
+
     const k = activeAgent
     const at = nowTime()
     if (k === 'hermes') {
-      // Hermes: the plan block IS the working indicator — appended immediately, no typing dots.
-      const now = Date.now()
-      setThreads((s) => ({
-        ...s,
-        [k]: [...(s[k] || []), { id: 'u' + now, role: 'user', text: t, at }, { id: 'plan' + now, role: 'plan', text: '', at: nowTime() }],
-      }))
+      setThreads((s) => ({ ...s, [k]: [...(s[k] || []), { id: 'u' + Date.now(), role: 'user', text: t, at }] }))
       setDraft('')
-      setRunning(false)
+      setRunning(true)
+      const controller = new AbortController()
+      abortRef.current = controller
+      let agentMsgId: string | null = null
+      try {
+        const res = await fetch('/api/chat/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ session_id: sessionId, message: t, profile, model }),
+          signal: controller.signal,
+        })
+        const reader = res.body!.getReader()
+        const decoder = new TextDecoder()
+        let buffer = ''
+        outer: while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+          buffer += decoder.decode(value, { stream: true })
+          const parts = buffer.split('\n\n')
+          buffer = parts.pop() ?? ''
+          for (const chunk of parts) {
+            if (!chunk.startsWith('data:')) continue
+            const ev = JSON.parse(chunk.slice(5).trim()) as { type: string; text: string }
+            if (ev.type === 'delta') {
+              if (agentMsgId === null) {
+                const id = 'a' + Date.now()
+                agentMsgId = id
+                setThreads((s) => ({ ...s, [k]: [...(s[k] || []), { id, role: 'agent', text: ev.text, at: nowTime() }] }))
+              } else {
+                const id = agentMsgId
+                setThreads((s) => ({ ...s, [k]: (s[k] || []).map((m) => m.id === id ? { ...m, text: m.text + ev.text } : m) }))
+              }
+            } else if (ev.type === 'done') {
+              setRunning(false)
+              break outer
+            } else if (ev.type === 'error') {
+              if (agentMsgId === null) {
+                const id = 'a' + Date.now()
+                agentMsgId = id
+                setThreads((s) => ({ ...s, [k]: [...(s[k] || []), { id, role: 'agent', text: ev.text, at: nowTime() }] }))
+              } else {
+                const id = agentMsgId
+                setThreads((s) => ({ ...s, [k]: (s[k] || []).map((m) => m.id === id ? { ...m, text: m.text + ev.text } : m) }))
+              }
+              setRunning(false)
+              break outer
+            }
+          }
+        }
+      } catch (err) {
+        if ((err as { name?: string }).name !== 'AbortError') {
+          if (agentMsgId === null) {
+            const id = 'a' + Date.now()
+            agentMsgId = id
+            setThreads((s) => ({ ...s, [k]: [...(s[k] || []), { id, role: 'agent', text: 'Error: could not reach server.', at: nowTime() }] }))
+          } else {
+            const id = agentMsgId
+            setThreads((s) => ({ ...s, [k]: (s[k] || []).map((m) => m.id === id ? { ...m, text: m.text + '\nError: could not reach server.' } : m) }))
+          }
+        }
+      } finally {
+        setRunning(false)
+        abortRef.current = null
+      }
       return
     }
     setThreads((s) => ({ ...s, [k]: [...(s[k] || []), { id: 'u' + Date.now(), role: 'user', text: t, at }] }))
@@ -90,6 +388,8 @@ export default function Chat({ accent }: ChatProps) {
   }
 
   function stop() {
+    abortRef.current?.abort()
+    fetch('/api/chat/cancel', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ session_id: sessionId }) }).catch(() => {})
     if (timerRef.current) clearTimeout(timerRef.current)
     setRunning(false)
   }
@@ -311,8 +611,15 @@ export default function Chat({ accent }: ChatProps) {
                         boxShadow: '0 2px 12px rgba(0,0,0,0.25)',
                       }}
                     >
-                      <div style={{ fontSize: 14, lineHeight: 1.55, wordWrap: 'break-word' }}>{m.text}</div>
-                      <div style={{ fontSize: 9.5, marginTop: 5, textAlign: 'right', color: m.role === 'user' ? 'rgba(28,20,4,0.6)' : '#565d72' }}>{m.at}</div>
+                      <div style={{ fontSize: 14, lineHeight: 1.55, wordWrap: 'break-word' }}>
+                        <MessageContent text={m.text} />
+                      </div>
+                      <div
+                        title={`${todayStr} ${m.at}`}
+                        style={{ fontSize: 9.5, marginTop: 5, textAlign: 'right', color: m.role === 'user' ? 'rgba(28,20,4,0.6)' : '#565d72', cursor: 'default' }}
+                      >
+                        {m.at}
+                      </div>
                     </div>
                   </div>
                 )}
@@ -333,6 +640,35 @@ export default function Chat({ accent }: ChatProps) {
 
       {/* Composer */}
       <div style={{ flex: 'none', padding: '14px 22px 18px', position: 'relative', zIndex: 1 }}>
+        {/* Slash command dropdown — floats above composer */}
+        {cmdOpen && filteredCmds.length > 0 && (
+          <div
+            style={{
+              position: 'absolute', bottom: 'calc(100% - 14px)', left: 22, right: 22, marginBottom: 4,
+              background: '#0c1119', border: '1px solid rgba(255,255,255,0.12)',
+              borderRadius: 12, overflow: 'hidden', zIndex: 50,
+              boxShadow: '0 -8px 32px rgba(0,0,0,0.5)',
+              animation: 'hcmdin 0.15s cubic-bezier(0.16,1,0.3,1)',
+            }}
+          >
+            <div style={{ padding: '7px 13px 4px', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.09em', color: '#565d72' }}>Commands</div>
+            {filteredCmds.map((c, i) => (
+              <div
+                key={c.cmd}
+                onMouseDown={(e) => { e.preventDefault(); setDraft(c.cmd + ' '); setCmdOpen(false) }}
+                onMouseEnter={() => setCmdIdx(i)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 12, padding: '8px 13px', cursor: 'pointer',
+                  background: i === cmdIdx ? 'rgba(255,255,255,0.07)' : 'transparent',
+                }}
+              >
+                <span className="mono" style={{ fontSize: 12.5, color: 'var(--ac)', flex: 'none' }}>{c.cmd}</span>
+                <span style={{ fontSize: 11.5, color: '#6a7088' }}>{c.description}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
         <div
           style={{ background: '#11151f', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 16, padding: '14px 16px 11px', display: 'flex', flexDirection: 'column', gap: 11 }}
           onFocus={(e) => (e.currentTarget.style.borderColor = 'var(--ac)')}
@@ -340,8 +676,40 @@ export default function Chat({ accent }: ChatProps) {
         >
           <textarea
             value={draft}
-            onChange={(e) => setDraft(e.target.value)}
+            onChange={(e) => {
+              const v = e.target.value
+              setDraft(v)
+              if (v.startsWith('/') && !v.includes(' ')) {
+                setCmdOpen(true)
+                setCmdIdx(0)
+              } else {
+                setCmdOpen(false)
+              }
+            }}
             onKeyDown={(e) => {
+              if (cmdOpen && filteredCmds.length > 0) {
+                if (e.key === 'ArrowUp') {
+                  e.preventDefault()
+                  setCmdIdx((i) => (i - 1 + filteredCmds.length) % filteredCmds.length)
+                  return
+                }
+                if (e.key === 'ArrowDown') {
+                  e.preventDefault()
+                  setCmdIdx((i) => (i + 1) % filteredCmds.length)
+                  return
+                }
+                if (e.key === 'Enter' || e.key === 'Tab') {
+                  e.preventDefault()
+                  setDraft(filteredCmds[cmdIdx].cmd + ' ')
+                  setCmdOpen(false)
+                  return
+                }
+                if (e.key === 'Escape') {
+                  e.preventDefault()
+                  setCmdOpen(false)
+                  return
+                }
+              }
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault()
                 send()
@@ -364,18 +732,42 @@ export default function Chat({ accent }: ChatProps) {
                   <svg width={b.s} height={b.s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d={b.d} /></svg>
                 </button>
               ))}
-              <button title="Voice" style={{ width: 30, height: 30, flex: 'none', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', borderRadius: 8, color: '#6a7088', cursor: 'pointer' }}
-                onMouseEnter={(e) => { e.currentTarget.style.color = '#e9ebf2'; e.currentTarget.style.background = 'rgba(255,255,255,0.05)' }}
-                onMouseLeave={(e) => { e.currentTarget.style.color = '#6a7088'; e.currentTarget.style.background = 'none' }}>
-                <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><rect x={9} y={3} width={6} height={11} rx={3} /><path d="M5 11a7 7 0 0 0 14 0M12 18v3" /></svg>
-              </button>
+
+              {/* Voice button — hidden when SpeechRecognition is unavailable */}
+              {hasSpeech && (
+                <button
+                  title={listening ? 'Stop recording' : 'Voice input'}
+                  onClick={toggleVoice}
+                  style={{
+                    width: 30, height: 30, flex: 'none', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                    background: listening ? 'rgba(251,111,111,0.12)' : 'none',
+                    border: listening ? '1px solid rgba(251,111,111,0.3)' : 'none',
+                    borderRadius: 8,
+                    color: listening ? '#fb6f6f' : '#6a7088',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!listening) { e.currentTarget.style.color = '#e9ebf2'; e.currentTarget.style.background = 'rgba(255,255,255,0.05)' }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!listening) { e.currentTarget.style.color = '#6a7088'; e.currentTarget.style.background = 'none' }
+                  }}
+                >
+                  <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                    <rect x={9} y={3} width={6} height={11} rx={3} />
+                    <path d="M5 11a7 7 0 0 0 14 0M12 18v3" />
+                  </svg>
+                </button>
+              )}
+
               <span style={{ width: 1, height: 18, background: 'rgba(255,255,255,0.1)', margin: '0 2px' }} />
 
               {/* Single click-away backdrop closes any open composer dropdown */}
               {composerMenu !== null && <div onClick={() => setComposerMenu(null)} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />}
 
               <ComposerDropdown
-                menuKey="profile" value={profile} options={PROFILE_OPTIONS} open={composerMenu === 'profile'} variant="accent" minWidth={168}
+                menuKey="profile" value={profile} options={profileOpts} open={composerMenu === 'profile'} variant="accent" minWidth={168}
                 onToggle={() => setComposerMenu((m) => (m === 'profile' ? null : 'profile'))}
                 onPick={(v) => { setProfile(v); setComposerMenu(null) }}
                 icon={<svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><circle cx={12} cy={8} r={4} /><path d="M4 21a8 8 0 0 1 16 0" /></svg>}
@@ -387,7 +779,7 @@ export default function Chat({ accent }: ChatProps) {
                 icon={<svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="#9298ab" strokeWidth={2}><path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /></svg>}
               />
               <ComposerDropdown
-                menuKey="model" value={model} options={MODEL_OPTIONS} open={composerMenu === 'model'} variant="pill" minWidth={190}
+                menuKey="model" value={model} options={modelOpts} open={composerMenu === 'model'} variant="pill" minWidth={190}
                 onToggle={() => setComposerMenu((m) => (m === 'model' ? null : 'model'))}
                 onPick={(v) => { setModel(v); setComposerMenu(null) }}
                 icon={<svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="#9298ab" strokeWidth={2}><circle cx={12} cy={12} r={3} /><path d="M12 2v3M12 19v3M2 12h3M19 12h3" /></svg>}
@@ -414,7 +806,7 @@ export default function Chat({ accent }: ChatProps) {
                   <svg width={14} height={14} viewBox="0 0 24 24" fill="#fff"><rect x={6} y={6} width={12} height={12} rx={2} /></svg>
                 </button>
               ) : (
-                <button onClick={send} title="Send" style={{ width: 38, height: 38, flex: 'none', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'var(--ac)', color: '#1c1404', border: 'none', borderRadius: '50%', cursor: 'pointer' }}>
+                <button onClick={() => void send()} title="Send" style={{ width: 38, height: 38, flex: 'none', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'var(--ac)', color: '#1c1404', border: 'none', borderRadius: '50%', cursor: 'pointer' }}>
                   <svg width={15} height={15} viewBox="0 0 24 24" fill="#1c1404"><path d="M3 11l18-8-8 18-2-7z" /></svg>
                 </button>
               )}
@@ -425,3 +817,5 @@ export default function Chat({ accent }: ChatProps) {
     </section>
   )
 }
+
+// ── Chat panel ───────────────────────────────────────────────────────────────

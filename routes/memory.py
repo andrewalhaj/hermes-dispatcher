@@ -1,0 +1,170 @@
+import os
+import time
+from pathlib import Path
+
+from fastapi import APIRouter, HTTPException
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+import uvicorn
+
+HERMES_HOME = Path(os.environ.get("HERMES_HOME", "/root/.hermes"))
+MEMORIES_DIR = HERMES_HOME / "memories"
+REFS_DIR = HERMES_HOME / "references"
+
+MEMORY_FILE = MEMORIES_DIR / "MEMORY.md"
+USER_FILE = MEMORIES_DIR / "USER.md"
+
+MEMORY_CAP = 2200
+USER_CAP = 1375
+
+router = APIRouter(prefix="/api/memory")
+
+
+def _read_safe(path: Path) -> str:
+    try:
+        return path.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        return ""
+
+
+def _parse_entries(text: str, tier: str, id_prefix: str) -> list[dict]:
+    """Split a memory file into node entries, trying multiple delimiters."""
+    if not text.strip():
+        return []
+
+    parts: list[str] = []
+
+    # 1. Try § delimiter (primary Hermes format)
+    if "§" in text:
+        candidates = [p.strip() for p in text.split("§") if p.strip()]
+        if len(candidates) >= 1:
+            parts = candidates
+
+    # 2. Try "---" (markdown HR) if § didn't split anything meaningful
+    if not parts:
+        lines = text.split("\n")
+        current: list[str] = []
+        for line in lines:
+            if line.strip() == "---":
+                if current:
+                    parts.append("\n".join(current).strip())
+                    current = []
+            else:
+                current.append(line)
+        if current:
+            parts.append("\n".join(current).strip())
+        parts = [p for p in parts if p.strip()]
+        if len(parts) <= 1:
+            parts = []
+
+    # 3. Fall back to blank-line paragraph splitting
+    if not parts:
+        current = []
+        for line in text.split("\n"):
+            if line.strip():
+                current.append(line)
+            elif current:
+                parts.append("\n".join(current).strip())
+                current = []
+        if current:
+            parts.append("\n".join(current).strip())
+        parts = [p for p in parts if p.strip()]
+
+    # 4. Last resort: whole text as one entry
+    if not parts:
+        parts = [text.strip()]
+
+    result = []
+    for i, entry in enumerate(parts):
+        single_line = " ".join(entry.split())
+        label = single_line[:40]
+        result.append({
+            "id": f"{id_prefix}-{i}",
+            "label": label,
+            "tier": tier,
+            "body": entry,
+        })
+    return result
+
+
+@router.get("/files")
+def get_files():
+    memory_text = _read_safe(MEMORY_FILE)
+    user_text = _read_safe(USER_FILE)
+    return {
+        "memory": memory_text,
+        "user": user_text,
+        "memory_chars": len(memory_text),
+        "user_chars": len(user_text),
+        "memory_cap": MEMORY_CAP,
+        "user_cap": USER_CAP,
+    }
+
+
+class PutFilesBody(BaseModel):
+    file: str
+    content: str
+
+
+@router.put("/files")
+def put_files(body: PutFilesBody):
+    if body.file not in ("memory", "user"):
+        raise HTTPException(status_code=400, detail="file must be 'memory' or 'user'")
+
+    target = MEMORY_FILE if body.file == "memory" else USER_FILE
+
+    # Back up existing file before overwriting
+    if target.exists():
+        ts = int(time.time())
+        bak = target.with_name(target.name + f".bak-{ts}")
+        bak.write_text(target.read_text(encoding="utf-8"), encoding="utf-8")
+
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(body.content, encoding="utf-8")
+
+    return {"ok": True, "chars": len(body.content)}
+
+
+@router.get("/galaxy")
+def get_galaxy():
+    memory_text = _read_safe(MEMORY_FILE)
+    user_text = _read_safe(USER_FILE)
+
+    nodes: list[dict] = []
+    nodes.extend(_parse_entries(memory_text, "hot", "mem"))
+    nodes.extend(_parse_entries(user_text, "warm", "usr"))
+
+    # Add up to 6 reference nodes from filenames only
+    if REFS_DIR.exists():
+        try:
+            ref_files = sorted(
+                f for f in REFS_DIR.iterdir() if f.is_file()
+            )[:6]
+            for i, ref in enumerate(ref_files):
+                nodes.append({
+                    "id": f"ref-{i}",
+                    "label": ref.name[:40],
+                    "tier": "cold",
+                    "body": ref.name,
+                })
+        except Exception:
+            pass
+
+    return {"nodes": nodes, "edges": []}
+
+
+# ---------------------------------------------------------------------------
+# Standalone entry-point — used for verification and direct invocation
+# ---------------------------------------------------------------------------
+app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+app.include_router(router)
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8787)

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { PanelId } from '../data/types'
-import { ACCENT, agentRows } from '../data/agents'
+import { ACCENT } from '../data/agents'
+import { useAgentRows } from '../data/fleet'
 import { BrandIcon } from './icons'
 import NavItem from './NavItem'
 import { InfoProvider } from './TileInfoDrawer'
@@ -16,6 +17,8 @@ import Memory from './panels/Memory'
 import Logs from './panels/Logs'
 import Settings from './panels/Settings'
 import Placeholder from './panels/Placeholder'
+import Workspace from './panels/Workspace'
+import Profiles from './panels/Profiles'
 
 interface NavGroup {
   header: string
@@ -30,6 +33,7 @@ const NAV_GROUPS: NavGroup[] = [
       { panel: 'chat', label: 'Chat' },
       { panel: 'kanban', label: 'Kanban' },
       { panel: 'agents', label: 'Agents' },
+      { panel: 'workspace', label: 'Workspace' },
     ],
   },
   {
@@ -58,6 +62,7 @@ const PANEL_LABELS: Record<PanelId, string> = {
   sessions: 'Sessions',
   profiles: 'Profiles',
   settings: 'Settings',
+  workspace: 'Workspace',
 }
 
 const groupHeaderStyle: React.CSSProperties = {
@@ -94,6 +99,10 @@ function PanelView({ panel, accent, setAccent }: { panel: PanelId; accent: strin
       return <Logs accent={accent} />
     case 'settings':
       return <Settings accent={accent} onAccentChange={setAccent} />
+    case 'workspace':
+      return <Workspace accent={accent} />
+    case 'profiles':
+      return <Profiles accent={accent} />
     default:
       return <Placeholder name={PANEL_LABELS[panel]} />
   }
@@ -102,7 +111,7 @@ function PanelView({ panel, accent, setAccent }: { panel: PanelId; accent: strin
 export default function Shell() {
   const [activePanel, setActivePanel] = useState<PanelId>('overview')
   const [accent, setAccent] = useState<string>(ACCENT)
-  const rows = agentRows(accent)
+  const rows = useAgentRows(accent)
 
   return (
     <InfoProvider>

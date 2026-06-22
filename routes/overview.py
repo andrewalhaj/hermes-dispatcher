@@ -1,0 +1,170 @@
+import os
+import sqlite3
+import time
+from datetime import datetime
+from pathlib import Path
+
+import psutil
+from fastapi import APIRouter
+
+router = APIRouter()
+
+KANBAN_DB = Path(os.environ.get("KANBAN_DB", "/root/.hermes/kanban.db"))
+
+
+def _open_ro() -> sqlite3.Connection:
+    return sqlite3.connect(f"file:{KANBAN_DB}?mode=ro", uri=True)
+
+
+def _empty_summary() -> dict:
+    return {"running": 0, "blocked": 0, "done_today": 0, "ready": 0}
+
+
+def _agent_memory() -> list:
+    try:
+        results: dict[str, int] = {}
+        for proc in psutil.process_iter(['pid', 'cmdline', 'memory_info']):
+            try:
+                cmdline = proc.info.get('cmdline') or []
+                mem = proc.info.get('memory_info')
+                if mem is None or not cmdline:
+                    continue
+                # Identify profile-based agents (-p / --profile flag).
+                # Profile names are short identifiers (no spaces, ≤64 chars).
+                label = None
+                for i, part in enumerate(cmdline):
+                    if part in ('-p', '--profile') and i + 1 < len(cmdline):
+                        candidate = cmdline[i + 1]
+                        if len(candidate) <= 64 and ' ' not in candidate:
+                            label = candidate
+                        break
+                # Identify gateway process
+                if label is None:
+                    cmdstr = ' '.join(cmdline)
+                    if 'gateway' in cmdstr and 'run' in cmdstr:
+                        label = 'gateway'
+                    elif any('hermes_cli' in p or 'hermes.main' in p for p in cmdline):
+                        label = os.path.basename(cmdline[0])
+                if label is None:
+                    continue
+                rss_mb = mem.rss // (1024 * 1024)
+                results[label] = results.get(label, 0) + rss_mb
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                continue
+        sorted_items = sorted(results.items(), key=lambda x: x[1], reverse=True)[:6]
+        return [{'name': k, 'rss_mb': v} for k, v in sorted_items]
+    except Exception:
+        return []
+
+
+@router.get("/overview")
+async def get_overview() -> dict:
+    cpu = round(psutil.cpu_percent(interval=0.0), 1)
+    mem = psutil.virtual_memory().percent
+    disk = psutil.disk_usage("/").percent
+
+    agent_memory = _agent_memory()
+
+    now_epoch = int(time.time())
+    today_dt = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    today_epoch = int(today_dt.timestamp())
+
+    try:
+        conn = _open_ro()
+        try:
+            cur = conn.cursor()
+
+            summary = _empty_summary()
+            cur.execute("SELECT status, COUNT(*) FROM tasks GROUP BY status")
+            for status, count in cur.fetchall():
+                if status in ("running", "blocked", "ready"):
+                    summary[status] = count
+
+            cur.execute(
+                "SELECT COUNT(*) FROM tasks WHERE status='done' AND completed_at >= ?",
+                (today_epoch,),
+            )
+            summary["done_today"] = cur.fetchone()[0]
+
+            cur.execute(
+                "SELECT COUNT(DISTINCT assignee) FROM tasks"
+                " WHERE status='running' AND assignee IS NOT NULL"
+            )
+            active_agents: int = cur.fetchone()[0]
+
+            cur.execute(
+                "SELECT id, title, assignee, completed_at FROM tasks"
+                " WHERE status='done' ORDER BY completed_at DESC LIMIT 5"
+            )
+            recent = [
+                {"id": r[0], "title": r[1], "assignee": r[2], "completed_at": r[3]}
+                for r in cur.fetchall()
+            ]
+
+            sparkline = []
+            for i in range(24):
+                bucket_start = now_epoch - (23 - i) * 3600
+                bucket_end = bucket_start + 3600
+                cur.execute(
+                    "SELECT COUNT(*) FROM tasks"
+                    " WHERE status='done' AND completed_at >= ? AND completed_at < ?",
+                    (bucket_start, bucket_end),
+                )
+                sparkline.append({"hour": i, "count": cur.fetchone()[0]})
+
+            cur.execute("SELECT COUNT(*) FROM tasks")
+            total_tasks: int = cur.fetchone()[0]
+
+            cur.execute(
+                "SELECT assignee, COUNT(*) as cnt FROM tasks"
+                " WHERE assignee IS NOT NULL GROUP BY assignee ORDER BY cnt DESC"
+            )
+            rows = cur.fetchall()
+            agent_breakdown: list = []
+            for i, (assignee, cnt) in enumerate(rows):
+                if i < 6:
+                    agent_breakdown.append({'name': assignee, 'count': cnt})
+                else:
+                    if agent_breakdown and agent_breakdown[-1]['name'] == 'other':
+                        agent_breakdown[-1]['count'] += cnt
+                    else:
+                        agent_breakdown.append({'name': 'other', 'count': cnt})
+
+            top_agents = [r[0] for r in rows[:5]]
+            agent_activity: list = []
+            for profile in top_agents:
+                hours = []
+                for i in range(24):
+                    bucket_start = now_epoch - (23 - i) * 3600
+                    bucket_end = bucket_start + 3600
+                    cur.execute(
+                        "SELECT COUNT(*) FROM task_runs"
+                        " WHERE profile=? AND started_at >= ? AND started_at < ?",
+                        (profile, bucket_start, bucket_end),
+                    )
+                    hours.append(cur.fetchone()[0])
+                agent_activity.append({'name': profile, 'hours': hours})
+
+        finally:
+            conn.close()
+
+    except Exception:
+        summary = _empty_summary()
+        active_agents = 0
+        recent = []
+        sparkline = [{"hour": i, "count": 0} for i in range(24)]
+        total_tasks = 0
+        agent_breakdown = []
+        agent_activity = []
+
+    return {
+        "kanban_summary": summary,
+        "active_agents": active_agents,
+        "system": {"cpu_pct": cpu, "mem_pct": mem, "disk_pct": disk},
+        "recent_activity": recent,
+        "sparkline": sparkline,
+        "total_tasks": total_tasks,
+        "agent_breakdown": agent_breakdown,
+        "agent_activity": agent_activity,
+        "agent_memory": agent_memory,
+    }

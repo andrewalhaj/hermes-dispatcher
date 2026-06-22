@@ -1,8 +1,21 @@
-import { useMemo } from 'react'
+import React, { useState, useEffect } from 'react'
 import { ACCENT } from '../../data/agents'
-import { buildInsights } from '../../data/phase3'
+import type { InfoObject } from '../../data/info'
 import { useInfo } from '../TileInfoDrawer'
 import '../../styles/phase3.css'
+
+interface InsightsAPI {
+  tasks_today: number
+  tasks_week: number
+  success_rate: number
+  avg_latency_s: number
+  by_status: { triage: number; todo: number; ready: number; running: number; blocked: number; done: number }
+  by_profile: Array<{ profile: string; completed: number; running: number; success_rate: number }>
+  sessions_today: number
+  messages_today: number
+  kanban_throughput: Array<{ date: string; completed: number }>
+  top_skills: Array<{ skill: string; count: number }>
+}
 
 interface InsightsProps {
   accent?: string
@@ -25,28 +38,138 @@ function hoverOut(e: React.MouseEvent<HTMLElement>) {
   e.currentTarget.style.boxShadow = 'none'
 }
 
+const STATUS_COLORS: Record<string, string> = {
+  triage: '#6a7088', todo: '#5aa2f0', ready: '#2dd4bf',
+  running: ACCENT, blocked: '#f6b73c', done: '#9b8cff',
+}
+
+const PROFILE_COLORS = ['#9b8cff', '#5aa2f0', '#2dd4bf', '#f6b73c', '#ff6e6e', '#64d4a8', '#e879f9', ACCENT]
+
+function fmtNum(n: number): string {
+  return n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n)
+}
+
 export default function Insights({ accent = ACCENT }: InsightsProps) {
-  const ins = useMemo(() => buildInsights(accent), [accent])
+  const [data, setData] = useState<InsightsAPI | null>(null)
+  const [error, setError] = useState(false)
   const { openInfo } = useInfo()
   const open = openInfo
+
+  useEffect(() => {
+    let cancelled = false
+    async function fetchData() {
+      try {
+        const res = await fetch('/api/insights')
+        if (!res.ok) throw new Error('non-ok')
+        const json: InsightsAPI = await res.json()
+        if (!cancelled) { setData(json); setError(false) }
+      } catch (_err) {
+        if (!cancelled) setError(true)
+      }
+    }
+    fetchData()
+    const id = setInterval(fetchData, 30000)
+    return () => { cancelled = true; clearInterval(id) }
+  }, [])
+
+  if (!data) {
+    return (
+      <div className="flex flex-1 items-center justify-center" style={{ color: error ? '#f6b73c' : '#6a7088', fontSize: 14 }}>
+        {error ? 'Could not load insights' : 'Loading analytics…'}
+      </div>
+    )
+  }
+
+  // KPI tiles
+  const kpis: Array<{ label: string; value: string; accent: string; info: InfoObject }> = [
+    {
+      label: 'Tasks Today', value: String(data.tasks_today), accent,
+      info: { category: 'Tasks', title: 'Tasks Today', accent, value: String(data.tasks_today), desc: 'Tasks dispatched and run today across all agents.', stats: [{ label: 'This Week', value: String(data.tasks_week) }, { label: 'Success Rate', value: `${data.success_rate}%` }] },
+    },
+    {
+      label: 'Sessions Today', value: String(data.sessions_today), accent: '#5aa2f0',
+      info: { category: 'Sessions', title: 'Sessions Today', accent: '#5aa2f0', value: String(data.sessions_today), desc: 'Chat and worker sessions opened today.', stats: [{ label: 'Messages', value: fmtNum(data.messages_today) }] },
+    },
+    {
+      label: 'Messages Today', value: fmtNum(data.messages_today), accent: '#2dd4bf',
+      info: { category: 'Messages', title: 'Messages Today', accent: '#2dd4bf', value: fmtNum(data.messages_today), desc: 'Messages exchanged with Hermes and worker agents today.', stats: [] },
+    },
+    {
+      label: 'Success Rate', value: `${data.success_rate}%`, accent: '#9b8cff',
+      info: { category: 'Quality', title: 'Success Rate', accent: '#9b8cff', value: `${data.success_rate}%`, desc: 'Share of tasks that finished without error over the trailing window.', stats: [{ label: 'Tasks Today', value: String(data.tasks_today) }] },
+    },
+    {
+      label: 'Avg Latency', value: `${data.avg_latency_s}s`, accent: '#f6b73c',
+      info: { category: 'Latency', title: 'Avg Latency', accent: '#f6b73c', value: `${data.avg_latency_s}s`, desc: 'Mean end-to-end time from dispatch to first result across recent tasks.', stats: [] },
+    },
+  ]
+
+  // Activity by day bars
+  const maxCompleted = Math.max(...data.kanban_throughput.map(d => d.completed), 1)
+  const bars = data.kanban_throughput.map(d => ({
+    date: d.date,
+    h: `${Math.max(d.completed > 0 ? 8 : 3, Math.round((d.completed / maxCompleted) * 90))}px`,
+    bg: d.completed > 0 ? 'var(--ac)' : 'rgba(255,255,255,0.07)',
+  }))
+  const peakEntry = data.kanban_throughput.length > 0
+    ? data.kanban_throughput.reduce((a, b) => b.completed > a.completed ? b : a)
+    : { date: '—', completed: 0 }
+  const activityInfo: InfoObject = {
+    category: 'Activity', title: 'Activity by Day', accent,
+    desc: 'Kanban tasks completed per day over the last 7 days.',
+    stats: data.kanban_throughput.map(d => ({ label: d.date, value: String(d.completed) })),
+  }
+
+  // Task status
+  const statusEntries = [
+    { key: 'triage', label: 'Triage', count: data.by_status.triage },
+    { key: 'todo', label: 'Todo', count: data.by_status.todo },
+    { key: 'ready', label: 'Ready', count: data.by_status.ready },
+    { key: 'running', label: 'Running', count: data.by_status.running },
+    { key: 'blocked', label: 'Blocked', count: data.by_status.blocked },
+    { key: 'done', label: 'Done', count: data.by_status.done },
+  ]
+  const statusTotal = statusEntries.reduce((s, e) => s + e.count, 0)
+  const statusInfo: InfoObject = {
+    category: 'Status', title: 'Task Status', accent: '#9b8cff',
+    desc: 'Distribution of tasks across all pipeline stages.',
+    stats: statusEntries.map(e => ({ label: e.label, value: String(e.count) })),
+  }
+
+  // By profile
+  const profileInfo: InfoObject = {
+    category: 'Profiles', title: 'By Profile', accent: '#5aa2f0',
+    desc: 'Task completion and success rates broken down by agent profile.',
+    stats: data.by_profile.map(p => ({ label: p.profile, value: `${p.completed} done · ${p.success_rate}%` })),
+  }
+
+  // Skill usage
+  const maxSkillCount = Math.max(...data.top_skills.map(s => s.count), 1)
+  const totalSkillCount = data.top_skills.reduce((s, sk) => s + sk.count, 0)
+  const skillsInfo: InfoObject = {
+    category: 'Skills', title: 'Skill Usage', accent,
+    desc: 'Top skills invoked by agents, ranked by call count.',
+    stats: data.top_skills.map(s => ({ label: s.skill, value: String(s.count) })),
+  }
 
   return (
     <div className="flex flex-1 flex-col" style={{ minWidth: 0, minHeight: 0 }}>
       <header className="flex items-center justify-between" style={{ flex: 'none', padding: '16px 26px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
         <div>
           <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 20, color: 'var(--text-primary)' }}>Usage Analytics</div>
-          <div style={{ fontSize: 12, color: '#6a7088', marginTop: 2 }}>{ins.period}</div>
+          <div style={{ fontSize: 12, color: '#6a7088', marginTop: 2 }}>Live · last 7 days</div>
         </div>
         <span className="inline-flex items-center" style={{ gap: 6, fontSize: 12, color: '#c6cad8', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 20, padding: '5px 12px' }}>
-          {ins.period}
+          Live · last 7 days
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#9298ab" strokeWidth={2} aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
         </span>
       </header>
       <div className="flex-1 overflow-y-auto" style={{ minHeight: 0, padding: '22px 26px 40px' }}>
         <div style={{ maxWidth: 1080, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16, animation: 'hpanelin 0.4s var(--ease-out)' }}>
+
           {/* KPI tiles */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 12 }}>
-            {ins.kpis.map((k) => (
+            {kpis.map((k) => (
               <button
                 key={k.label}
                 onClick={() => open(k.info)}
@@ -62,78 +185,82 @@ export default function Insights({ accent = ACCENT }: InsightsProps) {
             ))}
           </div>
 
-          {/* Activity by Day + Token Breakdown */}
+          {/* Activity by Day + Task Status */}
           <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1.3fr) minmax(0,1fr)', gap: 16 }}>
-            <div style={cardBase} onClick={() => open(ins.activityInfo)} onMouseEnter={hoverIn} onMouseLeave={hoverOut}>
+            <div style={cardBase} onClick={() => open(activityInfo)} onMouseEnter={hoverIn} onMouseLeave={hoverOut}>
               <div className="flex items-center justify-between" style={{ marginBottom: 16 }}>
                 <div style={cardLabel}>Activity by Day</div>
-                <span style={{ fontSize: 10.5, color: '#2dd4bf', background: 'rgba(45,212,191,0.1)', border: '1px solid rgba(45,212,191,0.28)', borderRadius: 6, padding: '2px 8px' }}>Peak {ins.peak}</span>
+                <span style={{ fontSize: 10.5, color: '#2dd4bf', background: 'rgba(45,212,191,0.1)', border: '1px solid rgba(45,212,191,0.28)', borderRadius: 6, padding: '2px 8px' }}>Peak {peakEntry.date}</span>
               </div>
               <div className="flex items-end" style={{ gap: 5, height: 96 }}>
-                {ins.days.map((d, i) => (
+                {bars.map((d, i) => (
                   <div key={i} style={{ flex: 1, minWidth: 0, height: d.h, borderRadius: '3px 3px 0 0', background: d.bg }} />
                 ))}
               </div>
             </div>
-            <div style={cardBase} onClick={() => open(ins.tokenInfo)} onMouseEnter={hoverIn} onMouseLeave={hoverOut}>
-              <div style={{ ...cardLabel, marginBottom: 16 }}>Token Breakdown</div>
-              <div className="flex items-baseline" style={{ gap: 8, marginBottom: 14 }}>
-                <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 26, color: 'var(--text-primary)' }}>{ins.tokTotal}</span>
-                <span style={{ fontSize: 11.5, color: '#6a7088' }}>total tokens</span>
-              </div>
+
+            <div style={cardBase} onClick={() => open(statusInfo)} onMouseEnter={hoverIn} onMouseLeave={hoverOut}>
+              <div style={{ ...cardLabel, marginBottom: 16 }}>Task Status</div>
               <div className="flex" style={{ height: 10, borderRadius: 99, overflow: 'hidden', background: 'rgba(255,255,255,0.05)' }}>
-                <div style={{ width: ins.tokInPct, background: 'var(--ac)' }} />
-                <div style={{ width: ins.tokOutPct, background: '#5aa2f0' }} />
+                {statusEntries.map((e) => (
+                  <div key={e.key} style={{ width: statusTotal > 0 ? `${(e.count / statusTotal) * 100}%` : '0%', background: STATUS_COLORS[e.key] }} />
+                ))}
               </div>
-              <div className="flex justify-between" style={{ marginTop: 11, fontSize: 12 }}>
-                <span className="inline-flex items-center" style={{ gap: 6, color: 'var(--text-muted)' }}>
-                  <span style={{ width: 8, height: 8, borderRadius: 2, background: 'var(--ac)' }} />Input <b style={{ color: '#d4d8e4', fontWeight: 600 }}>{ins.tokIn}</b>
-                </span>
-                <span className="inline-flex items-center" style={{ gap: 6, color: 'var(--text-muted)' }}>
-                  <span style={{ width: 8, height: 8, borderRadius: 2, background: '#5aa2f0' }} />Output <b style={{ color: '#d4d8e4', fontWeight: 600 }}>{ins.tokOut}</b>
-                </span>
+              <div className="flex flex-wrap" style={{ marginTop: 14, gap: '8px 14px' }}>
+                {statusEntries.map((e) => (
+                  <span key={e.key} className="inline-flex items-center" style={{ gap: 6, fontSize: 12, color: 'var(--text-muted)' }}>
+                    <span style={{ width: 8, height: 8, borderRadius: 2, background: STATUS_COLORS[e.key] }} />
+                    {e.label} <b style={{ color: '#d4d8e4', fontWeight: 600 }}>{e.count}</b>
+                  </span>
+                ))}
               </div>
             </div>
           </div>
 
-          {/* Models table */}
-          <div style={cardBase} onClick={() => open(ins.modelsInfo)} onMouseEnter={hoverIn} onMouseLeave={hoverOut}>
-            <div style={{ ...cardLabel, marginBottom: 14 }}>Models</div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 80px 96px 88px 70px', gap: 10, padding: '0 4px 8px', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#565d72' }}>
-              <span>Model</span><span>Sessions</span><span>Tokens</span><span>Cost</span><span>Share</span>
+          {/* By Profile table */}
+          <div style={cardBase} onClick={() => open(profileInfo)} onMouseEnter={hoverIn} onMouseLeave={hoverOut}>
+            <div style={{ ...cardLabel, marginBottom: 14 }}>By Profile</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 80px 80px 88px', gap: 10, padding: '0 4px 8px', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#565d72' }}>
+              <span>Profile</span><span>Completed</span><span>Running</span><span>Success</span>
             </div>
             <div className="flex flex-col" style={{ gap: 4 }}>
-              {ins.models.map((m) => (
-                <div key={m.name} style={{ display: 'grid', gridTemplateColumns: '1fr 80px 96px 88px 70px', gap: 10, alignItems: 'center', padding: '9px 4px', borderTop: '1px solid rgba(255,255,255,0.05)', fontSize: 12.5 }}>
+              {data.by_profile.map((p, i) => (
+                <div key={p.profile} style={{ display: 'grid', gridTemplateColumns: '1fr 80px 80px 88px', gap: 10, alignItems: 'center', padding: '9px 4px', borderTop: '1px solid rgba(255,255,255,0.05)', fontSize: 12.5 }}>
                   <span className="inline-flex items-center" style={{ gap: 8, color: '#e4e6ee', minWidth: 0 }}>
-                    <span className="flex-none" style={{ width: 8, height: 8, borderRadius: '50%', background: m.color, boxShadow: `0 0 7px ${m.color}` }} />
-                    <span className="overflow-hidden text-ellipsis whitespace-nowrap">{m.name}</span>
+                    <span className="flex-none" style={{ width: 8, height: 8, borderRadius: '50%', background: PROFILE_COLORS[i % PROFILE_COLORS.length], boxShadow: `0 0 7px ${PROFILE_COLORS[i % PROFILE_COLORS.length]}` }} />
+                    <span className="overflow-hidden text-ellipsis whitespace-nowrap">{p.profile}</span>
                   </span>
-                  <span className="mono" style={{ color: 'var(--text-muted)' }}>{m.sessions}</span>
-                  <span className="mono" style={{ color: 'var(--text-muted)' }}>{m.tokens}</span>
-                  <span className="mono" style={{ color: '#d4d8e4' }}>{m.cost}</span>
-                  <span className="mono" style={{ color: m.color }}>{m.share}</span>
+                  <span className="mono" style={{ color: 'var(--text-muted)' }}>{p.completed}</span>
+                  <span className="mono" style={{ color: 'var(--text-muted)' }}>{p.running}</span>
+                  <span className="mono" style={{ color: '#d4d8e4' }}>{p.success_rate}%</span>
                 </div>
               ))}
+              {data.by_profile.length === 0 && (
+                <div style={{ fontSize: 12, color: '#565d72', padding: '12px 4px' }}>No profile data yet</div>
+              )}
             </div>
           </div>
 
           {/* Skill usage */}
-          <div style={cardBase} onClick={() => open(ins.skillsInfo)} onMouseEnter={hoverIn} onMouseLeave={hoverOut}>
+          <div style={cardBase} onClick={() => open(skillsInfo)} onMouseEnter={hoverIn} onMouseLeave={hoverOut}>
             <div style={{ ...cardLabel, marginBottom: 14 }}>Skill Usage</div>
             <div className="flex flex-col" style={{ gap: 11 }}>
-              {ins.skills.map((sk) => (
+              {data.top_skills.map((sk) => (
                 <div key={sk.skill} className="flex items-center" style={{ gap: 12 }}>
                   <span className="mono flex-none" style={{ width: 92, fontSize: 12, color: '#c6cad8' }}>{sk.skill}</span>
                   <div className="flex-1" style={{ height: 7, borderRadius: 99, background: 'rgba(255,255,255,0.05)', overflow: 'hidden' }}>
-                    <div style={{ height: '100%', width: sk.w, borderRadius: 99, background: 'linear-gradient(90deg, color-mix(in oklab, var(--ac) 60%, transparent), var(--ac))' }} />
+                    <div style={{ height: '100%', width: `${Math.round((sk.count / maxSkillCount) * 100)}%`, borderRadius: 99, background: 'linear-gradient(90deg, color-mix(in oklab, var(--ac) 60%, transparent), var(--ac))' }} />
                   </div>
-                  <span className="mono flex-none" style={{ width: 40, textAlign: 'right', fontSize: 11.5, color: 'var(--text-muted)' }}>{sk.uses}</span>
-                  <span className="mono flex-none" style={{ width: 40, textAlign: 'right', fontSize: 11, color: '#565d72' }}>{sk.share}</span>
+                  <span className="mono flex-none" style={{ width: 40, textAlign: 'right', fontSize: 11.5, color: 'var(--text-muted)' }}>{sk.count}</span>
+                  <span className="mono flex-none" style={{ width: 40, textAlign: 'right', fontSize: 11, color: '#565d72' }}>{totalSkillCount > 0 ? `${Math.round((sk.count / totalSkillCount) * 100)}%` : '0%'}</span>
                 </div>
               ))}
+              {data.top_skills.length === 0 && (
+                <div style={{ fontSize: 12, color: '#565d72' }}>No skill data yet</div>
+              )}
             </div>
           </div>
+
         </div>
       </div>
     </div>

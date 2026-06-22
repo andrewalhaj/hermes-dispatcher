@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   LANES,
   LANE_MAP,
@@ -6,7 +6,6 @@ import {
   fmtDur,
   initials,
   priColor,
-  seedTasks,
   staleLevel,
   type LaneId,
   type Task,
@@ -30,7 +29,7 @@ function useToast() {
 
 export default function KanbanPanel({ accent }: KanbanPanelProps) {
   const { openInfo } = useInfo()
-  const [tasks, setTasks] = useState<Task[]>(() => seedTasks())
+  const [tasks, setTasks] = useState<Task[]>([])
   const [search, setSearch] = useState('')
   const [tenantFilter, setTenantFilter] = useState<string>('all')
   const [projMenu, setProjMenu] = useState(false)
@@ -38,6 +37,24 @@ export default function KanbanPanel({ accent }: KanbanPanelProps) {
   const [dragOverCol, setDragOverCol] = useState<LaneId | null>(null)
   const [newTaskText, setNewTaskText] = useState('')
   const { toast, show } = useToast()
+
+  useEffect(() => {
+    fetch('/api/kanban/tasks')
+      .then((r) => r.json())
+      .then((data: Task[]) => setTasks(data))
+      .catch(() => {/* server not up yet */})
+
+    const es = new EventSource('/api/kanban/stream')
+    es.onmessage = (e) => {
+      try {
+        const parsed = JSON.parse(e.data) as { tasks: Task[] }
+        if (Array.isArray(parsed.tasks)) setTasks(parsed.tasks)
+      } catch {
+        /* ignore malformed frame */
+      }
+    }
+    return () => es.close()
+  }, [])
 
   const tenants = useMemo(() => [...new Set(tasks.map((t) => t.tenant))], [tasks])
 
@@ -58,35 +75,57 @@ export default function KanbanPanel({ accent }: KanbanPanelProps) {
       show('Running is dispatcher-owned — use Run dispatcher')
       return
     }
+    // Optimistic update
     setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, status, ageSec: 0 } : t)))
     setDraggingId(null)
     setDragOverCol(null)
+
+    fetch(`/api/kanban/tasks/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status }),
+    }).then((r) => {
+      if (!r.ok) {
+        // Revert on failure
+        fetch('/api/kanban/tasks')
+          .then((r2) => r2.json())
+          .then((data: Task[]) => setTasks(data))
+          .catch(() => {})
+        show('Failed to move task — reverted')
+      }
+    }).catch(() => {
+      fetch('/api/kanban/tasks')
+        .then((r2) => r2.json())
+        .then((data: Task[]) => setTasks(data))
+        .catch(() => {})
+      show('Failed to move task — reverted')
+    })
   }
 
   function addTask() {
     const nt = newTaskText.trim()
     const title = nt || q || 'New task'
     const tenant = tenantFilter !== 'all' ? tenantFilter : 'internal'
-    const task: Task = {
-      id: `t${Date.now()}`,
-      title,
-      priority: 4,
-      ageSec: 0,
-      status: 'triage',
-      tenant,
-      assignee: null,
-      skills: [],
-      branch: '',
-      desc: '',
-    }
-    setTasks((prev) => [task, ...prev])
     setNewTaskText('')
-    show('Task created in Triage')
+
+    fetch('/api/kanban/tasks', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, tenant, desc: '' }),
+    }).then((r) => {
+      if (r.ok) {
+        show('Task created in Triage')
+      } else {
+        show('Failed to create task')
+      }
+    }).catch(() => {
+      show('Failed to create task')
+    })
   }
 
   function runDispatcher() {
     // Mock: promote up to 3 ready tasks → running, assigning round-robin workers.
-    const pool = ['w-okada-01', 'npc-builder', 'ops-bot']
+    const pool = ['swarm-worker-b', 'coder-d', 'coder-e']
     let i = 0
     let count = 0
     setTasks((prev) =>

@@ -124,7 +124,7 @@ export const SKILLS: Skill[] = [
       'Runs realtime RVC voice conversion and measures end-to-end latency against the project gate. GPU-heavy — keep it off unless a worker with a free GPU is available.',
     author: 'labs',
     version: '0.2.0',
-    scope: 'rvc-runner',
+    scope: 'executor',
     calls7d: 0,
     commands: [
       { name: 'convert', sig: 'convert(stream, model)', desc: 'Stream audio through an RVC model and emit converted audio in realtime.' },

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ACCENT } from '../../data/agents'
 import { ACCENT_SWATCHES, API_KEYS, LANG_OPTS, MODEL_OPTS, SETTINGS_TOGGLES } from '../../data/phase3'
 import '../../styles/phase3.css'
@@ -45,6 +45,23 @@ function Segmented({ value, options, onChange, accent }: { value: string; option
   )
 }
 
+function Toast({ msg, accent }: { msg: string; accent: string }) {
+  const isErr = msg.toLowerCase().includes('error')
+  return (
+    <div style={{
+      position: 'fixed', bottom: 32, right: 32, zIndex: 9999,
+      background: isErr ? '#2a1a1a' : '#141924',
+      border: `1px solid ${isErr ? '#fb6f6f' : accent}`,
+      color: isErr ? '#fb6f6f' : '#e4e6ee',
+      borderRadius: 10, padding: '10px 18px', fontSize: 13,
+      boxShadow: `0 4px 24px rgba(0,0,0,0.5)`,
+      animation: 'hpanelin 0.25s var(--ease-out)',
+    }}>
+      {msg}
+    </div>
+  )
+}
+
 export default function Settings({ accent = ACCENT, onAccentChange }: SettingsProps) {
   const [toggles, setToggles] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(SETTINGS_TOGGLES.map((t) => [t.key, t.default])),
@@ -53,20 +70,105 @@ export default function Settings({ accent = ACCENT, onAccentChange }: SettingsPr
   const [reason, setReason] = useState('xhigh')
   const [lang, setLang] = useState('en')
   const [model, setModel] = useState(MODEL_OPTS[0])
+  const [modelOpts, setModelOpts] = useState<string[]>(MODEL_OPTS)
   const [ws, setWs] = useState('~/projects/dm-voice-board')
   const [botName, setBotName] = useState('Hermes')
   const [revealed, setReveal] = useState<Record<number, boolean>>({})
+  const [toast, setToast] = useState<string | null>(null)
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const showToast = (msg: string) => {
+    if (toastTimer.current) clearTimeout(toastTimer.current)
+    setToast(msg)
+    toastTimer.current = setTimeout(() => setToast(null), 2500)
+  }
+
+  useEffect(() => {
+    fetch('/api/settings')
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.model?.default) setModel(d.model.default)
+        if (d.display?.language) setLang(d.display.language)
+        if (d.reasoning_effort) setReason(d.reasoning_effort)
+        if (typeof d.display?.streaming === 'boolean') {
+          setToggles((p) => ({ ...p, setStream: d.display.streaming }))
+        }
+        if (typeof d.display?.show_cost === 'boolean') {
+          setToggles((p) => ({ ...p, setInsights: d.display.show_cost }))
+        }
+      })
+      .catch(() => {})
+
+    fetch('/api/settings/models')
+      .then((r) => r.json())
+      .then((d) => {
+        if (Array.isArray(d.models) && d.models.length > 0) setModelOpts(d.models)
+      })
+      .catch(() => {})
+
+    return () => {
+      if (toastTimer.current) clearTimeout(toastTimer.current)
+    }
+  }, [])
 
   const pickAccent = (c: string) => {
     if (onAccentChange) onAccentChange(c)
     else document.documentElement.style.setProperty('--ac', c)
   }
 
+  const handleSave = async () => {
+    try {
+      const body = {
+        model: { default: model },
+        display: {
+          language: lang,
+          streaming: toggles['setStream'] ?? true,
+          show_cost: toggles['setInsights'] ?? false,
+        },
+        reasoning_effort: reason,
+      }
+      const res = await fetch('/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      const json = await res.json()
+      if (res.ok && json.ok) {
+        showToast('Saved')
+      } else {
+        showToast('Error saving')
+      }
+    } catch {
+      showToast('Error saving')
+    }
+  }
+
   return (
     <div className="flex flex-1 flex-col" style={{ minWidth: 0, minHeight: 0 }}>
-      <header style={{ flex: 'none', padding: '16px 26px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-        <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 20, color: 'var(--text-primary)' }}>Settings</div>
-        <div style={{ fontSize: 12, color: '#6a7088', marginTop: 2 }}>appearance &amp; behavior</div>
+      <header style={{ flex: 'none', padding: '16px 26px', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div>
+          <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 20, color: 'var(--text-primary)' }}>Settings</div>
+          <div style={{ fontSize: 12, color: '#6a7088', marginTop: 2 }}>appearance &amp; behavior</div>
+        </div>
+        <button
+          onClick={handleSave}
+          style={{
+            background: `color-mix(in oklab, ${accent} 18%, transparent)`,
+            color: '#e4e6ee',
+            border: `1px solid color-mix(in oklab, ${accent} 45%, transparent)`,
+            borderRadius: 9,
+            padding: '8px 20px',
+            fontSize: 13,
+            fontFamily: 'inherit',
+            cursor: 'pointer',
+            fontWeight: 500,
+            transition: 'background 0.15s',
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = `color-mix(in oklab, ${accent} 28%, transparent)` }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = `color-mix(in oklab, ${accent} 18%, transparent)` }}
+        >
+          Save
+        </button>
       </header>
       <div className="flex-1 overflow-y-auto" style={{ minHeight: 0, padding: '24px 26px 40px' }}>
         <div style={{ maxWidth: 720, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 18, animation: 'hpanelin 0.4s var(--ease-out)' }}>
@@ -125,7 +227,7 @@ export default function Settings({ accent = ACCENT, onAccentChange }: SettingsPr
                 <div style={rowDesc}>Model new sessions start with.</div>
               </div>
               <select value={model} onChange={(e) => setModel(e.target.value)} style={{ ...selectStyle, maxWidth: 200 }}>
-                {MODEL_OPTS.map((m) => (
+                {modelOpts.map((m) => (
                   <option key={m} value={m}>{m}</option>
                 ))}
               </select>
@@ -199,6 +301,7 @@ export default function Settings({ accent = ACCENT, onAccentChange }: SettingsPr
           </div>
         </div>
       </div>
+      {toast && <Toast msg={toast} accent={accent} />}
     </div>
   )
 }
