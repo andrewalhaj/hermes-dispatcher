@@ -11,6 +11,10 @@ interface SkillSummary {
   category: string
   tags: string[]
   path: string
+  enabled?: boolean
+  version?: string
+  author?: string
+  last_modified?: string | null
 }
 
 interface SkillDetail {
@@ -19,6 +23,9 @@ interface SkillDetail {
   category: string
   path: string
   content: string
+  enabled?: boolean
+  version?: string
+  author?: string
 }
 
 export default function Skills({ accent }: SkillsProps) {
@@ -34,19 +41,43 @@ export default function Skills({ accent }: SkillsProps) {
   const [editContent, setEditContent] = useState('')
   const [saving, setSaving] = useState(false)
   const [savedMsg, setSavedMsg] = useState('')
+  const [syncStatus, setSyncStatus] = useState<Record<string, string>>({})
 
   useEffect(() => {
     fetch('/api/skills')
       .then((r) => r.json())
       .then((data: SkillSummary[]) => {
         setSkills(data)
-        setEnabled(data.reduce((m, s) => { m[s.id] = true; return m }, {} as Record<string, boolean>))
+        setEnabled(data.reduce((m, s) => { m[s.id] = s.enabled ?? true; return m }, {} as Record<string, boolean>))
         setLoading(false)
       })
       .catch((e: unknown) => { setError(String(e)); setLoading(false) })
   }, [])
 
-  const toggle = (id: string) => setEnabled((m) => ({ ...m, [id]: !m[id] }))
+  const toggle = async (id: string) => {
+    const newState = !enabled[id]
+    try {
+      const res = await fetch(`/api/skills/${encodeURIComponent(id)}/enabled`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled: newState }),
+      })
+      if (res.ok) {
+        setEnabled((m) => ({ ...m, [id]: newState }))
+        setSyncStatus((m) => ({ ...m, [id]: 'Synced' }))
+        setTimeout(() => setSyncStatus((m) => ({ ...m, [id]: '' })), 2000)
+        if (detail?.id === id) {
+          setDetail((d) => (d ? { ...d, enabled: newState } : d))
+        }
+      } else {
+        setSyncStatus((m) => ({ ...m, [id]: 'Error' }))
+        setTimeout(() => setSyncStatus((m) => ({ ...m, [id]: '' })), 2000)
+      }
+    } catch (err) {
+      setSyncStatus((m) => ({ ...m, [id]: 'Error' }))
+      setTimeout(() => setSyncStatus((m) => ({ ...m, [id]: '' })), 2000)
+    }
+  }
 
   const openDrawer = (id: string) => {
     setSelId(id)
@@ -148,14 +179,21 @@ export default function Skills({ accent }: SkillsProps) {
                     </div>
                     <div style={{ fontSize: 12.5, lineHeight: 1.5, color: '#9aa0b4', marginTop: 5 }}>{p.description}</div>
                   </div>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); toggle(p.id) }}
-                    aria-label={`${on ? 'Disable' : 'Enable'} ${p.name}`}
-                    className="relative flex-none"
-                    style={{ width: 38, height: 22, borderRadius: 12, border: 'none', background: on ? accent : 'rgba(255,255,255,0.12)', cursor: 'pointer', transition: 'background 0.15s' }}
-                  >
-                    <span style={{ position: 'absolute', top: 2, left: on ? 18 : 2, width: 18, height: 18, borderRadius: '50%', background: '#fff', transition: 'left 0.15s', boxShadow: '0 1px 3px rgba(0,0,0,0.4)' }} />
-                  </button>
+                  <div className="flex flex-col items-end" style={{ gap: 6 }}>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); toggle(p.id) }}
+                      aria-label={`${on ? 'Disable' : 'Enable'} ${p.name}`}
+                      className="relative flex-none"
+                      style={{ width: 38, height: 22, borderRadius: 12, border: 'none', background: on ? accent : 'rgba(255,255,255,0.12)', cursor: 'pointer', transition: 'background 0.15s' }}
+                    >
+                      <span style={{ position: 'absolute', top: 2, left: on ? 18 : 2, width: 18, height: 18, borderRadius: '50%', background: '#fff', transition: 'left 0.15s', boxShadow: '0 1px 3px rgba(0,0,0,0.4)' }} />
+                    </button>
+                    {syncStatus[p.id] && (
+                      <span style={{ fontSize: 9, color: syncStatus[p.id] === 'Synced' ? '#4ade80' : '#f87171', opacity: syncStatus[p.id] ? 1 : 0, transition: 'opacity 0.2s' }}>
+                        {syncStatus[p.id]}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <div className="flex flex-wrap" style={{ gap: 5 }}>
                   {p.tags.map((k) => (
@@ -202,6 +240,12 @@ export default function Skills({ accent }: SkillsProps) {
                   <span style={{ width: 7, height: 7, borderRadius: '50%', background: detailOn ? '#4ade80' : '#6a7088', boxShadow: `0 0 7px ${detailOn ? '#4ade80' : '#6a7088'}` }} />
                   {detailOn ? 'Enabled' : 'Disabled'}
                 </div>
+                {detail && (
+                  <div style={{ marginTop: 12, fontSize: 11, color: '#9aa0b4' }}>
+                    {detail.version && <div style={{ marginBottom: 4 }}>Version: <span style={{ color: '#c8cce0' }}>{detail.version}</span></div>}
+                    {detail.author && <div style={{ marginBottom: 4 }}>Author: <span style={{ color: '#c8cce0' }}>{detail.author}</span></div>}
+                  </div>
+                )}
               </div>
               <button
                 onClick={closeDrawer}

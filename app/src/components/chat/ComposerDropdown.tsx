@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { profileDisplayName } from '../../data/profileDisplayNames'
 
 interface ComposerDropdownProps {
   /** Unique menu key (profile/folder/model/reasoning). */
@@ -60,7 +61,7 @@ export default function ComposerDropdown({
         {icon}
         {/* key={value} remounts the span so the hdropswap keyframe replays on change */}
         <span key={value} style={{ display: 'inline-block', animation: 'hdropswap 0.24s cubic-bezier(0.16,1,0.3,1)' }}>
-          {value}
+          {profileDisplayName(value)}
         </span>
         <svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke={isAccent ? 'currentColor' : '#9298ab'} strokeWidth={2}>
           <path d="M6 9l6 6 6-6" />
@@ -107,7 +108,7 @@ export default function ComposerDropdown({
                 onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}
                 onMouseLeave={(e) => (e.currentTarget.style.background = selected ? 'rgba(255,255,255,0.05)' : 'transparent')}
               >
-                <span>{opt}</span>
+                <span>{profileDisplayName(opt)}</span>
                 {selected && (
                   <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="var(--ac)" strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round">
                     <path d="M20 6 9 17l-5-5" />

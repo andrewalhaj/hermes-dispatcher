@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { ACCENT } from '../../data/agents'
+import { profileDisplayName } from '../../data/profileDisplayNames'
 import '../../styles/phase3.css'
 
 interface SessionsProps {
@@ -145,7 +146,7 @@ export default function Sessions({ accent = ACCENT, onOpenSession }: SessionsPro
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search sessions by title or message content…"
-                style={{ width: '100%', background: 'rgba(17,21,31,0.55)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 9, padding: '9px 12px 9px 34px', color: '#e9ebf2', fontSize: 13, fontFamily: 'inherit', outline: 'none' }}
+                style={{ width: '100%', background: 'rgba(17,21,31,0.55)', backdropFilter: 'blur(14px)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 9, padding: '9px 12px 9px 34px', color: '#e9ebf2', fontSize: 13, fontFamily: 'inherit', outline: 'none' }}
                 onFocus={(e) => (e.currentTarget.style.borderColor = accent)}
                 onBlur={(e) => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)')}
               />
@@ -194,9 +195,9 @@ export default function Sessions({ accent = ACCENT, onOpenSession }: SessionsPro
                     </span>
                     <span style={{ minWidth: 0 }}>
                       <span className="block overflow-hidden text-ellipsis whitespace-nowrap" style={{ fontSize: 13, color: '#e4e6ee' }}>{x.title}</span>
-                      <span className="mono block overflow-hidden text-ellipsis whitespace-nowrap" style={{ fontSize: 10.5, color: '#565d72', marginTop: 2 }}>#{x.id.slice(0, 18)} · {x.profile}</span>
+                      <span className="mono block overflow-hidden text-ellipsis whitespace-nowrap" style={{ fontSize: 10.5, color: '#565d72', marginTop: 2 }}>#{x.id.slice(0, 18)} · {profileDisplayName(x.profile)}</span>
                     </span>
-                    <span className="mono overflow-hidden text-ellipsis whitespace-nowrap" style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>{x.profile}</span>
+                    <span className="mono overflow-hidden text-ellipsis whitespace-nowrap" style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>{profileDisplayName(x.profile)}</span>
                     <span className="inline-flex items-center" style={{ gap: 6, fontSize: 11, color }}>
                       <span style={{ width: 7, height: 7, borderRadius: '50%', background: color }} />{srcLabel(x.source)}
                     </span>
@@ -231,7 +232,7 @@ export default function Sessions({ accent = ACCENT, onOpenSession }: SessionsPro
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 14, fontWeight: 600, color: '#e4e6ee', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{drawerSession.title}</div>
                 <div style={{ fontSize: 11, color: '#565d72', marginTop: 3 }}>
-                  {drawerSession.profile} · {srcLabel(drawerSession.source)} · {drawerSession.message_count} msgs
+                  {profileDisplayName(drawerSession.profile)} · {srcLabel(drawerSession.source)} · {drawerSession.message_count} msgs
                 </div>
               </div>
               <button

@@ -11,10 +11,13 @@ interface InsightsAPI {
   avg_latency_s: number
   by_status: { triage: number; todo: number; ready: number; running: number; blocked: number; done: number }
   by_profile: Array<{ profile: string; completed: number; running: number; success_rate: number }>
+  by_profile_full: Array<{ profile: string; completed: number; running: number; success_rate: number }>
   sessions_today: number
   messages_today: number
   kanban_throughput: Array<{ date: string; completed: number }>
   top_skills: Array<{ skill: string; count: number }>
+  tokens_input?: number
+  tokens_output?: number
 }
 
 interface InsightsProps {
@@ -120,6 +123,20 @@ export default function Insights({ accent = ACCENT }: InsightsProps) {
     stats: data.kanban_throughput.map(d => ({ label: d.date, value: String(d.completed) })),
   }
 
+  // Token breakdown
+  const tokensInput = data.tokens_input ?? 0
+  const tokensOutput = data.tokens_output ?? 0
+  const tokensTotal = tokensInput + tokensOutput
+  const inputPct = tokensTotal > 0 ? (tokensInput / tokensTotal) * 100 : 50
+  const tokenInfo: InfoObject = {
+    category: 'Tokens', title: 'Token Breakdown', accent: '#f6b73c',
+    desc: 'Input vs output tokens used across all sessions in the time window.',
+    stats: [
+      { label: 'Input tokens', value: fmtNum(tokensInput) },
+      { label: 'Output tokens', value: fmtNum(tokensOutput) },
+    ],
+  }
+
   // Task status
   const statusEntries = [
     { key: 'triage', label: 'Triage', count: data.by_status.triage },
@@ -136,11 +153,12 @@ export default function Insights({ accent = ACCENT }: InsightsProps) {
     stats: statusEntries.map(e => ({ label: e.label, value: String(e.count) })),
   }
 
-  // By profile
+  // By agent — drawer shows the full untruncated list
+  const fullAgentList = data.by_profile_full ?? data.by_profile
   const profileInfo: InfoObject = {
-    category: 'Profiles', title: 'By Profile', accent: '#5aa2f0',
-    desc: 'Task completion and success rates broken down by agent profile.',
-    stats: data.by_profile.map(p => ({ label: p.profile, value: `${p.completed} done · ${p.success_rate}%` })),
+    category: 'Agents', title: 'By Agent', accent: '#5aa2f0',
+    desc: `Task completion and success rates for all ${fullAgentList.length} agent${fullAgentList.length !== 1 ? 's' : ''}.`,
+    stats: fullAgentList.map(p => ({ label: p.profile, value: `${p.completed} done · ${p.running} running · ${p.success_rate}%` })),
   }
 
   // Skill usage
@@ -175,7 +193,7 @@ export default function Insights({ accent = ACCENT }: InsightsProps) {
                 onClick={() => open(k.info)}
                 className="relative overflow-hidden text-left"
                 style={{ background: 'var(--s3)', border: '1px solid var(--border)', borderRadius: 13, padding: '16px 17px', cursor: 'pointer', transition: 'transform 0.25s, border-color 0.25s, box-shadow 0.25s' }}
-                onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.16)'; e.currentTarget.style.boxShadow = '0 12px 30px rgba(0,0,0,0.42)' }}
+                onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.16)'; e.currentTarget.style.boxShadow = '0 14px 34px rgba(0,0,0,0.45)' }}
                 onMouseLeave={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.boxShadow = 'none' }}
               >
                 <span style={{ position: 'absolute', left: 0, right: 0, top: 0, height: 2, background: k.accent }} />
@@ -185,7 +203,7 @@ export default function Insights({ accent = ACCENT }: InsightsProps) {
             ))}
           </div>
 
-          {/* Activity by Day + Task Status */}
+          {/* Activity by Day + Token Breakdown */}
           <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1.3fr) minmax(0,1fr)', gap: 16 }}>
             <div style={cardBase} onClick={() => open(activityInfo)} onMouseEnter={hoverIn} onMouseLeave={hoverOut}>
               <div className="flex items-center justify-between" style={{ marginBottom: 16 }}>
@@ -199,32 +217,34 @@ export default function Insights({ accent = ACCENT }: InsightsProps) {
               </div>
             </div>
 
-            <div style={cardBase} onClick={() => open(statusInfo)} onMouseEnter={hoverIn} onMouseLeave={hoverOut}>
-              <div style={{ ...cardLabel, marginBottom: 16 }}>Task Status</div>
-              <div className="flex" style={{ height: 10, borderRadius: 99, overflow: 'hidden', background: 'rgba(255,255,255,0.05)' }}>
-                {statusEntries.map((e) => (
-                  <div key={e.key} style={{ width: statusTotal > 0 ? `${(e.count / statusTotal) * 100}%` : '0%', background: STATUS_COLORS[e.key] }} />
-                ))}
+            <div style={cardBase} onClick={() => open(tokenInfo)} onMouseEnter={hoverIn} onMouseLeave={hoverOut}>
+              <div style={{ ...cardLabel, marginBottom: 16 }}>Token Breakdown</div>
+              <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 26, color: 'var(--text-primary)', marginBottom: 16 }}>{fmtNum(tokensTotal)}</div>
+              <div className="flex" style={{ height: 10, borderRadius: 99, overflow: 'hidden', background: 'rgba(255,255,255,0.05)', marginBottom: 14 }}>
+                <div style={{ width: `${inputPct}%`, background: 'var(--ac)', borderRadius: '99px 0 0 99px' }} />
+                <div style={{ width: `${100 - inputPct}%`, background: '#5aa2f0', borderRadius: '0 99px 99px 0' }} />
               </div>
-              <div className="flex flex-wrap" style={{ marginTop: 14, gap: '8px 14px' }}>
-                {statusEntries.map((e) => (
-                  <span key={e.key} className="inline-flex items-center" style={{ gap: 6, fontSize: 12, color: 'var(--text-muted)' }}>
-                    <span style={{ width: 8, height: 8, borderRadius: 2, background: STATUS_COLORS[e.key] }} />
-                    {e.label} <b style={{ color: '#d4d8e4', fontWeight: 600 }}>{e.count}</b>
-                  </span>
-                ))}
+              <div className="flex flex-wrap" style={{ gap: '8px 14px' }}>
+                <span className="inline-flex items-center" style={{ gap: 6, fontSize: 12, color: 'var(--text-muted)' }}>
+                  <span style={{ width: 8, height: 8, borderRadius: 2, background: 'var(--ac)' }} />
+                  Input <b style={{ color: '#d4d8e4', fontWeight: 600 }}>{fmtNum(tokensInput)}</b>
+                </span>
+                <span className="inline-flex items-center" style={{ gap: 6, fontSize: 12, color: 'var(--text-muted)' }}>
+                  <span style={{ width: 8, height: 8, borderRadius: 2, background: '#5aa2f0' }} />
+                  Output <b style={{ color: '#d4d8e4', fontWeight: 600 }}>{fmtNum(tokensOutput)}</b>
+                </span>
               </div>
             </div>
           </div>
 
-          {/* By Profile table */}
+          {/* By Agent table */}
           <div style={cardBase} onClick={() => open(profileInfo)} onMouseEnter={hoverIn} onMouseLeave={hoverOut}>
-            <div style={{ ...cardLabel, marginBottom: 14 }}>By Profile</div>
+            <div style={{ ...cardLabel, marginBottom: 14 }}>By Agent</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 80px 80px 88px', gap: 10, padding: '0 4px 8px', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#565d72' }}>
-              <span>Profile</span><span>Completed</span><span>Running</span><span>Success</span>
+              <span>Agent</span><span>Completed</span><span>Running</span><span>Success</span>
             </div>
             <div className="flex flex-col" style={{ gap: 4 }}>
-              {data.by_profile.map((p, i) => (
+              {fullAgentList.map((p, i) => (
                 <div key={p.profile} style={{ display: 'grid', gridTemplateColumns: '1fr 80px 80px 88px', gap: 10, alignItems: 'center', padding: '9px 4px', borderTop: '1px solid rgba(255,255,255,0.05)', fontSize: 12.5 }}>
                   <span className="inline-flex items-center" style={{ gap: 8, color: '#e4e6ee', minWidth: 0 }}>
                     <span className="flex-none" style={{ width: 8, height: 8, borderRadius: '50%', background: PROFILE_COLORS[i % PROFILE_COLORS.length], boxShadow: `0 0 7px ${PROFILE_COLORS[i % PROFILE_COLORS.length]}` }} />
@@ -235,9 +255,27 @@ export default function Insights({ accent = ACCENT }: InsightsProps) {
                   <span className="mono" style={{ color: '#d4d8e4' }}>{p.success_rate}%</span>
                 </div>
               ))}
-              {data.by_profile.length === 0 && (
-                <div style={{ fontSize: 12, color: '#565d72', padding: '12px 4px' }}>No profile data yet</div>
+              {fullAgentList.length === 0 && (
+                <div style={{ fontSize: 12, color: '#565d72', padding: '12px 4px' }}>No agent data yet</div>
               )}
+            </div>
+          </div>
+
+          {/* Task Status */}
+          <div style={cardBase} onClick={() => open(statusInfo)} onMouseEnter={hoverIn} onMouseLeave={hoverOut}>
+            <div style={{ ...cardLabel, marginBottom: 16 }}>Task Status</div>
+            <div className="flex" style={{ height: 10, borderRadius: 99, overflow: 'hidden', background: 'rgba(255,255,255,0.05)' }}>
+              {statusEntries.map((e) => (
+                <div key={e.key} style={{ width: statusTotal > 0 ? `${(e.count / statusTotal) * 100}%` : '0%', background: STATUS_COLORS[e.key] }} />
+              ))}
+            </div>
+            <div className="flex flex-wrap" style={{ marginTop: 14, gap: '8px 14px' }}>
+              {statusEntries.map((e) => (
+                <span key={e.key} className="inline-flex items-center" style={{ gap: 6, fontSize: 12, color: 'var(--text-muted)' }}>
+                  <span style={{ width: 8, height: 8, borderRadius: 2, background: STATUS_COLORS[e.key] }} />
+                  {e.label} <b style={{ color: '#d4d8e4', fontWeight: 600 }}>{e.count}</b>
+                </span>
+              ))}
             </div>
           </div>
 

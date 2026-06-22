@@ -17,8 +17,7 @@ import Memory from './panels/Memory'
 import Logs from './panels/Logs'
 import Settings from './panels/Settings'
 import Placeholder from './panels/Placeholder'
-import Workspace from './panels/Workspace'
-import Profiles from './panels/Profiles'
+import StarsBackground from './StarsBackground'
 
 interface NavGroup {
   header: string
@@ -33,7 +32,6 @@ const NAV_GROUPS: NavGroup[] = [
       { panel: 'chat', label: 'Chat' },
       { panel: 'kanban', label: 'Kanban' },
       { panel: 'agents', label: 'Agents' },
-      { panel: 'workspace', label: 'Workspace' },
     ],
   },
   {
@@ -44,7 +42,6 @@ const NAV_GROUPS: NavGroup[] = [
       { panel: 'logs', label: 'Logs' },
       { panel: 'insights', label: 'Insights' },
       { panel: 'sessions', label: 'Sessions' },
-      { panel: 'profiles', label: 'Profiles' },
       { panel: 'settings', label: 'Settings' },
     ],
   },
@@ -60,9 +57,7 @@ const PANEL_LABELS: Record<PanelId, string> = {
   logs: 'Logs',
   insights: 'Insights',
   sessions: 'Sessions',
-  profiles: 'Profiles',
   settings: 'Settings',
-  workspace: 'Workspace',
 }
 
 const groupHeaderStyle: React.CSSProperties = {
@@ -77,10 +72,10 @@ const groupHeaderStyle: React.CSSProperties = {
 
 /** Render the active panel. Kept outside the rail so InfoProvider context wraps
  *  every panel uniformly. */
-function PanelView({ panel, accent, setAccent }: { panel: PanelId; accent: string; setAccent: (c: string) => void }) {
+function PanelView({ panel, accent, setAccent, setPanel }: { panel: PanelId; accent: string; setAccent: (c: string) => void; setPanel: (p: PanelId) => void }) {
   switch (panel) {
     case 'overview':
-      return <Overview accent={accent} />
+      return <Overview accent={accent} navigateTo={setPanel} />
     case 'chat':
       return <Chat accent={accent} />
     case 'kanban':
@@ -99,10 +94,6 @@ function PanelView({ panel, accent, setAccent }: { panel: PanelId; accent: strin
       return <Logs accent={accent} />
     case 'settings':
       return <Settings accent={accent} onAccentChange={setAccent} />
-    case 'workspace':
-      return <Workspace accent={accent} />
-    case 'profiles':
-      return <Profiles accent={accent} />
     default:
       return <Placeholder name={PANEL_LABELS[panel]} />
   }
@@ -116,6 +107,7 @@ export default function Shell() {
   return (
     <InfoProvider>
       <div style={{ '--ac': accent } as React.CSSProperties} className="flex h-screen overflow-hidden">
+        <StarsBackground />
         {/* Left rail */}
         <nav
           className="relative z-30 flex flex-none flex-col"
@@ -232,7 +224,7 @@ export default function Shell() {
 
         {/* Main content */}
         <main className="flex flex-1 flex-col" style={{ minWidth: 0, minHeight: 0 }}>
-          <PanelView panel={activePanel} accent={accent} setAccent={setAccent} />
+          <PanelView panel={activePanel} accent={accent} setAccent={setAccent} setPanel={setActivePanel} />
         </main>
 
         {/* Universal tile info drawer (shared across panels) */}

@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { CHAT_AGENTS } from '../../data/agents'
 import {
-  FOLDER_OPTIONS,
   INITIAL_THREADS,
   MODEL_OPTIONS,
   PAST_SESSIONS,
@@ -165,7 +164,6 @@ export default function Chat({ accent }: ChatProps) {
   const [viewSession, setViewSession] = useState<PastSession | null>(null)
   const [composerMenu, setComposerMenu] = useState<string | null>(null)
   const [profile, setProfile] = useState('default')
-  const [folder, setFolder] = useState('Home')
   const [model, setModel] = useState('Claude Sonnet 4.6')
   const [reason, setReason] = useState('xhigh')
   const [planMainOpen, setPlanMainOpen] = useState<Record<string, boolean>>({})
@@ -227,7 +225,21 @@ export default function Chat({ accent }: ChatProps) {
       try {
         const res = await fetch('/api/chat/sessions')
         const data = await res.json() as { id: string; title: string; created_at: number }[]
-        setHermesSessions(data.map((s) => ({ id: s.id, title: s.title, when: epochToWhen(s.created_at), msgs: [] })))
+        const sorted = [...data].sort((a, b) => b.created_at - a.created_at)
+        const sessions = sorted.map((s) => ({ id: s.id, title: s.title, when: epochToWhen(s.created_at), msgs: [] }))
+        setHermesSessions(sessions)
+        if (sessions.length > 0) {
+          const savedId = localStorage.getItem('hermes-chat-last-session')
+          const target = (savedId ? sessions.find(s => s.id === savedId) : null) ?? sessions[0]
+          try {
+            const msgRes = await fetch(`/api/chat/sessions/${target.id}/messages`)
+            const msgs = await msgRes.json() as Message[]
+            setViewSession({ ...target, msgs })
+          } catch {
+            setViewSession({ ...target, msgs: [] })
+          }
+          localStorage.setItem('hermes-chat-last-session', target.id)
+        }
       } catch {
         setHermesSessions([])
       }
@@ -519,7 +531,20 @@ export default function Chat({ accent }: ChatProps) {
                       pastList.map((p) => (
                         <div
                           key={p.id}
-                          onClick={() => { setViewSession(p); setHistOpen(false) }}
+                          onClick={async () => {
+                            try {
+                              const res = await fetch(`/api/chat/sessions/${p.id}/messages`)
+                              const msgs = await res.json() as Message[]
+                              setViewSession({ ...p, msgs })
+                              localStorage.setItem('hermes-chat-last-session', p.id)
+                              setHistOpen(false)
+                            } catch (err) {
+                              console.error('Failed to load session messages:', err)
+                              setViewSession({ ...p, msgs: [] })
+                              localStorage.setItem('hermes-chat-last-session', p.id)
+                              setHistOpen(false)
+                            }
+                          }}
                           style={{ display: 'flex', flexDirection: 'column', gap: 2, padding: '9px 11px', borderRadius: 9, cursor: 'pointer' }}
                           onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.05)')}
                           onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
@@ -549,33 +574,41 @@ export default function Chat({ accent }: ChatProps) {
       </div>
 
       {/* Viewing-past banner */}
-      {viewSession && (
-        <div style={{ flex: 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '9px 22px', background: 'color-mix(in oklab, var(--ac) 8%, transparent)', borderBottom: '1px solid rgba(255,255,255,0.06)', position: 'relative', zIndex: 1 }}>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#c6cad8' }}>
-            <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="var(--ac)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-              <path d="M3 3v5h5" />
-              <path d="M3.05 13A9 9 0 1 0 6 5.3L3 8" />
-              <path d="M12 7v5l4 2" />
-            </svg>
-            Viewing past session · <span style={{ color: '#9aa0b4' }}>{viewSession.title} · {viewSession.when}</span>
-          </span>
-          <button onClick={() => setViewSession(null)} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'transparent', color: 'var(--ac)', border: 'none', fontSize: 12, fontFamily: 'inherit', cursor: 'pointer', padding: 0 }}>
-            Return to current
-            <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-              <path d="M9 6l6 6-6 6" />
-            </svg>
-          </button>
-        </div>
-      )}
+
 
       {/* Message list */}
       <div ref={listRef} style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', padding: '22px 26px', display: 'flex', flexDirection: 'column', gap: 4, position: 'relative', zIndex: 1 }}>
         {displayThread.length === 0 && !running ? (
-          <div style={{ margin: 'auto', textAlign: 'center', padding: '40px 20px' }}>
-            <div style={{ fontSize: 44, lineHeight: 1, marginBottom: 14, color: agent.color }}>{agent.icon}</div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: '#e4e6ee', marginBottom: 6 }}>Chat with {agent.name}</div>
-            <div style={{ fontSize: 13, color: '#6a7088', maxWidth: 320, margin: '0 auto' }}>{agent.role} — send a message to start a conversation.</div>
-          </div>
+          pastList.length === 0 ? (
+            // WELCOME SCREEN — first time ever, no sessions
+            <div style={{
+              margin: 'auto',
+              textAlign: 'center',
+              padding: '60px 20px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: 0,
+            }}>
+              {/* Large golden Hermes icon */}
+              <div style={{ fontSize: 56, lineHeight: 1, marginBottom: 20, color: agent.color, filter: 'drop-shadow(0 0 18px color-mix(in oklab, currentColor 55%, transparent))' }}>
+                {agent.icon}
+              </div>
+              {/* Heading */}
+              <div style={{ fontSize: 22, fontWeight: 700, color: '#ffffff', marginBottom: 10, letterSpacing: '-0.01em' }}>
+                Chat with {agent.name} <span style={{ color: 'rgba(255,255,255,0.35)', fontWeight: 400 }}>·</span>
+              </div>
+              {/* Subtitle */}
+              <div style={{ fontSize: 13, color: '#94a3b8', maxWidth: 340, lineHeight: 1.6 }}>
+                • {agent.role} — send a message to start a conversation.
+              </div>
+            </div>
+          ) : (
+            // Sessions exist but none selected / loading — minimal state
+            <div style={{ margin: 'auto', textAlign: 'center', padding: '40px 20px' }}>
+              <div style={{ fontSize: 13, color: '#6a7088' }}>Loading conversation…</div>
+            </div>
+          )
         ) : (
           displayThread.map((m, i) => {
             const showDivider = i === 0 && !viewSession
@@ -721,18 +754,6 @@ export default function Chat({ accent }: ChatProps) {
           />
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', flex: 1, minWidth: 0 }}>
-              {/* Static action buttons */}
-              {[
-                { t: 'Attach', d: 'M21 8v8a5 5 0 0 1-10 0V6a3 3 0 0 1 6 0v9a1 1 0 0 1-2 0V7', s: 17 },
-                { t: 'Save', d: 'M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z', s: 16 },
-              ].map((b) => (
-                <button key={b.t} title={b.t} style={{ width: 30, height: 30, flex: 'none', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', borderRadius: 8, color: '#6a7088', cursor: 'pointer' }}
-                  onMouseEnter={(e) => { e.currentTarget.style.color = '#e9ebf2'; e.currentTarget.style.background = 'rgba(255,255,255,0.05)' }}
-                  onMouseLeave={(e) => { e.currentTarget.style.color = '#6a7088'; e.currentTarget.style.background = 'none' }}>
-                  <svg width={b.s} height={b.s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d={b.d} /></svg>
-                </button>
-              ))}
-
               {/* Voice button — hidden when SpeechRecognition is unavailable */}
               {hasSpeech && (
                 <button
@@ -771,12 +792,6 @@ export default function Chat({ accent }: ChatProps) {
                 onToggle={() => setComposerMenu((m) => (m === 'profile' ? null : 'profile'))}
                 onPick={(v) => { setProfile(v); setComposerMenu(null) }}
                 icon={<svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><circle cx={12} cy={8} r={4} /><path d="M4 21a8 8 0 0 1 16 0" /></svg>}
-              />
-              <ComposerDropdown
-                menuKey="folder" value={folder} options={FOLDER_OPTIONS} open={composerMenu === 'folder'} variant="pill" minWidth={168}
-                onToggle={() => setComposerMenu((m) => (m === 'folder' ? null : 'folder'))}
-                onPick={(v) => { setFolder(v); setComposerMenu(null) }}
-                icon={<svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="#9298ab" strokeWidth={2}><path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /></svg>}
               />
               <ComposerDropdown
                 menuKey="model" value={model} options={modelOpts} open={composerMenu === 'model'} variant="pill" minWidth={190}

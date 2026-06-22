@@ -5,11 +5,12 @@ from datetime import datetime
 from pathlib import Path
 
 import psutil
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
 
 router = APIRouter()
 
 KANBAN_DB = Path(os.environ.get("KANBAN_DB", "/root/.hermes/kanban.db"))
+PROFILES_DIR = Path(os.environ.get("HERMES_PROFILES_DIR", "/root/.hermes/profiles"))
 
 
 def _open_ro() -> sqlite3.Connection:
@@ -58,7 +59,9 @@ def _agent_memory() -> list:
 
 
 @router.get("/overview")
-async def get_overview() -> dict:
+async def get_overview(
+    heatmap_window: str = Query(default="day", pattern="^(day|week|month)$"),
+) -> dict:
     cpu = round(psutil.cpu_percent(interval=0.0), 1)
     mem = psutil.virtual_memory().percent
     disk = psutil.disk_usage("/").percent
@@ -120,30 +123,40 @@ async def get_overview() -> dict:
                 " WHERE assignee IS NOT NULL GROUP BY assignee ORDER BY cnt DESC"
             )
             rows = cur.fetchall()
-            agent_breakdown: list = []
-            for i, (assignee, cnt) in enumerate(rows):
-                if i < 6:
-                    agent_breakdown.append({'name': assignee, 'count': cnt})
-                else:
-                    if agent_breakdown and agent_breakdown[-1]['name'] == 'other':
-                        agent_breakdown[-1]['count'] += cnt
-                    else:
-                        agent_breakdown.append({'name': 'other', 'count': cnt})
+            existing_profiles = (
+                {p.name for p in PROFILES_DIR.iterdir() if p.is_dir()}
+                if PROFILES_DIR.exists()
+                else set()
+            )
 
-            top_agents = [r[0] for r in rows[:5]]
+            agent_breakdown: list = []
+            for assignee, cnt in rows:
+                if existing_profiles and assignee not in existing_profiles:
+                    continue
+                agent_breakdown.append({'name': assignee, 'count': cnt})
+
+            top_agents = [item['name'] for item in agent_breakdown[:5]]
             agent_activity: list = []
+
+            if heatmap_window == "day":
+                num_buckets, bucket_size = 24, 3600
+            elif heatmap_window == "week":
+                num_buckets, bucket_size = 7, 86400
+            else:  # month
+                num_buckets, bucket_size = 30, 86400
+
             for profile in top_agents:
-                hours = []
-                for i in range(24):
-                    bucket_start = now_epoch - (23 - i) * 3600
-                    bucket_end = bucket_start + 3600
+                buckets = []
+                for i in range(num_buckets):
+                    bucket_start = now_epoch - (num_buckets - 1 - i) * bucket_size
+                    bucket_end = bucket_start + bucket_size
                     cur.execute(
                         "SELECT COUNT(*) FROM task_runs"
                         " WHERE profile=? AND started_at >= ? AND started_at < ?",
                         (profile, bucket_start, bucket_end),
                     )
-                    hours.append(cur.fetchone()[0])
-                agent_activity.append({'name': profile, 'hours': hours})
+                    buckets.append(cur.fetchone()[0])
+                agent_activity.append({'name': profile, 'hours': buckets})
 
         finally:
             conn.close()

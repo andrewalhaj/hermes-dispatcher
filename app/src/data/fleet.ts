@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { AgentRow } from './types'
 import { ACCENT } from './agents'
+import { profileDisplayName } from './profileDisplayNames'
 
 /** Agent operations fleet data for the Agents panel. Mirrors AGENTS_OPS in the prototype. */
 export interface AgentOp {
@@ -87,7 +88,7 @@ export function useAgentRows(accent = ACCENT): AgentRow[] {
             const st = a.status === 'busy' ? 'run' : a.status === 'online' ? 'online' : 'idle'
             return {
               key: a.name,
-              name: a.name,
+              name: profileDisplayName(a.name),
               dot: a.color,
               dotGlow: st === 'idle' ? 'none' : `0 0 8px ${a.color}`,
               badge: (st === 'run' ? 'RUN' : st === 'online' ? 'LIVE' : 'IDLE') as AgentRow['badge'],

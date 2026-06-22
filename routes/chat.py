@@ -3,6 +3,7 @@ import asyncio
 import json
 import os
 import sqlite3
+from datetime import datetime
 from pathlib import Path
 
 import yaml
@@ -36,9 +37,11 @@ class CancelRequest(BaseModel):
 @chat_router.post("/api/chat/send")
 async def chat_send(req: SendRequest):
     async def generate():
-        cmd = [HERMES_BIN, "-Q", "-q", req.message, "--source", "webui"]
+        cmd = [HERMES_BIN, "-z", req.message]
         if req.profile and req.profile not in ("default", ""):
             cmd += ["--profile", req.profile]
+        if req.model:
+            cmd += ["--model", req.model]
 
         try:
             proc = await asyncio.create_subprocess_exec(
@@ -92,11 +95,11 @@ async def chat_cancel(req: CancelRequest):
 async def chat_sessions():
     db_path = Path(_hermes_home()) / "state.db"
     try:
-        conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
+        conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True, check_same_thread=False)
         cur = conn.cursor()
         cur.execute(
             "SELECT id, title, started_at FROM sessions"
-            " WHERE archived = 0 ORDER BY started_at DESC LIMIT 20"
+            " WHERE archived = 0 AND source = 'telegram' ORDER BY started_at DESC LIMIT 20"
         )
         rows = cur.fetchall()
         conn.close()
@@ -104,6 +107,37 @@ async def chat_sessions():
             {"id": r[0], "title": r[1] or "Untitled session", "created_at": r[2]}
             for r in rows
         ]
+    except Exception:
+        return []
+
+
+@chat_router.get("/api/chat/sessions/{session_id}/messages")
+async def chat_session_messages(session_id: str):
+    db_path = Path(_hermes_home()) / "state.db"
+    try:
+        conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT id, role, content, timestamp FROM messages"
+            " WHERE session_id = ? AND role IN ('user', 'assistant')"
+            " ORDER BY timestamp ASC",
+            (session_id,),
+        )
+        rows = cur.fetchall()
+        conn.close()
+        result = []
+        for msg_id, role, content, ts in rows:
+            try:
+                at = datetime.fromtimestamp(float(ts)).strftime("%H:%M")
+            except Exception:
+                at = "--:--"
+            result.append({
+                "id": msg_id,
+                "role": "agent" if role == "assistant" else "user",
+                "text": content or "",
+                "at": at,
+            })
+        return result
     except Exception:
         return []
 

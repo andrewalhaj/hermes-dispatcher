@@ -3,6 +3,7 @@ import re
 import shutil
 from pathlib import Path
 from typing import Any
+from datetime import datetime
 
 import yaml
 from fastapi import APIRouter, HTTPException
@@ -11,6 +12,7 @@ from pydantic import BaseModel
 router = APIRouter()
 
 SKILLS_ROOT = Path(os.path.expanduser("~/.hermes/skills"))
+CONFIG_PATH = Path(os.path.expanduser("~/.hermes/config.yaml"))
 
 
 def _parse_frontmatter(text: str) -> dict:
@@ -21,6 +23,36 @@ def _parse_frontmatter(text: str) -> dict:
         return yaml.safe_load(match.group(1)) or {}
     except Exception:
         return {}
+
+
+def _load_disabled_skills() -> set[str]:
+    """Load the set of disabled skill ids from config.yaml."""
+    if not CONFIG_PATH.exists():
+        return set()
+    try:
+        config = yaml.safe_load(CONFIG_PATH.read_text(encoding="utf-8"))
+        if config and "skills" in config and "disabled" in config["skills"]:
+            disabled = config["skills"]["disabled"]
+            return set(disabled) if isinstance(disabled, list) else set()
+    except Exception:
+        pass
+    return set()
+
+
+def _set_disabled_skills(disabled_ids: set[str]) -> None:
+    """Update config.yaml with the new set of disabled skill ids."""
+    if not CONFIG_PATH.exists():
+        return
+    try:
+        config = yaml.safe_load(CONFIG_PATH.read_text(encoding="utf-8"))
+        if config is None:
+            config = {}
+        if "skills" not in config:
+            config["skills"] = {}
+        config["skills"]["disabled"] = sorted(list(disabled_ids))
+        CONFIG_PATH.write_text(yaml.dump(config, default_flow_style=False), encoding="utf-8")
+    except Exception:
+        raise HTTPException(status_code=500, detail="Failed to update config.yaml")
 
 
 def _build_index() -> dict[str, Path]:
@@ -39,13 +71,14 @@ def _guard_path(path: Path) -> None:
         raise HTTPException(status_code=400, detail="Path traversal detected")
 
 
-def _skill_entry(skill_md: Path) -> dict[str, Any]:
+def _skill_entry(skill_md: Path, disabled_ids: set[str]) -> dict[str, Any]:
     text = skill_md.read_text(encoding="utf-8", errors="replace")
     fm = _parse_frontmatter(text)
 
     skill_dir = skill_md.parent
     parent_dir = skill_dir.parent
     category = parent_dir.name if parent_dir != SKILLS_ROOT else "uncategorized"
+    skill_id = skill_dir.name
 
     tags: list[str] = []
     if isinstance(fm.get("tags"), list):
@@ -57,23 +90,35 @@ def _skill_entry(skill_md: Path) -> dict[str, Any]:
         except Exception:
             tags = []
 
+    # Get last modified time
+    try:
+        mtime = skill_md.stat().st_mtime
+        last_modified = datetime.fromtimestamp(mtime).isoformat()
+    except Exception:
+        last_modified = None
+
     return {
-        "id": skill_dir.name,
+        "id": skill_id,
         "name": fm.get("name") or skill_dir.name,
         "description": str(fm.get("description") or ""),
         "category": category,
         "tags": [str(t) for t in tags],
         "path": str(skill_md),
+        "enabled": skill_id not in disabled_ids,
+        "version": str(fm.get("version") or "1.0.0"),
+        "author": str(fm.get("author") or ""),
+        "last_modified": last_modified,
     }
 
 
 @router.get("/skills")
 async def list_skills() -> list[dict]:
     index = _build_index()
+    disabled_ids = _load_disabled_skills()
     results = []
     for skill_id, skill_md in index.items():
         try:
-            results.append(_skill_entry(skill_md))
+            results.append(_skill_entry(skill_md, disabled_ids))
         except Exception:
             results.append({
                 "id": skill_id,
@@ -82,6 +127,10 @@ async def list_skills() -> list[dict]:
                 "category": "uncategorized",
                 "tags": [],
                 "path": str(skill_md),
+                "enabled": skill_id not in disabled_ids,
+                "version": "1.0.0",
+                "author": "",
+                "last_modified": None,
             })
     return results
 
@@ -98,12 +147,16 @@ async def get_skill(id: str) -> dict:
     skill_dir = skill_md.parent
     parent_dir = skill_dir.parent
     category = parent_dir.name if parent_dir != SKILLS_ROOT else "uncategorized"
+    disabled_ids = _load_disabled_skills()
     return {
         "id": id,
         "name": str(fm.get("name") or id),
         "category": category,
         "path": str(skill_md),
         "content": text,
+        "enabled": id not in disabled_ids,
+        "version": str(fm.get("version") or "1.0.0"),
+        "author": str(fm.get("author") or ""),
     }
 
 
@@ -126,6 +179,29 @@ class PostBody(BaseModel):
     name: str
     category: str
     content: str
+
+
+class ToggleBody(BaseModel):
+    enabled: bool
+
+
+@router.put("/skills/{id}/enabled")
+async def toggle_skill(id: str, body: ToggleBody) -> dict:
+    """Enable or disable a skill by updating config.yaml."""
+    index = _build_index()
+    if id not in index:
+        raise HTTPException(status_code=404, detail="Skill not found")
+    
+    disabled_ids = _load_disabled_skills()
+    if body.enabled:
+        # Remove from disabled list
+        disabled_ids.discard(id)
+    else:
+        # Add to disabled list
+        disabled_ids.add(id)
+    
+    _set_disabled_skills(disabled_ids)
+    return {"ok": True, "enabled": body.enabled}
 
 
 @router.post("/skills")

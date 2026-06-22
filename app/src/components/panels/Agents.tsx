@@ -3,6 +3,7 @@ import { AG_STATUS, agentOps, fleetSummary, fetchAgentOps, fetchFleetSummary } f
 import type { AgentOp, FleetMetric } from '../../data/fleet'
 import { tileBlurb } from '../../data/info'
 import { useInfo } from '../TileInfoDrawer'
+import { profileDisplayName } from '../../data/profileDisplayNames'
 
 interface AgentsProps {
   accent: string
@@ -63,9 +64,9 @@ export default function Agents({ accent }: AgentsProps) {
                 className="relative overflow-hidden"
                 style={{ background: 'var(--s3)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 13, padding: '15px 16px', cursor: 'pointer', transition: 'transform 0.25s, border-color 0.25s, box-shadow 0.25s' }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-3px)'
+                  e.currentTarget.style.transform = 'translateY(-4px)'
                   e.currentTarget.style.borderColor = 'rgba(255,255,255,0.16)'
-                  e.currentTarget.style.boxShadow = '0 12px 30px rgba(0,0,0,0.42)'
+                  e.currentTarget.style.boxShadow = '0 14px 34px rgba(0,0,0,0.45)'
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.transform = 'none'
@@ -91,7 +92,7 @@ export default function Agents({ accent }: AgentsProps) {
                   onClick={() =>
                     openInfo({
                       category: `Agent · ${st.label}`,
-                      title: a.name,
+                      title: profileDisplayName(a.name),
                       accent: a.color,
                       desc: `${a.role} — ${a.completed} of ${a.total} assigned tasks complete, ${a.success}% success rate.`,
                       stats: [
@@ -102,17 +103,19 @@ export default function Agents({ accent }: AgentsProps) {
                         { label: 'Model', value: a.model },
                         { label: 'Last active', value: a.lastActive },
                       ],
-                      actionLabel: `Open chat with ${a.name}`,
+                      actionLabel: `Open chat with ${profileDisplayName(a.name)}`,
                     })
                   }
                   className="relative overflow-hidden"
                   style={{ background: 'var(--s3)', border: '1px solid rgba(255,255,255,0.06)', borderTop: `2px solid ${a.color}`, borderRadius: 16, padding: 17, cursor: 'pointer', transition: 'transform 0.28s cubic-bezier(0.16,1,0.3,1), border-color 0.28s, box-shadow 0.28s' }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.transform = 'translateY(-4px)'
-                    e.currentTarget.style.boxShadow = '0 16px 36px rgba(0,0,0,0.45)'
+                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.16)'
+                    e.currentTarget.style.boxShadow = '0 14px 34px rgba(0,0,0,0.45)'
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.transform = 'none'
+                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'
                     e.currentTarget.style.boxShadow = 'none'
                   }}
                 >
@@ -125,7 +128,7 @@ export default function Agents({ accent }: AgentsProps) {
                       {a.avatar}
                     </span>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div className="mono" style={{ fontSize: 14.5, fontWeight: 600, color: '#f0f2f8' }}>{a.name}</div>
+                      <div className="mono" style={{ fontSize: 14.5, fontWeight: 600, color: '#f0f2f8' }}>{profileDisplayName(a.name)}</div>
                       <div style={{ fontSize: 12, color: '#9aa0b4', marginTop: 2 }}>{a.role}</div>
                     </div>
                     <span className="relative flex-none" style={{ width: 44, height: 44 }}>

@@ -11,6 +11,7 @@ import {
   type Task,
 } from '../../data/kanban'
 import { useInfo } from '../TileInfoDrawer'
+import { profileDisplayName } from '../../data/profileDisplayNames'
 
 interface KanbanPanelProps {
   accent: string
@@ -464,7 +465,7 @@ export default function KanbanPanel({ accent }: KanbanPanelProps) {
                             { label: 'Tenant', value: t.tenant },
                             { label: 'Status', value: LANE_MAP[t.status].label },
                             { label: 'Priority', value: `P${t.priority}` },
-                            { label: 'Assignee', value: t.assignee || 'unassigned' },
+                            { label: 'Assignee', value: t.assignee ? profileDisplayName(t.assignee) : 'unassigned' },
                             ...(t.branch ? [{ label: 'Branch', value: t.branch }] : []),
                             ...(age ? [{ label: 'In status', value: age }] : []),
                           ],
@@ -534,7 +535,7 @@ export default function KanbanPanel({ accent }: KanbanPanelProps) {
                           <span
                             className="mono flex items-center justify-center"
                             style={{ fontSize: 9.5, fontWeight: 600, color: '#0a0e16', background: col.color, width: 21, height: 21, borderRadius: '50%', boxShadow: `0 0 0 2px color-mix(in oklab, ${col.color} 25%, transparent)` }}
-                            title={t.assignee}
+                            title={profileDisplayName(t.assignee)}
                           >
                             {initials(t.assignee)}
                           </span>

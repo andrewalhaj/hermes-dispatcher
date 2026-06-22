@@ -64,7 +64,7 @@ const EMPTY: OverviewApiData = {
   agent_memory: [],
 }
 
-export function useOverviewData(): OverviewApiData {
+export function useOverviewData(window: 'day' | 'week' | 'month' = 'day'): OverviewApiData {
   const [data, setData] = useState<OverviewApiData>(EMPTY)
 
   useEffect(() => {
@@ -72,7 +72,9 @@ export function useOverviewData(): OverviewApiData {
 
     async function fetchData() {
       try {
-        const res = await fetch('/api/overview')
+        const params = new URLSearchParams()
+        params.set('heatmap_window', window)
+        const res = await fetch(`/api/overview?${params.toString()}`)
         if (!res.ok) return
         const json = (await res.json()) as OverviewApiData
         if (!cancelled) setData(json)
@@ -87,7 +89,7 @@ export function useOverviewData(): OverviewApiData {
       cancelled = true
       clearInterval(id)
     }
-  }, [])
+  }, [window])
 
   return data
 }

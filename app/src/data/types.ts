@@ -8,9 +8,8 @@ export type PanelId =
   | 'logs'
   | 'insights'
   | 'sessions'
-  | 'profiles'
   | 'settings'
-  | 'workspace'
+
 
 export type AgentStatus = 'online' | 'idle'
 

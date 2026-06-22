@@ -49,6 +49,7 @@ export interface OverviewData {
   ringTotal: string
   breakdown: BreakdownRow[]
   heatRows: HeatRow[]
+  heatColumns: number
 }
 
 export interface BuildOverviewOpts {
@@ -60,9 +61,14 @@ export interface BuildOverviewOpts {
   agentBreakdown?: { name: string; count: number }[]
   agentActivity?: { name: string; hours: number[] }[]
   totalTasks?: number
+  window?: 'day' | 'week' | 'month'
 }
 
-export const PALETTE = ['#2dd4bf', '#5aa2f0', '#9b8cff', '#4ade80', '#f0a85a', '#f06a9b']
+export const PALETTE = [
+  '#2dd4bf', '#5aa2f0', '#9b8cff', '#4ade80', '#f0a85a', '#f06a9b',
+  '#ec4899', '#06b6d4', '#8b5cf6', '#14b8a6', '#f59e0b', '#ef4444',
+  '#10b981', '#6366f1', '#f97316', '#d946ef',
+]
 
 const fmt = (n: number) => (n >= 1000 ? (n / 1000).toFixed(1) + 'k' : String(n))
 
@@ -97,6 +103,9 @@ export function buildOverview(accent = ACCENT, opts?: BuildOverviewOpts): Overvi
     count: a.count,
     pct: totalTasks > 0 ? Math.round((a.count / totalTasks) * 100) : 0,
   }))
+
+  const heatWindow = opts?.window ?? 'day'
+  const heatColumns = heatWindow === 'day' ? 24 : heatWindow === 'week' ? 7 : 30
 
   const alpha = [6, 26, 48, 72, 100]
   const heatRows: HeatRow[] = agentActivity.map((a, ai) => {
@@ -139,5 +148,6 @@ export function buildOverview(accent = ACCENT, opts?: BuildOverviewOpts): Overvi
     ringTotal: fmt(totalTasks),
     breakdown,
     heatRows,
+    heatColumns,
   }
 }

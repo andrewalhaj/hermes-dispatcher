@@ -1,15 +1,19 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { buildOverview, PALETTE } from '../../data/overview'
+import { profileDisplayName } from '../../data/profileDisplayNames'
 import { tileBlurb } from '../../data/info'
 import StatTile from '../overview/StatTile'
 import Sparkline from '../overview/Sparkline'
 import SwarmCanvas from '../overview/SwarmCanvas'
+import NeuroCanvas from '../overview/NeuroCanvas'
 import { useSystemMonitor } from '../overview/useSystemMonitor'
 import { useInfo } from '../TileInfoDrawer'
 import { useOverviewData } from '../overview/useOverviewData'
+import type { PanelId } from '../../data/types'
 
 interface OverviewProps {
   accent: string
+  navigateTo?: (panel: PanelId) => void
 }
 
 const cardLabelStyle: React.CSSProperties = {
@@ -19,8 +23,9 @@ const cardLabelStyle: React.CSSProperties = {
   color: 'var(--text-faint)',
 }
 
-export default function Overview({ accent }: OverviewProps) {
-  const live = useOverviewData()
+export default function Overview({ accent, navigateTo }: OverviewProps) {
+  const [heatmapWindow, setHeatmapWindow] = useState<'day' | 'week' | 'month'>('day')
+  const live = useOverviewData(heatmapWindow)
   const ov = useMemo(
     () =>
       buildOverview(accent, {
@@ -32,8 +37,9 @@ export default function Overview({ accent }: OverviewProps) {
         totalTasks: live.total_tasks,
         agentBreakdown: live.agent_breakdown,
         agentActivity: live.agent_activity,
+        window: heatmapWindow,
       }),
-    [accent, live],
+    [accent, live, heatmapWindow],
   )
   const sys = useSystemMonitor(live.system)
   const { openInfo } = useInfo()
@@ -54,8 +60,9 @@ export default function Overview({ accent }: OverviewProps) {
               border: '1px solid rgba(255,255,255,0.08)',
             }}
           >
-            <div style={{ position: 'absolute', width: 280, height: 280, right: -60, top: -120, borderRadius: '50%', background: `radial-gradient(circle, color-mix(in oklab, ${accent} 30%, transparent), transparent 70%)`, pointerEvents: 'none' }} />
-            <div style={{ position: 'absolute', width: 240, height: 240, left: -80, bottom: -140, borderRadius: '50%', background: 'radial-gradient(circle, rgba(155,140,255,0.22), transparent 70%)', pointerEvents: 'none' }} />
+            <NeuroCanvas />
+            <div style={{ position: 'absolute', width: 280, height: 280, right: -60, top: -120, borderRadius: '50%', background: `radial-gradient(circle, color-mix(in oklab, ${accent} 30%, transparent), transparent 70%)`, pointerEvents: 'none', animation: 'hpulse 3s ease-in-out infinite' }} />
+            <div style={{ position: 'absolute', width: 240, height: 240, left: -80, bottom: -140, borderRadius: '50%', background: 'radial-gradient(circle, rgba(155,140,255,0.22), transparent 70%)', pointerEvents: 'none', animation: 'hpulse 3s ease-in-out infinite 1.5s' }} />
             <div className="relative flex flex-wrap items-center justify-between" style={{ gap: 24 }}>
               <div style={{ minWidth: 0 }}>
                 <div style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.16em', color: accent }}>{ov.eyebrow}</div>
@@ -64,7 +71,7 @@ export default function Overview({ accent }: OverviewProps) {
                 <div className="flex flex-wrap" style={{ gap: 8 }}>
                   {ov.chips.map((chip) => (
                     <span key={chip.label} className="inline-flex items-center" style={{ gap: 7, fontSize: 11.5, color: '#d4d8e4', background: 'rgba(8,11,17,0.5)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 20, padding: '5px 12px' }}>
-                      <span style={{ width: 7, height: 7, borderRadius: '50%', background: chip.dot, boxShadow: `0 0 8px ${chip.dot}` }} />
+                      <span style={{ width: 7, height: 7, borderRadius: '50%', background: chip.dot, boxShadow: `0 0 8px ${chip.dot}`, animation: 'blink 1.2s ease-in-out infinite' }} />
                       {chip.label}
                     </span>
                   ))}
@@ -83,22 +90,27 @@ export default function Overview({ accent }: OverviewProps) {
 
           {/* Stat tiles */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12 }}>
-            {ov.stats.map((st) => (
+            {ov.stats.map((st, i) => (
+              <div key={st.label} style={{ animation: 'hcellin 0.45s ease backwards', animationDelay: `${i * 0.07}s` }}>
               <StatTile
-                key={st.label}
                 stat={st}
-                onClick={() =>
-                  openInfo({
-                    category: 'Overview metric',
-                    title: st.label,
-                    value: st.value,
-                    accent: st.accent,
-                    desc: tileBlurb(st.label),
-                    stats: [{ label: 'Current value', value: st.value }],
-                    actionLabel: st.sub,
-                  })
-                }
+                onClick={() => {
+                  if ((st.label === 'Tasks Run' || st.label === 'Active Sessions') && navigateTo) {
+                    navigateTo(st.target as PanelId)
+                  } else {
+                    openInfo({
+                      category: 'Overview metric',
+                      title: st.label,
+                      value: st.value,
+                      accent: st.accent,
+                      desc: tileBlurb(st.label),
+                      stats: [{ label: 'Current value', value: st.value }],
+                      actionLabel: st.sub,
+                    })
+                  }
+                }}
               />
+              </div>
             ))}
           </div>
 
@@ -134,11 +146,11 @@ export default function Overview({ accent }: OverviewProps) {
                     <span style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-faint)' }}>tasks</span>
                   </div>
                 </div>
-                <div className="flex flex-1 flex-col" style={{ minWidth: 130, gap: 9 }}>
+                <div className="flex flex-1 flex-col" style={{ minWidth: 130, gap: 9, maxHeight: 280, overflowY: 'auto', paddingRight: 8 }}>
                   {ov.breakdown.map((a) => (
-                    <div key={a.key} className="flex items-center" style={{ gap: 9, fontSize: 12 }}>
+                    <div key={a.key} className="flex items-center" style={{ gap: 9, fontSize: 12, flexShrink: 0 }}>
                       <span className="flex-none" style={{ width: 8, height: 8, borderRadius: '50%', background: a.color, boxShadow: `0 0 9px ${a.color}` }} />
-                      <span className="mono flex-1 overflow-hidden text-ellipsis whitespace-nowrap" style={{ minWidth: 0, fontSize: 11.5, color: '#c2c6d6' }}>{a.name}</span>
+                      <span className="mono flex-1 overflow-hidden text-ellipsis whitespace-nowrap" style={{ minWidth: 0, fontSize: 11.5, color: '#c2c6d6' }}>{profileDisplayName(a.name)}</span>
                       <strong style={{ fontFamily: 'var(--font-display)', color: '#f0f2f8' }}>{a.count}</strong>
                       <em style={{ fontStyle: 'normal', fontSize: 11, color: 'var(--text-faint)', width: 34, textAlign: 'right' }}>{a.pct}%</em>
                     </div>
@@ -149,23 +161,29 @@ export default function Overview({ accent }: OverviewProps) {
 
             {ov.heatRows.length > 0 && (
               <div
-                onClick={() =>
-                  openInfo({
-                    category: 'Overview · Chart',
-                    title: 'Agent Activity Heatmap',
-                    accent: '#2dd4bf',
-                    desc: 'Per-agent activity intensity over the last 24 hours. Brighter cells are hours with more dispatched work.',
-                    stats: [
-                      { label: 'Window', value: 'Last 24h' },
-                      { label: 'Resolution', value: 'Hourly' },
-                    ],
-                  })
-                }
-                style={{ background: 'var(--s3)', border: '1px solid var(--border)', borderRadius: 14, padding: 18, cursor: 'pointer' }}
+                style={{ background: 'var(--s3)', border: '1px solid var(--border)', borderRadius: 14, padding: 18 }}
               >
                 <div className="flex items-center justify-between" style={{ marginBottom: 16 }}>
                   <div style={cardLabelStyle}>Agent Activity Heatmap</div>
-                  <span style={{ fontSize: 10.5, color: '#2dd4bf', background: 'rgba(45,212,191,0.1)', border: '1px solid rgba(45,212,191,0.28)', borderRadius: 6, padding: '2px 8px' }}>Last 24h</span>
+                  <select
+                    value={heatmapWindow}
+                    onChange={(e) => setHeatmapWindow(e.target.value as 'day' | 'week' | 'month')}
+                    style={{
+                      fontSize: 10.5,
+                      color: '#2dd4bf',
+                      background: 'rgba(45,212,191,0.1)',
+                      border: '1px solid rgba(45,212,191,0.28)',
+                      borderRadius: 6,
+                      padding: '4px 8px',
+                      cursor: 'pointer',
+                      fontWeight: 500,
+                      fontFamily: 'inherit',
+                    }}
+                  >
+                    <option value="day">Last Day</option>
+                    <option value="week">Last Week</option>
+                    <option value="month">Last Month</option>
+                  </select>
                 </div>
                 <div className="flex flex-col" style={{ gap: 7 }}>
                   {ov.heatRows.map((row) => (
@@ -174,7 +192,7 @@ export default function Overview({ accent }: OverviewProps) {
                         <span style={{ color: row.color }}>{row.icon}</span>
                         <b className="mono overflow-hidden text-ellipsis whitespace-nowrap" style={{ fontSize: 10.5, fontWeight: 500, color: '#aeb3c4' }}>{row.name}</b>
                       </div>
-                      <div className="flex-1" style={{ display: 'grid', gridTemplateColumns: 'repeat(24, 1fr)', gap: 2 }}>
+                      <div className="flex-1" style={{ display: 'grid', gridTemplateColumns: `repeat(${ov.heatColumns}, 1fr)`, gap: 2 }}>
                         {row.cells.map((c, i) => (
                           <div key={i} style={{ aspectRatio: '1', borderRadius: 2, background: c.bg, animation: `hcellin 0.45s ease backwards`, animationDelay: c.delay }} />
                         ))}
@@ -278,7 +296,7 @@ export default function Overview({ accent }: OverviewProps) {
                   category: 'Overview · Live',
                   title: 'Agent Swarm',
                   accent: '#9b8cff',
-                  desc: 'A live particle field visualizing emergent coordination between agents. Denser clusters indicate agents collaborating on related tasks.',
+                  desc: 'Real-time visualization of agent coordination. Each dot represents an active agent, lines show task dependencies, and movement reflects current activity.',
                   stats: [{ label: 'Agents', value: String(live.active_agents) }],
                 })
               }
@@ -291,7 +309,7 @@ export default function Overview({ accent }: OverviewProps) {
                   <span style={{ width: 7, height: 7, borderRadius: '50%', background: accent, boxShadow: `0 0 7px ${accent}`, animation: 'hpulse 1.6s ease-in-out infinite' }} />
                   <span style={cardLabelStyle}>Agent Swarm</span>
                 </div>
-                <span style={{ fontSize: 10.5, color: '#9b8cff', background: 'rgba(155,140,255,0.1)', border: '1px solid rgba(155,140,255,0.28)', borderRadius: 6, padding: '2px 8px' }}>emergent</span>
+                <span style={{ fontSize: 10.5, color: '#9b8cff', background: 'rgba(155,140,255,0.1)', border: '1px solid rgba(155,140,255,0.28)', borderRadius: 6, padding: '2px 8px' }}>live coordination</span>
               </div>
             </div>
           </div>

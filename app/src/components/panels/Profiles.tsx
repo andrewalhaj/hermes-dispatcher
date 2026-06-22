@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { fetchAgentOps, AG_STATUS } from '../../data/fleet'
 import type { AgentOp } from '../../data/fleet'
+import { profileDisplayName } from '../../data/profileDisplayNames'
 
 interface ProfilesProps {
   accent: string
@@ -109,14 +110,16 @@ export default function Profiles({ accent }: ProfilesProps) {
                     borderRadius: 16,
                     padding: 16,
                     cursor: 'pointer',
-                    transition: 'transform 0.28s cubic-bezier(0.16,1,0.3,1), box-shadow 0.28s',
+                    transition: 'transform 0.28s cubic-bezier(0.16,1,0.3,1), border-color 0.28s, box-shadow 0.28s',
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'translateY(-3px)'
-                    e.currentTarget.style.boxShadow = '0 14px 32px rgba(0,0,0,0.44)'
+                    e.currentTarget.style.transform = 'translateY(-4px)'
+                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.16)'
+                    e.currentTarget.style.boxShadow = '0 14px 34px rgba(0,0,0,0.45)'
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.transform = 'none'
+                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'
                     e.currentTarget.style.boxShadow = 'none'
                   }}
                 >
@@ -154,7 +157,7 @@ export default function Profiles({ accent }: ProfilesProps) {
                       {initial}
                     </span>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div className="mono" style={{ fontSize: 14.5, fontWeight: 600, color: '#f0f2f8' }}>{a.name}</div>
+                      <div className="mono" style={{ fontSize: 14.5, fontWeight: 600, color: '#f0f2f8' }}>{profileDisplayName(a.name)}</div>
                       <div style={{ fontSize: 12, color: '#9aa0b4', marginTop: 2 }}>{a.role}</div>
                     </div>
                     {isActive && (
@@ -282,7 +285,7 @@ export default function Profiles({ accent }: ProfilesProps) {
                 {selected.avatar || selected.name[0].toUpperCase()}
               </span>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div className="mono" style={{ fontWeight: 700, fontSize: 16, color: '#f0f2f8' }}>{selected.name}</div>
+                <div className="mono" style={{ fontWeight: 700, fontSize: 16, color: '#f0f2f8' }}>{profileDisplayName(selected.name)}</div>
                 <div style={{ fontSize: 12, color: '#9aa0b4', marginTop: 3 }}>{selected.role}</div>
               </div>
               <button
