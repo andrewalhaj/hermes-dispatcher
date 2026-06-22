@@ -10,6 +10,30 @@ interface SettingsProps {
   onAccentChange?: (color: string) => void
 }
 
+// localStorage key constants
+const LS_THEME = 'hermes-settings-theme'
+const LS_LANG = 'hermes-settings-lang'
+const LS_MODEL = 'hermes-settings-model'
+const LS_REASON = 'hermes-settings-reason'
+const LS_BOTNAME = 'hermes-settings-botName'
+const LS_WS = 'hermes-settings-ws'
+const LS_TOGGLES = 'hermes-settings-toggles'
+
+function lsGet(key: string, fallback: string): string {
+  try { return localStorage.getItem(key) ?? fallback } catch { return fallback }
+}
+
+function lsGetJson<T>(key: string, fallback: T): T {
+  try {
+    const v = localStorage.getItem(key)
+    return v ? (JSON.parse(v) as T) : fallback
+  } catch { return fallback }
+}
+
+function lsSet(key: string, value: string): void {
+  try { localStorage.setItem(key, value) } catch { /* storage unavailable */ }
+}
+
 const sectionStyle: React.CSSProperties = { background: 'var(--s3)', border: '1px solid var(--border)', borderRadius: 12, padding: '4px 18px' }
 const sectionLabel: React.CSSProperties = { fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#6a7088', margin: '16px 0 4px' }
 const rowStyle: React.CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 18, padding: '14px 0' }
@@ -63,19 +87,25 @@ function Toast({ msg, accent }: { msg: string; accent: string }) {
 }
 
 export default function Settings({ accent = ACCENT, onAccentChange }: SettingsProps) {
+  // Seed from localStorage for instant restore on remount; backend reconciles after mount
   const [toggles, setToggles] = useState<Record<string, boolean>>(() =>
-    Object.fromEntries(SETTINGS_TOGGLES.map((t) => [t.key, t.default])),
+    lsGetJson(LS_TOGGLES, Object.fromEntries(SETTINGS_TOGGLES.map((t) => [t.key, t.default]))),
   )
-  const [theme, setTheme] = useState('dark')
-  const [reason, setReason] = useState('xhigh')
-  const [lang, setLang] = useState('en')
-  const [model, setModel] = useState(MODEL_OPTS[0])
+  const [theme, setTheme] = useState(() => lsGet(LS_THEME, 'dark'))
+  const [reason, setReason] = useState(() => lsGet(LS_REASON, 'xhigh'))
+  const [lang, setLang] = useState(() => lsGet(LS_LANG, 'en'))
+  const [model, setModel] = useState(() => lsGet(LS_MODEL, MODEL_OPTS[0]))
   const [modelOpts, setModelOpts] = useState<string[]>(MODEL_OPTS)
-  const [ws, setWs] = useState('~/projects/dm-voice-board')
-  const [botName, setBotName] = useState('Hermes')
+  const [ws, setWs] = useState(() => lsGet(LS_WS, '~/projects/dm-voice-board'))
+  const [botName, setBotName] = useState(() => lsGet(LS_BOTNAME, 'Hermes'))
   const [revealed, setReveal] = useState<Record<number, boolean>>({})
   const [toast, setToast] = useState<string | null>(null)
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const textDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Always-fresh ref so debounced callbacks see current state
+  const stateRef = useRef({ theme, lang, model, reason, botName, ws, toggles })
+  stateRef.current = { theme, lang, model, reason, botName, ws, toggles }
 
   const showToast = (msg: string) => {
     if (toastTimer.current) clearTimeout(toastTimer.current)
@@ -83,21 +113,95 @@ export default function Settings({ accent = ACCENT, onAccentChange }: SettingsPr
     toastTimer.current = setTimeout(() => setToast(null), 2500)
   }
 
+  const doPut = (body: object) => {
+    fetch('/api/settings', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    }).catch(() => { /* localStorage already updated; backend sync is best-effort */ })
+  }
+
+  type Overrides = {
+    theme?: string; lang?: string; model?: string; reason?: string
+    botName?: string; ws?: string; toggles?: Record<string, boolean>
+  }
+
+  const buildBody = (overrides: Overrides = {}) => {
+    const t = overrides.toggles ?? toggles
+    return {
+      model: { default: overrides.model ?? model },
+      display: {
+        theme: overrides.theme ?? theme,
+        language: overrides.lang ?? lang,
+        streaming: t['setStream'] ?? true,
+        show_cost: t['setInsights'] ?? false,
+      },
+      reasoning_effort: overrides.reason ?? reason,
+      agent: {
+        name: overrides.botName ?? botName,
+        workspace: overrides.ws ?? ws,
+      },
+      dashboard: t,
+    }
+  }
+
+  /** Immediate persist — for dropdowns, segmented controls, toggles. */
+  const persist = (overrides: Overrides) => {
+    if (overrides.theme !== undefined) lsSet(LS_THEME, overrides.theme)
+    if (overrides.lang !== undefined) lsSet(LS_LANG, overrides.lang)
+    if (overrides.model !== undefined) lsSet(LS_MODEL, overrides.model)
+    if (overrides.reason !== undefined) lsSet(LS_REASON, overrides.reason)
+    if (overrides.botName !== undefined) lsSet(LS_BOTNAME, overrides.botName)
+    if (overrides.ws !== undefined) lsSet(LS_WS, overrides.ws)
+    if (overrides.toggles !== undefined) lsSet(LS_TOGGLES, JSON.stringify(overrides.toggles))
+    doPut(buildBody(overrides))
+  }
+
+  /** Debounced persist (600 ms) — for text inputs. Uses stateRef for latest values. */
+  const persistDebounced = (textOverrides: { botName?: string; ws?: string }) => {
+    if (textDebounceRef.current) clearTimeout(textDebounceRef.current)
+    if (textOverrides.botName !== undefined) lsSet(LS_BOTNAME, textOverrides.botName)
+    if (textOverrides.ws !== undefined) lsSet(LS_WS, textOverrides.ws)
+    textDebounceRef.current = setTimeout(() => {
+      const s = stateRef.current
+      const t = s.toggles
+      doPut({
+        model: { default: s.model },
+        display: { theme: s.theme, language: s.lang, streaming: t['setStream'] ?? true, show_cost: t['setInsights'] ?? false },
+        reasoning_effort: s.reason,
+        agent: { name: textOverrides.botName ?? s.botName, workspace: textOverrides.ws ?? s.ws },
+        dashboard: t,
+      })
+    }, 600)
+  }
+
   useEffect(() => {
     fetch('/api/settings')
       .then((r) => r.json())
       .then((d) => {
-        if (d.model?.default) setModel(d.model.default)
-        if (d.display?.language) setLang(d.display.language)
-        if (d.reasoning_effort) setReason(d.reasoning_effort)
-        if (typeof d.display?.streaming === 'boolean') {
-          setToggles((p) => ({ ...p, setStream: d.display.streaming }))
+        // Backend is source of truth — reconcile and update localStorage
+        if (d.model?.default) { setModel(d.model.default); lsSet(LS_MODEL, d.model.default) }
+        if (d.display?.language) { setLang(d.display.language); lsSet(LS_LANG, d.display.language) }
+        if (d.display?.theme) { setTheme(d.display.theme); lsSet(LS_THEME, d.display.theme) }
+        if (d.reasoning_effort) { setReason(d.reasoning_effort); lsSet(LS_REASON, d.reasoning_effort) }
+        if (d.agent?.name) { setBotName(d.agent.name); lsSet(LS_BOTNAME, d.agent.name) }
+        if (d.agent?.workspace) { setWs(d.agent.workspace); lsSet(LS_WS, d.agent.workspace) }
+        // Merge dashboard toggles; also handle legacy display.streaming/show_cost
+        const merged: Record<string, boolean> = {}
+        if (typeof d.display?.streaming === 'boolean') merged['setStream'] = d.display.streaming
+        if (typeof d.display?.show_cost === 'boolean') merged['setInsights'] = d.display.show_cost
+        for (const [k, v] of Object.entries(d.dashboard ?? {})) {
+          if (typeof v === 'boolean') merged[k] = v
         }
-        if (typeof d.display?.show_cost === 'boolean') {
-          setToggles((p) => ({ ...p, setInsights: d.display.show_cost }))
+        if (Object.keys(merged).length > 0) {
+          setToggles((p) => {
+            const next = { ...p, ...merged }
+            lsSet(LS_TOGGLES, JSON.stringify(next))
+            return next
+          })
         }
       })
-      .catch(() => {})
+      .catch(() => { /* keep localStorage values if backend unreachable */ })
 
     fetch('/api/settings/models')
       .then((r) => r.json())
@@ -108,29 +212,22 @@ export default function Settings({ accent = ACCENT, onAccentChange }: SettingsPr
 
     return () => {
       if (toastTimer.current) clearTimeout(toastTimer.current)
+      if (textDebounceRef.current) clearTimeout(textDebounceRef.current)
     }
   }, [])
 
   const pickAccent = (c: string) => {
+    lsSet('hermes-accent', c)
     if (onAccentChange) onAccentChange(c)
     else document.documentElement.style.setProperty('--ac', c)
   }
 
   const handleSave = async () => {
     try {
-      const body = {
-        model: { default: model },
-        display: {
-          language: lang,
-          streaming: toggles['setStream'] ?? true,
-          show_cost: toggles['setInsights'] ?? false,
-        },
-        reasoning_effort: reason,
-      }
       const res = await fetch('/api/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
+        body: JSON.stringify(buildBody()),
       })
       const json = await res.json()
       if (res.ok && json.ok) {
@@ -180,7 +277,7 @@ export default function Settings({ accent = ACCENT, onAccentChange }: SettingsPr
                 <div style={rowTitle}>Theme</div>
                 <div style={rowDesc}>Light, dark, or follow the system.</div>
               </div>
-              <Segmented value={theme} onChange={setTheme} accent={accent} options={[{ label: 'System', value: 'system' }, { label: 'Light', value: 'light' }, { label: 'Dark', value: 'dark' }]} />
+              <Segmented value={theme} accent={accent} options={[{ label: 'System', value: 'system' }, { label: 'Light', value: 'light' }, { label: 'Dark', value: 'dark' }]} onChange={(v) => { setTheme(v); persist({ theme: v }) }} />
             </div>
             <div style={rowTopBorder}>
               <div>
@@ -203,7 +300,7 @@ export default function Settings({ accent = ACCENT, onAccentChange }: SettingsPr
                 <div style={rowTitle}>Language</div>
                 <div style={rowDesc}>Interface language.</div>
               </div>
-              <select value={lang} onChange={(e) => setLang(e.target.value)} style={selectStyle}>
+              <select value={lang} style={selectStyle} onChange={(e) => { setLang(e.target.value); persist({ lang: e.target.value }) }}>
                 {LANG_OPTS.map((o) => (
                   <option key={o.value} value={o.value}>{o.label}</option>
                 ))}
@@ -219,14 +316,14 @@ export default function Settings({ accent = ACCENT, onAccentChange }: SettingsPr
                 <div style={rowTitle}>Assistant name</div>
                 <div style={rowDesc}>How the agent refers to itself.</div>
               </div>
-              <input value={botName} onChange={(e) => setBotName(e.target.value)} style={{ width: 180, background: 'var(--s4)', color: '#e9ebf2', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '8px 11px', fontSize: 12.5, fontFamily: 'inherit', outline: 'none' }} onFocus={(e) => (e.currentTarget.style.borderColor = accent)} onBlur={(e) => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)')} />
+              <input value={botName} style={{ width: 180, background: 'var(--s4)', color: '#e9ebf2', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '8px 11px', fontSize: 12.5, fontFamily: 'inherit', outline: 'none' }} onChange={(e) => { setBotName(e.target.value); persistDebounced({ botName: e.target.value }) }} onFocus={(e) => (e.currentTarget.style.borderColor = accent)} onBlur={(e) => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)')} />
             </div>
             <div style={rowTopBorder}>
               <div>
                 <div style={rowTitle}>Default model</div>
                 <div style={rowDesc}>Model new sessions start with.</div>
               </div>
-              <select value={model} onChange={(e) => setModel(e.target.value)} style={{ ...selectStyle, maxWidth: 200 }}>
+              <select value={model} style={{ ...selectStyle, maxWidth: 200 }} onChange={(e) => { setModel(e.target.value); persist({ model: e.target.value }) }}>
                 {modelOpts.map((m) => (
                   <option key={m} value={m}>{m}</option>
                 ))}
@@ -237,14 +334,14 @@ export default function Settings({ accent = ACCENT, onAccentChange }: SettingsPr
                 <div style={rowTitle}>Default workspace</div>
                 <div style={rowDesc}>Working directory for new runs.</div>
               </div>
-              <input value={ws} onChange={(e) => setWs(e.target.value)} className="mono" style={{ width: 200, background: 'var(--s4)', color: '#e9ebf2', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '8px 11px', fontSize: 12, outline: 'none' }} onFocus={(e) => (e.currentTarget.style.borderColor = accent)} onBlur={(e) => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)')} />
+              <input value={ws} className="mono" style={{ width: 200, background: 'var(--s4)', color: '#e9ebf2', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '8px 11px', fontSize: 12, outline: 'none' }} onChange={(e) => { setWs(e.target.value); persistDebounced({ ws: e.target.value }) }} onFocus={(e) => (e.currentTarget.style.borderColor = accent)} onBlur={(e) => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)')} />
             </div>
             <div style={rowTopBorder}>
               <div>
                 <div style={rowTitle}>Reasoning effort</div>
                 <div style={rowDesc}>Default thinking budget per turn.</div>
               </div>
-              <Segmented value={reason} onChange={setReason} accent={accent} options={[{ label: 'Low', value: 'low' }, { label: 'Medium', value: 'medium' }, { label: 'High', value: 'high' }, { label: 'xHigh', value: 'xhigh' }]} />
+              <Segmented value={reason} accent={accent} options={[{ label: 'Low', value: 'low' }, { label: 'Medium', value: 'medium' }, { label: 'High', value: 'high' }, { label: 'xHigh', value: 'xhigh' }]} onChange={(v) => { setReason(v); persist({ reason: v }) }} />
             </div>
           </div>
 
@@ -257,7 +354,11 @@ export default function Settings({ accent = ACCENT, onAccentChange }: SettingsPr
                   <div style={rowTitle}>{t.label}</div>
                   <div style={rowDesc}>{t.desc}</div>
                 </div>
-                <Toggle on={toggles[t.key]} accent={accent} onClick={() => setToggles((p) => ({ ...p, [t.key]: !p[t.key] }))} />
+                <Toggle on={toggles[t.key]} accent={accent} onClick={() => {
+                  const next = { ...toggles, [t.key]: !toggles[t.key] }
+                  setToggles(next)
+                  persist({ toggles: next })
+                }} />
               </div>
             ))}
           </div>

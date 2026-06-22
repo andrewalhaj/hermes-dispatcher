@@ -10,6 +10,11 @@ router = APIRouter()
 
 HERMES_HOME = os.environ.get("HERMES_HOME", "/root/.hermes")
 
+_TOGGLE_KEYS = {
+    "setStream", "setEndless", "setAutoApprove", "setNotify",
+    "setUpdates", "setInsights", "setRedact", "setCliSessions",
+}
+
 
 def _config_path() -> Path:
     return Path(HERMES_HOME) / "config.yaml"
@@ -41,6 +46,7 @@ async def get_settings():
     memory = cfg.get("memory") or {}
     agent = cfg.get("agent") or {}
     delegation = cfg.get("delegation") or {}
+    dashboard = cfg.get("dashboard") or {}
     return {
         "model": {
             "default": model.get("default"),
@@ -50,6 +56,7 @@ async def get_settings():
             "language": display.get("language"),
             "show_cost": display.get("show_cost"),
             "streaming": display.get("streaming"),
+            "theme": display.get("theme"),
         },
         "memory": {
             "memory_char_limit": memory.get("memory_char_limit"),
@@ -60,6 +67,11 @@ async def get_settings():
             "provider": delegation.get("provider"),
             "model": delegation.get("model"),
         },
+        "agent": {
+            "name": agent.get("name"),
+            "workspace": agent.get("workspace"),
+        },
+        "dashboard": {k: dashboard[k] for k in _TOGGLE_KEYS if k in dashboard},
     }
 
 
@@ -84,6 +96,7 @@ async def put_settings(body: dict):
         _set(["display", "language"], bd.get("language"))
         _set(["display", "show_cost"], bd.get("show_cost"))
         _set(["display", "streaming"], bd.get("streaming"))
+        _set(["display", "theme"], bd.get("theme"))
 
         bmem = (body.get("memory") or {})
         _set(["memory", "memory_char_limit"], bmem.get("memory_char_limit"))
@@ -91,9 +104,20 @@ async def put_settings(body: dict):
 
         _set(["agent", "reasoning_effort"], body.get("reasoning_effort"))
 
+        ba = (body.get("agent") or {})
+        _set(["agent", "name"], ba.get("name"))
+        _set(["agent", "workspace"], ba.get("workspace"))
+
         bdel = (body.get("delegation") or {})
         _set(["delegation", "provider"], bdel.get("provider"))
         _set(["delegation", "model"], bdel.get("model"))
+
+        # Dashboard behavior toggles — whitelist only known keys
+        bdash = body.get("dashboard") or {}
+        for k in _TOGGLE_KEYS:
+            v = bdash.get(k)
+            if isinstance(v, bool):
+                _set(["dashboard", k], v)
 
         _dump_config(cfg)
         return {"ok": True}
