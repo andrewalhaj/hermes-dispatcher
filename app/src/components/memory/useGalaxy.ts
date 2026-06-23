@@ -8,6 +8,25 @@ interface UseGalaxyOpts {
   onSelect: (node: MemNode) => void
 }
 
+// Fibonacci sphere — evenly distributes N points on a sphere surface
+function fibSphere(i: number, total: number, radius: number): [number, number, number] {
+  const phi = Math.acos(1 - 2 * (i + 0.5) / total)
+  const theta = Math.PI * (1 + Math.sqrt(5)) * i
+  return [
+    radius * Math.sin(phi) * Math.cos(theta),
+    radius * Math.sin(phi) * Math.sin(theta),
+    radius * Math.cos(phi),
+  ]
+}
+
+const lerp = (a: number, b: number, t: number) => a + (b - a) * t
+
+// smoothstep — eased 0→1 ramp between edge0 and edge1
+function smoothstep(edge0: number, edge1: number, x: number): number {
+  const t = Math.max(0, Math.min(1, (x - edge0) / (edge1 - edge0)))
+  return t * t * (3 - 2 * t)
+}
+
 /** Imperative 3D galaxy renderer on a <canvas>. Pure math projection — no
  *  Three.js. Mirrors the prototype's drawGalaxy/attachGalaxy logic.
  *  - auto-orbit yaw +0.0006/frame when not dragging and not paused
@@ -31,6 +50,10 @@ export function useGalaxy({ data, paused, selectedId, onSelect }: UseGalaxyOpts)
 
     const view = { yaw: 0, pitch: 0, zoom: 1, drag: false, hover: -1, mx: null as number | null, my: null as number | null }
     let px = 0, py = 0
+    // Per-node positions: spherePos = Fibonacci sphere (zoomed out), clusterPos = original scatter (zoomed in).
+    const total = data.nodes.length
+    const spherePos: [number, number, number][] = data.nodes.map((_, i) => fibSphere(i, total, 2.2))
+    const clusterPos: [number, number, number][] = data.nodes.map((m) => [m.x, m.y, m.z])
     const proj: ({ i: number; sx: number; sy: number; z2: number; s: number; m: MemNode; depth: number } | null)[] = new Array(data.nodes.length).fill(null)
 
     const onDown = (e: MouseEvent) => { view.drag = true; px = e.clientX; py = e.clientY; c.style.cursor = 'grabbing' }
@@ -76,10 +99,14 @@ export function useGalaxy({ data, paused, selectedId, onSelect }: UseGalaxyOpts)
       const cosY = Math.cos(view.yaw), sinY = Math.sin(view.yaw), cosP = Math.cos(view.pitch), sinP = Math.sin(view.pitch)
       proj.fill(null)
       const pts: NonNullable<(typeof proj)[number]>[] = []
+      // t: 0 = full sphere (zoomed out), 1 = full cluster (zoomed in)
+      const t = smoothstep(0.6, 1.5, view.zoom)
       for (let i = 0; i < data.nodes.length; i++) {
         const m = data.nodes[i]
-        const x1 = m.x * cosY - m.z * sinY, z1 = m.x * sinY + m.z * cosY
-        const y1 = m.y * cosP - z1 * sinP, z2 = m.y * sinP + z1 * cosP
+        const sp = spherePos[i], cp = clusterPos[i]
+        const nx0 = lerp(sp[0], cp[0], t), ny0 = lerp(sp[1], cp[1], t), nz0 = lerp(sp[2], cp[2], t)
+        const x1 = nx0 * cosY - nz0 * sinY, z1 = nx0 * sinY + nz0 * cosY
+        const y1 = ny0 * cosP - z1 * sinP, z2 = ny0 * sinP + z1 * cosP
         const denom = focal - z2
         if (denom <= 0.3) continue
         const s = focal / denom
