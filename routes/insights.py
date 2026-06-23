@@ -87,21 +87,6 @@ async def get_insights() -> dict:
         logger.error(f"avg_latency_s: {e}", exc_info=True)
         result["avg_latency_s"] = 0.0
 
-    # by_status
-    try:
-        with sqlite3.connect(f"file:{_kanban_db()}?mode=ro", uri=True, check_same_thread=False) as conn:
-            cur = conn.execute(
-                "SELECT status, COUNT(*) FROM tasks WHERE status != 'archived' GROUP BY status"
-            )
-            by_status: dict = {s: 0 for s in ["triage", "todo", "ready", "running", "blocked", "done"]}
-            for status, count in cur.fetchall():
-                if status in by_status:
-                    by_status[status] = count
-            result["by_status"] = by_status
-    except Exception as e:
-        logger.error(f"by_status: {e}", exc_info=True)
-        result["by_status"] = {s: 0 for s in ["triage", "todo", "ready", "running", "blocked", "done"]}
-
     # by_profile
     try:
         with sqlite3.connect(f"file:{_kanban_db()}?mode=ro", uri=True, check_same_thread=False) as conn:
@@ -133,7 +118,6 @@ async def get_insights() -> dict:
 
             by_profile.sort(key=lambda x: x["completed"], reverse=True)
             result["by_profile"] = by_profile[:15]
-            result["by_profile_full"] = by_profile
     except Exception as e:
         logger.error(f"by_profile: {e}", exc_info=True)
         result["by_profile"] = []
@@ -186,6 +170,7 @@ async def get_insights() -> dict:
                 "SELECT skills FROM tasks WHERE skills IS NOT NULL AND skills != '' AND skills != '[]'"
             )
             skill_counts: dict = {}
+            # Source A: tasks.skills JSON column
             for (skills_json,) in cur.fetchall():
                 try:
                     skills = json.loads(skills_json)
@@ -195,8 +180,25 @@ async def get_insights() -> dict:
                                 skill_counts[skill] = skill_counts.get(skill, 0) + 1
                 except Exception:
                     pass
+
+            # Source B: task_runs.metadata JSON column (many runs store a "skills" key)
+            cur = conn.execute(
+                "SELECT metadata FROM task_runs WHERE metadata IS NOT NULL AND metadata != ''"
+            )
+            for (meta_json,) in cur.fetchall():
+                try:
+                    meta = json.loads(meta_json)
+                    skills = meta.get("skills") or meta.get("skill") or []
+                    if isinstance(skills, str):
+                        skills = [skills]
+                    for sk in skills:
+                        if isinstance(sk, str) and sk:
+                            skill_counts[sk] = skill_counts.get(sk, 0) + 1
+                except Exception:
+                    pass
+
             sorted_skills = sorted(skill_counts.items(), key=lambda x: x[1], reverse=True)
-            result["top_skills"] = [{"skill": s, "count": c} for s, c in sorted_skills]
+            result["top_skills"] = [{"skill": s, "count": c} for s, c in sorted_skills[:20]]
     except Exception as e:
         logger.error(f"top_skills: {e}", exc_info=True)
         result["top_skills"] = []

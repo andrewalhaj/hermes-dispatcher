@@ -9,9 +9,7 @@ interface InsightsAPI {
   tasks_week: number
   success_rate: number
   avg_latency_s: number
-  by_status: { triage: number; todo: number; ready: number; running: number; blocked: number; done: number }
   by_profile: Array<{ profile: string; completed: number; running: number; success_rate: number }>
-  by_profile_full: Array<{ profile: string; completed: number; running: number; success_rate: number }>
   sessions_today: number
   messages_today: number
   kanban_throughput: Array<{ date: string; completed: number }>
@@ -40,13 +38,6 @@ function hoverOut(e: React.MouseEvent<HTMLElement>) {
   e.currentTarget.style.borderColor = 'var(--border)'
   e.currentTarget.style.boxShadow = 'none'
 }
-
-const STATUS_COLORS: Record<string, string> = {
-  triage: '#6a7088', todo: '#5aa2f0', ready: '#2dd4bf',
-  running: ACCENT, blocked: '#f6b73c', done: '#9b8cff',
-}
-
-const PROFILE_COLORS = ['#9b8cff', '#5aa2f0', '#2dd4bf', '#f6b73c', '#ff6e6e', '#64d4a8', '#e879f9', ACCENT]
 
 function fmtNum(n: number): string {
   return n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n)
@@ -137,30 +128,6 @@ export default function Insights({ accent = ACCENT }: InsightsProps) {
     ],
   }
 
-  // Task status
-  const statusEntries = [
-    { key: 'triage', label: 'Triage', count: data.by_status.triage },
-    { key: 'todo', label: 'Todo', count: data.by_status.todo },
-    { key: 'ready', label: 'Ready', count: data.by_status.ready },
-    { key: 'running', label: 'Running', count: data.by_status.running },
-    { key: 'blocked', label: 'Blocked', count: data.by_status.blocked },
-    { key: 'done', label: 'Done', count: data.by_status.done },
-  ]
-  const statusTotal = statusEntries.reduce((s, e) => s + e.count, 0)
-  const statusInfo: InfoObject = {
-    category: 'Status', title: 'Task Status', accent: '#9b8cff',
-    desc: 'Distribution of tasks across all pipeline stages.',
-    stats: statusEntries.map(e => ({ label: e.label, value: String(e.count) })),
-  }
-
-  // By agent — drawer shows the full untruncated list
-  const fullAgentList = data.by_profile_full ?? data.by_profile
-  const profileInfo: InfoObject = {
-    category: 'Agents', title: 'By Agent', accent: '#5aa2f0',
-    desc: `Task completion and success rates for all ${fullAgentList.length} agent${fullAgentList.length !== 1 ? 's' : ''}.`,
-    stats: fullAgentList.map(p => ({ label: p.profile, value: `${p.completed} done · ${p.running} running · ${p.success_rate}%` })),
-  }
-
   // Skill usage
   const maxSkillCount = Math.max(...data.top_skills.map(s => s.count), 1)
   const totalSkillCount = data.top_skills.reduce((s, sk) => s + sk.count, 0)
@@ -237,55 +204,13 @@ export default function Insights({ accent = ACCENT }: InsightsProps) {
             </div>
           </div>
 
-          {/* By Agent table */}
-          <div style={cardBase} onClick={() => open(profileInfo)} onMouseEnter={hoverIn} onMouseLeave={hoverOut}>
-            <div style={{ ...cardLabel, marginBottom: 14 }}>By Agent</div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 80px 80px 88px', gap: 10, padding: '0 4px 8px', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#565d72' }}>
-              <span>Agent</span><span>Completed</span><span>Running</span><span>Success</span>
-            </div>
-            <div className="flex flex-col" style={{ gap: 4 }}>
-              {fullAgentList.map((p, i) => (
-                <div key={p.profile} style={{ display: 'grid', gridTemplateColumns: '1fr 80px 80px 88px', gap: 10, alignItems: 'center', padding: '9px 4px', borderTop: '1px solid rgba(255,255,255,0.05)', fontSize: 12.5 }}>
-                  <span className="inline-flex items-center" style={{ gap: 8, color: '#e4e6ee', minWidth: 0 }}>
-                    <span className="flex-none" style={{ width: 8, height: 8, borderRadius: '50%', background: PROFILE_COLORS[i % PROFILE_COLORS.length], boxShadow: `0 0 7px ${PROFILE_COLORS[i % PROFILE_COLORS.length]}` }} />
-                    <span className="overflow-hidden text-ellipsis whitespace-nowrap">{p.profile}</span>
-                  </span>
-                  <span className="mono" style={{ color: 'var(--text-muted)' }}>{p.completed}</span>
-                  <span className="mono" style={{ color: 'var(--text-muted)' }}>{p.running}</span>
-                  <span className="mono" style={{ color: '#d4d8e4' }}>{p.success_rate}%</span>
-                </div>
-              ))}
-              {fullAgentList.length === 0 && (
-                <div style={{ fontSize: 12, color: '#565d72', padding: '12px 4px' }}>No agent data yet</div>
-              )}
-            </div>
-          </div>
-
-          {/* Task Status */}
-          <div style={cardBase} onClick={() => open(statusInfo)} onMouseEnter={hoverIn} onMouseLeave={hoverOut}>
-            <div style={{ ...cardLabel, marginBottom: 16 }}>Task Status</div>
-            <div className="flex" style={{ height: 10, borderRadius: 99, overflow: 'hidden', background: 'rgba(255,255,255,0.05)' }}>
-              {statusEntries.map((e) => (
-                <div key={e.key} style={{ width: statusTotal > 0 ? `${(e.count / statusTotal) * 100}%` : '0%', background: STATUS_COLORS[e.key] }} />
-              ))}
-            </div>
-            <div className="flex flex-wrap" style={{ marginTop: 14, gap: '8px 14px' }}>
-              {statusEntries.map((e) => (
-                <span key={e.key} className="inline-flex items-center" style={{ gap: 6, fontSize: 12, color: 'var(--text-muted)' }}>
-                  <span style={{ width: 8, height: 8, borderRadius: 2, background: STATUS_COLORS[e.key] }} />
-                  {e.label} <b style={{ color: '#d4d8e4', fontWeight: 600 }}>{e.count}</b>
-                </span>
-              ))}
-            </div>
-          </div>
-
           {/* Skill usage */}
           <div style={cardBase} onClick={() => open(skillsInfo)} onMouseEnter={hoverIn} onMouseLeave={hoverOut}>
             <div style={{ ...cardLabel, marginBottom: 14 }}>Skill Usage</div>
             <div className="flex flex-col" style={{ gap: 11 }}>
               {data.top_skills.map((sk) => (
                 <div key={sk.skill} className="flex items-center" style={{ gap: 12 }}>
-                  <span className="mono flex-none" style={{ width: 92, fontSize: 12, color: '#c6cad8' }}>{sk.skill}</span>
+                  <span className="mono flex-none" style={{ width: 140, fontSize: 12, color: '#c6cad8' }}>{sk.skill}</span>
                   <div className="flex-1" style={{ height: 7, borderRadius: 99, background: 'rgba(255,255,255,0.05)', overflow: 'hidden' }}>
                     <div style={{ height: '100%', width: `${Math.round((sk.count / maxSkillCount) * 100)}%`, borderRadius: 99, background: 'linear-gradient(90deg, color-mix(in oklab, var(--ac) 60%, transparent), var(--ac))' }} />
                   </div>

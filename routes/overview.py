@@ -115,12 +115,17 @@ async def get_overview(
                 )
                 sparkline.append({"hour": i, "count": cur.fetchone()[0]})
 
-            cur.execute("SELECT COUNT(*) FROM tasks")
+            cur.execute(
+                "SELECT COUNT(*) FROM tasks WHERE started_at >= ?",
+                (today_epoch,),
+            )
             total_tasks: int = cur.fetchone()[0]
 
             cur.execute(
                 "SELECT assignee, COUNT(*) as cnt FROM tasks"
-                " WHERE assignee IS NOT NULL GROUP BY assignee ORDER BY cnt DESC"
+                " WHERE assignee IS NOT NULL AND started_at >= ?"
+                " GROUP BY assignee ORDER BY cnt DESC",
+                (today_epoch,),
             )
             rows = cur.fetchall()
             existing_profiles = (
