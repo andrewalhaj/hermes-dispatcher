@@ -140,7 +140,7 @@ export default function Skills({ accent }: SkillsProps) {
       <div className="flex-1 overflow-y-auto" style={{ minHeight: 0, padding: '22px 26px 32px' }}>
         {loading && <div style={{ color: '#6a7088', fontSize: 13 }}>Loading skills…</div>}
         {error && <div style={{ color: '#f87171', fontSize: 13 }}>Error: {error}</div>}
-        <div style={{ maxWidth: 1080, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 14 }}>
+        <div style={{ maxWidth: 1080, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 14, animation: 'hcellin 0.45s ease backwards', animationDelay: '0s' }}>
           {skills.map((p, i) => {
             const on = enabled[p.id] ?? true
             const sel = selId === p.id

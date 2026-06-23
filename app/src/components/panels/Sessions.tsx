@@ -137,7 +137,7 @@ export default function Sessions({ accent = ACCENT, onOpenSession }: SessionsPro
         <div style={{ maxWidth: 1080, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 14, animation: 'hpanelin 0.4s var(--ease-out)' }}>
 
           {/* Filter bar */}
-          <div className="flex flex-wrap items-center" style={{ gap: 8 }}>
+          <div className="flex flex-wrap items-center" style={{ gap: 8, animation: 'hcellin 0.45s ease backwards', animationDelay: '0s' }}>
             <div className="relative" style={{ flex: '1 1 280px', minWidth: 200 }}>
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#666c82" strokeWidth={2} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }} aria-hidden="true">
                 <circle cx="11" cy="11" r="7" /><path d="M21 21l-4.3-4.3" />

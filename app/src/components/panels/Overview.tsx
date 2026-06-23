@@ -59,6 +59,8 @@ export default function Overview({ accent, navigateTo }: OverviewProps) {
               padding: '28px 32px',
               background: `linear-gradient(120deg, color-mix(in oklab, ${accent} 13%, transparent) 0%, rgba(255,138,76,0.11) 46%, rgba(232,72,128,0.08) 100%)`,
               border: '1px solid rgba(255,255,255,0.08)',
+              animation: 'hcellin 0.45s ease backwards',
+              animationDelay: '0s',
             }}
           >
             <GlowHorizonFM
@@ -98,7 +100,7 @@ export default function Overview({ accent, navigateTo }: OverviewProps) {
           </div>
 
           {/* Stat tiles */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, animation: 'hcellin 0.45s ease backwards', animationDelay: '0.07s' }}>
             {ov.stats.map((st, i) => (
               <div key={st.label} style={{ animation: 'hcellin 0.45s ease backwards', animationDelay: `${i * 0.07}s` }}>
               <StatTile
@@ -139,7 +141,7 @@ export default function Overview({ accent, navigateTo }: OverviewProps) {
                   ],
                 })
               }
-              style={{ background: 'var(--s3)', border: '1px solid var(--border)', borderRadius: 14, padding: 18, cursor: 'pointer' }}
+              style={{ background: 'var(--s3)', border: '1px solid var(--border)', borderRadius: 14, padding: 18, cursor: 'pointer', animation: 'hcellin 0.45s ease backwards', animationDelay: '0.14s' }}
             >
               <div style={{ ...cardLabelStyle, marginBottom: 14 }}>Agent Breakdown</div>
               <div className="flex flex-wrap items-center" style={{ gap: 18 }}>
@@ -170,7 +172,7 @@ export default function Overview({ accent, navigateTo }: OverviewProps) {
 
             {(
               <div
-                style={{ background: 'var(--s3)', border: '1px solid var(--border)', borderRadius: 14, padding: 18 }}
+                style={{ background: 'var(--s3)', border: '1px solid var(--border)', borderRadius: 14, padding: 18, animation: 'hcellin 0.45s ease backwards', animationDelay: '0.21s' }}
               >
                 <div className="flex items-center justify-between" style={{ marginBottom: 16 }}>
                   <div style={cardLabelStyle}>Agent Activity Heatmap</div>
@@ -241,7 +243,7 @@ export default function Overview({ accent, navigateTo }: OverviewProps) {
                 })
               }
               className="relative overflow-hidden"
-              style={{ background: 'var(--s3)', border: '1px solid var(--border)', borderRadius: 14, minHeight: 286, cursor: 'pointer' }}
+              style={{ background: 'var(--s3)', border: '1px solid var(--border)', borderRadius: 14, minHeight: 286, cursor: 'pointer', animation: 'hcellin 0.45s ease backwards', animationDelay: '0.35s' }}
             >
               <SwarmCanvas accent={accent} />
               <div className="relative flex items-center justify-between" style={{ zIndex: 1, padding: 18 }}>
