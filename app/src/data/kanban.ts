@@ -36,6 +36,7 @@ export interface Task {
   skills: string[]
   branch: string
   desc: string
+  blockReason?: string
 }
 
 /** Project (tenant) metadata for the dropdown title. */

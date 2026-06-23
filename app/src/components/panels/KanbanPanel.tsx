@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import {
   LANES,
   LANE_MAP,
@@ -15,6 +15,17 @@ import { profileDisplayName } from '../../data/profileDisplayNames'
 
 interface KanbanPanelProps {
   accent: string
+}
+
+const DISPLAY_LANES: Array<{ id: string; label: string; color: string; virtual?: boolean }> = LANES.flatMap(
+  (lane) =>
+    lane.id === 'blocked'
+      ? [lane, { id: 'review', label: 'Ready for Review', color: '#f6b73c', virtual: true }]
+      : [lane],
+)
+
+function isReviewReady(t: Task): boolean {
+  return t.status === 'blocked' && (t.blockReason ?? '').toLowerCase().includes('review-required')
 }
 
 /** Toast that auto-dismisses. */
@@ -35,7 +46,7 @@ export default function KanbanPanel({ accent }: KanbanPanelProps) {
   const [tenantFilter, setTenantFilter] = useState<string>('all')
   const [projMenu, setProjMenu] = useState(false)
   const [draggingId, setDraggingId] = useState<string | null>(null)
-  const [dragOverCol, setDragOverCol] = useState<LaneId | null>(null)
+  const [dragOverCol, setDragOverCol] = useState<string | null>(null)
   const [newTaskText, setNewTaskText] = useState('')
   const { toast, show } = useToast()
 
@@ -299,16 +310,25 @@ export default function KanbanPanel({ accent }: KanbanPanelProps) {
           backgroundPosition: '-1px -1px',
         }}
       >
-        {LANES.map((col) => {
-          const colTasks = visible.filter((t) => t.status === col.id)
-          const locked = col.id === 'running'
+        {DISPLAY_LANES.map((col) => {
+          const isVirtual = !!col.virtual
+          const isLocked = col.id === 'running'
+          const colTasks = isVirtual
+            ? visible.filter(isReviewReady)
+            : col.id === 'blocked'
+            ? visible.filter((t) => t.status === 'blocked' && !isReviewReady(t))
+            : visible.filter((t) => t.status === col.id)
           const over = dragOverCol === col.id
-          const forbidden = locked && dragging && over
+          const forbidden = isLocked && dragging && over
           return (
             <div
               key={col.id}
               onDragOver={(e) => {
-                if (locked) {
+                if (isVirtual) {
+                  if (e.dataTransfer) e.dataTransfer.dropEffect = 'none'
+                  return
+                }
+                if (isLocked) {
                   if (e.dataTransfer) e.dataTransfer.dropEffect = 'none'
                   if (dragOverCol !== col.id) setDragOverCol(col.id)
                   return
@@ -317,25 +337,26 @@ export default function KanbanPanel({ accent }: KanbanPanelProps) {
                 if (dragOverCol !== col.id) setDragOverCol(col.id)
               }}
               onDrop={(e) => {
-                if (locked) {
+                if (isVirtual) return
+                if (isLocked) {
                   show('Running is dispatcher-owned — use Run dispatcher')
                   return
                 }
                 e.preventDefault()
-                if (draggingId) moveTask(draggingId, col.id)
+                if (draggingId) moveTask(draggingId, col.id as LaneId)
               }}
               className="flex flex-none flex-col self-stretch"
               style={{
                 width: 290,
                 minHeight: 0,
                 maxHeight: '100%',
-                background: forbidden ? 'rgba(251,111,111,0.06)' : over && !locked ? `color-mix(in oklab, ${col.color} 9%, #0b0f18)` : '#0b0f18',
-                border: `1px solid ${forbidden ? '#fb6f6f' : over && !locked ? col.color : 'rgba(255,255,255,0.07)'}`,
+                background: forbidden ? 'rgba(251,111,111,0.06)' : over && !isLocked && !isVirtual ? `color-mix(in oklab, ${col.color} 9%, #0b0f18)` : '#0b0f18',
+                border: `1px solid ${forbidden ? '#fb6f6f' : over && !isLocked && !isVirtual ? col.color : 'rgba(255,255,255,0.07)'}`,
                 borderStyle: forbidden ? 'dashed' : 'solid',
                 borderRadius: 12,
                 overflow: 'hidden',
                 transition: 'border-color 0.12s, background 0.12s',
-                boxShadow: over && !locked ? `0 0 0 1px ${col.color}, 0 8px 30px rgba(0,0,0,0.35)` : 'none',
+                boxShadow: over && !isLocked && !isVirtual ? `0 0 0 1px ${col.color}, 0 8px 30px rgba(0,0,0,0.35)` : 'none',
               }}
             >
               {/* Lane header */}
@@ -346,7 +367,7 @@ export default function KanbanPanel({ accent }: KanbanPanelProps) {
                 <div className="flex items-center" style={{ gap: 9 }}>
                   <span style={{ width: 9, height: 9, borderRadius: '50%', background: col.color, boxShadow: `0 0 9px ${col.color}` }} />
                   <span style={{ fontSize: 13, fontWeight: 600, color: '#dde0ea', letterSpacing: '0.01em' }}>{col.label}</span>
-                  {locked && (
+                  {isLocked && (
                     <span title="Dispatcher-owned — tasks enter via Run dispatcher" className="inline-flex" style={{ color: '#6a7088' }}>
                       <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                         <rect x="5" y="11" width="14" height="9" rx="2" />
@@ -391,7 +412,7 @@ export default function KanbanPanel({ accent }: KanbanPanelProps) {
                       }}
                       onClick={() =>
                         openInfo({
-                          category: `Task · ${LANE_MAP[t.status].label}`,
+                          category: `Task · ${col.label}`,
                           title: t.title,
                           accent: col.color,
                           desc: t.desc || 'No description yet.',
@@ -431,50 +452,80 @@ export default function KanbanPanel({ accent }: KanbanPanelProps) {
                         e.currentTarget.style.transform = 'none'
                       }}
                     >
-                      <span style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, background: pc }} />
-                      <div className="flex items-center" style={{ gap: 8 }}>
-                        {t.priority !== 0 && (
-                          <span className="mono" style={{ fontSize: 10, fontWeight: 500, color: pc, background: `${pc}1c`, border: `1px solid ${pc}33`, borderRadius: 5, padding: '1px 6px' }}>
-                            P{t.priority}
-                          </span>
-                        )}
-                        <span style={{ fontSize: 10.5, color: '#767c92', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.tenant}</span>
-                      </div>
-                      <div style={{ fontSize: 13, fontWeight: 500, lineHeight: 1.36, color: '#e4e6ee', textWrap: 'pretty' }}>{t.title}</div>
-                      {t.skills.length > 0 && (
-                        <div className="flex flex-wrap" style={{ gap: 5 }}>
-                          {t.skills.slice(0, 3).map((sk) => (
-                            <span key={sk} className="mono" style={{ fontSize: 9.5, color: '#8c92a6', background: 'rgba(255,255,255,0.045)', borderRadius: 5, padding: '2px 6px' }}>
-                              {sk}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                      <div className="flex items-center justify-between" style={{ marginTop: 1 }}>
-                        <div className="flex items-center" style={{ gap: 11, fontSize: 11, color: '#6a7088' }}>
-                          {age && (
-                            <span
-                              className="inline-flex items-center"
-                              style={{ gap: 4, color: staleColor || '#6a7088', background: staleColor ? `${staleColor}1f` : 'transparent', borderRadius: 5, padding: '1px 6px' }}
-                              title={`in ${LANE_MAP[t.status].label.toLowerCase()} for ${age}`}
-                            >
-                              {stale === 'red' && (
-                                <span style={{ width: 5, height: 5, borderRadius: '50%', background: staleColor || '#fb6f6f', animation: 'hpulse 1.4s ease-in-out infinite' }} />
-                              )}
-                              {age}
-                            </span>
+                      <span style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, background: isVirtual ? col.color : pc }} />
+                      {isVirtual ? (
+                        <>
+                          <div style={{ fontSize: 13, fontWeight: 500, lineHeight: 1.36, color: '#e4e6ee', textWrap: 'pretty' }}>{t.title}</div>
+                          <div style={{
+                            fontSize: 12,
+                            color: '#a8ad9c',
+                            lineHeight: 1.45,
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical',
+                            overflow: 'hidden',
+                          } as React.CSSProperties}>
+                            {(t.blockReason ?? '').replace(/^review-required:\s*/i, '').trim() || 'Awaiting review'}
+                          </div>
+                          <div className="flex items-center justify-end" style={{ marginTop: 1 }}>
+                            {t.assignee && (
+                              <span
+                                className="mono flex items-center justify-center"
+                                style={{ fontSize: 9.5, fontWeight: 600, color: '#0a0e16', background: col.color, width: 21, height: 21, borderRadius: '50%', boxShadow: `0 0 0 2px color-mix(in oklab, ${col.color} 25%, transparent)` }}
+                                title={profileDisplayName(t.assignee)}
+                              >
+                                {initials(t.assignee)}
+                              </span>
+                            )}
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="flex items-center" style={{ gap: 8 }}>
+                            {t.priority !== 0 && (
+                              <span className="mono" style={{ fontSize: 10, fontWeight: 500, color: pc, background: `${pc}1c`, border: `1px solid ${pc}33`, borderRadius: 5, padding: '1px 6px' }}>
+                                P{t.priority}
+                              </span>
+                            )}
+                            <span style={{ fontSize: 10.5, color: '#767c92', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.tenant}</span>
+                          </div>
+                          <div style={{ fontSize: 13, fontWeight: 500, lineHeight: 1.36, color: '#e4e6ee', textWrap: 'pretty' }}>{t.title}</div>
+                          {t.skills.length > 0 && (
+                            <div className="flex flex-wrap" style={{ gap: 5 }}>
+                              {t.skills.slice(0, 3).map((sk) => (
+                                <span key={sk} className="mono" style={{ fontSize: 9.5, color: '#8c92a6', background: 'rgba(255,255,255,0.045)', borderRadius: 5, padding: '2px 6px' }}>
+                                  {sk}
+                                </span>
+                              ))}
+                            </div>
                           )}
-                        </div>
-                        {t.assignee && (
-                          <span
-                            className="mono flex items-center justify-center"
-                            style={{ fontSize: 9.5, fontWeight: 600, color: '#0a0e16', background: col.color, width: 21, height: 21, borderRadius: '50%', boxShadow: `0 0 0 2px color-mix(in oklab, ${col.color} 25%, transparent)` }}
-                            title={profileDisplayName(t.assignee)}
-                          >
-                            {initials(t.assignee)}
-                          </span>
-                        )}
-                      </div>
+                          <div className="flex items-center justify-between" style={{ marginTop: 1 }}>
+                            <div className="flex items-center" style={{ gap: 11, fontSize: 11, color: '#6a7088' }}>
+                              {age && (
+                                <span
+                                  className="inline-flex items-center"
+                                  style={{ gap: 4, color: staleColor || '#6a7088', background: staleColor ? `${staleColor}1f` : 'transparent', borderRadius: 5, padding: '1px 6px' }}
+                                  title={`in ${LANE_MAP[t.status].label.toLowerCase()} for ${age}`}
+                                >
+                                  {stale === 'red' && (
+                                    <span style={{ width: 5, height: 5, borderRadius: '50%', background: staleColor || '#fb6f6f', animation: 'hpulse 1.4s ease-in-out infinite' }} />
+                                  )}
+                                  {age}
+                                </span>
+                              )}
+                            </div>
+                            {t.assignee && (
+                              <span
+                                className="mono flex items-center justify-center"
+                                style={{ fontSize: 9.5, fontWeight: 600, color: '#0a0e16', background: col.color, width: 21, height: 21, borderRadius: '50%', boxShadow: `0 0 0 2px color-mix(in oklab, ${col.color} 25%, transparent)` }}
+                                title={profileDisplayName(t.assignee)}
+                              >
+                                {initials(t.assignee)}
+                              </span>
+                            )}
+                          </div>
+                        </>
+                      )}
                     </div>
                   )
                 })}
