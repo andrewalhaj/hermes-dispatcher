@@ -537,7 +537,6 @@ export default function SystemMonitorTile() {
   )
   const [menuOpen, setMenuOpen] = useState(false)
   const sys = useSystemStats(machine)
-  const [isExpanded, setIsExpanded] = useState(false)
 
   const selectMachine = (m: 'mini' | 'studio') => {
     setMachine(m)
@@ -560,13 +559,7 @@ export default function SystemMonitorTile() {
       style={{ background: 'var(--s3)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden', animation: 'hcellin 0.45s ease backwards', animationDelay: '0.28s' }}
     >
       <style>{KEYFRAMES}</style>
-      <motion.div
-        className="cursor-pointer"
-        style={{ padding: 18 }}
-        onClick={() => setIsExpanded((v) => !v)}
-        whileHover={{ backgroundColor: 'rgba(255,255,255,0.015)' }}
-        transition={{ duration: 0.2 }}
-      >
+      <div style={{ padding: 18 }}>
         <div className="flex items-center justify-between" style={{ marginBottom: 16 }}>
           <div className="inline-flex items-center" style={{ gap: 8 }}>
             <StatusDot state={dotState} />
@@ -621,13 +614,6 @@ export default function SystemMonitorTile() {
               setMenuOpen={setMenuOpen}
               onSelect={selectMachine}
             />
-            <motion.span
-              animate={{ rotate: isExpanded ? 180 : 0 }}
-              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-              style={{ color: 'var(--text-faint)', fontSize: 10, display: 'inline-block' }}
-            >
-              ▼
-            </motion.span>
           </div>
         </div>
 
@@ -636,7 +622,7 @@ export default function SystemMonitorTile() {
             <ResourceCard key={m.key} metric={m} />
           ))}
         </div>
-      </motion.div>
+      </div>
 
       {/* System Memory — always visible, directly below the metric cards grid */}
       <div style={{ padding: '0 18px 18px' }}>
@@ -671,38 +657,26 @@ export default function SystemMonitorTile() {
         </div>
       </div>
 
-      <AnimatePresence initial={false}>
-        {isExpanded && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            style={{ overflow: 'hidden' }}
-          >
-            <div style={{ padding: '0 18px 18px' }}>
-              {/* Per-agent memory */}
-              {sys.agents.length > 0 && (
-                <div style={{ marginTop: 2, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
-                  <div style={{ ...cardLabelStyle, marginBottom: 9 }}>Per-Agent Memory</div>
-                  <div className="flex flex-col" style={{ gap: 2 }}>
-                    {sys.agents.map((agent, index) => (
-                      <motion.div
-                        key={agent.name}
-                        initial={{ x: -16, opacity: 0 }}
-                        animate={{ x: 0, opacity: 1 }}
-                        transition={{ delay: index * 0.08, type: 'spring', stiffness: 300, damping: 30 }}
-                      >
-                        <AgentMemoryCard agent={agent} />
-                      </motion.div>
-                    ))}
-                  </div>
-                </div>
-              )}
+      {/* Per-Agent Memory — always visible */}
+      {sys.agents.length > 0 && (
+        <div style={{ padding: '0 18px 18px' }}>
+          <div style={{ marginTop: 2, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
+            <div style={{ ...cardLabelStyle, marginBottom: 9 }}>Per-Agent Memory</div>
+            <div className="flex flex-col" style={{ gap: 2 }}>
+              {sys.agents.map((agent, index) => (
+                <motion.div
+                  key={agent.name}
+                  initial={{ x: -16, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  transition={{ delay: index * 0.08, type: 'spring', stiffness: 300, damping: 30 }}
+                >
+                  <AgentMemoryCard agent={agent} />
+                </motion.div>
+              ))}
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
