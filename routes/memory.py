@@ -142,17 +142,21 @@ def put_files(body: PutFilesBody):
 def get_galaxy():
     memory_text = _read_safe(MEMORY_FILE)
     user_text = _read_safe(USER_FILE)
+    soul_text = _read_safe(SOUL_FILE)
+    agents_text = _read_safe(AGENTS_FILE)
 
     nodes: list[dict] = []
     nodes.extend(_parse_entries(memory_text, "hot", "mem"))
     nodes.extend(_parse_entries(user_text, "warm", "usr"))
+    nodes.extend(_parse_entries(soul_text, "soul", "soul"))
+    nodes.extend(_parse_entries(agents_text, "agents", "agents"))
 
-    # Add up to 6 reference nodes from filenames only
+    # Add all reference nodes from filenames only
     if REFS_DIR.exists():
         try:
             ref_files = sorted(
-                f for f in REFS_DIR.iterdir() if f.is_file()
-            )[:6]
+                f for f in REFS_DIR.iterdir() if f.is_file() and f.suffix == ".md"
+            )
             for i, ref in enumerate(ref_files):
                 nodes.append({
                     "id": f"ref-{i}",
@@ -162,6 +166,26 @@ def get_galaxy():
                 })
         except Exception:
             pass
+
+    # Honcho facts — best-effort; never block the galaxy if unavailable
+    try:
+        import subprocess
+        import json
+        result = subprocess.run(
+            ["python3", str(HERMES_HOME / "scripts" / "knowledge.py"), "--export-json"],
+            capture_output=True, text=True, timeout=5,
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            facts = json.loads(result.stdout)
+            for i, fact in enumerate(facts):
+                nodes.append({
+                    "id": f"honcho-{fact.get('id', i)}",
+                    "label": str(fact.get("label", ""))[:40],
+                    "tier": "honcho",
+                    "body": fact.get("body", ""),
+                })
+    except Exception:
+        pass
 
     return {"nodes": nodes, "edges": []}
 

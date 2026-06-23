@@ -214,24 +214,6 @@ export default function Shell() {
               <div style={{ fontSize: 11, color: '#6a7088', marginTop: 1 }}>Task Dispatcher</div>
             </div>
             )}
-            {!isRail && (
-            <span
-              className="mono"
-              style={{
-                marginLeft: 'auto',
-                flex: 'none',
-                fontSize: 9.5,
-                fontWeight: 500,
-                color: accent,
-                background: `color-mix(in oklab, ${accent} 12%, transparent)`,
-                border: `1px solid color-mix(in oklab, ${accent} 26%, transparent)`,
-                borderRadius: 6,
-                padding: '2px 6px',
-              }}
-            >
-              v2.0
-            </span>
-            )}
           </div>
 
           {/* Nav groups */}

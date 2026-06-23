@@ -16,6 +16,9 @@ const TIER_META: Record<string, { color: string; label: string; center: [number,
   hot:  { color: '#f6b73c', label: 'Memory',       center: [-2.5,  0.6,  0.5] },
   warm: { color: '#5aa2f0', label: 'User Profile',  center: [ 2.4,  0.9, -0.8] },
   cold: { color: '#6a7088', label: 'References',    center: [ 0.2,  2.3,  0.9] },
+  soul:   { color: '#a78bfa', label: 'Soul',       center: [-1.0, -1.8,  0.8] },
+  agents: { color: '#34d399', label: 'Agents',      center: [ 1.2, -1.6, -1.0] },
+  honcho: { color: '#f472b6', label: 'Honcho',      center: [ 0.0,  0.0,  2.2] },
 }
 
 export async function fetchGalaxyData(): Promise<GalaxyData> {
