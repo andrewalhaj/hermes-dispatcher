@@ -429,7 +429,7 @@ const StatusDot = ({ state }: { state: 'healthy' | 'spike' | 'unreachable' }) =>
   )
 }
 
-/** Machine selector dropdown (Mac Mini / Mac Studio). Shared by collapsed + expanded headers. */
+/** Machine selector dropdown (LH01 / LH02). Shared by collapsed + expanded headers. */
 function MachineSelector({
   machine,
   menuOpen,
@@ -462,7 +462,7 @@ function MachineSelector({
         }}
       >
         <Icon name="monitor" color="#9298ab" />
-        {machine === 'studio' ? 'Mac Studio' : 'Mac Mini'}
+        {machine === 'studio' ? 'LH02' : 'LH01'}
         <motion.span
           animate={{ rotate: menuOpen ? 180 : 0 }}
           transition={{ duration: 0.2 }}
@@ -516,7 +516,7 @@ function MachineSelector({
                 }}
               >
                 <Icon name="monitor" color={machine === m ? '#e4e6ee' : '#9298ab'} />
-                {m === 'studio' ? 'Mac Studio' : 'Mac Mini'}
+                {m === 'studio' ? 'LH02' : 'LH01'}
               </button>
             ))}
           </motion.div>
