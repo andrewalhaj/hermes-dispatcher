@@ -151,6 +151,25 @@ def get_galaxy():
     nodes.extend(_parse_entries(soul_text, "soul", "soul"))
     nodes.extend(_parse_entries(agents_text, "agents", "agents"))
 
+    # LanceDB knowledge store facts
+    try:
+        import sys
+        sys.path.insert(0, str(HERMES_HOME / "scripts"))
+        import knowledge as kb
+        kb_rows = kb.recent(200)  # fetch up to 200 most recent
+        for row in kb_rows:
+            text = row.get("text", "") or ""
+            priority = row.get("priority", "normal")
+            nodes.append({
+                "id": f"kb-{row['id'][:8]}",
+                "label": text[:40],
+                "tier": "knowledge",
+                "body": text[:300],
+                "metadata": {"priority": priority},
+            })
+    except Exception:
+        pass  # knowledge store unavailable — skip silently
+
     # Add all reference nodes from filenames only
     if REFS_DIR.exists():
         try:
