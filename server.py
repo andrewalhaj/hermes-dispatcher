@@ -99,6 +99,9 @@ app.include_router(skills_router, prefix="/api")
 from routes.sessions import router as sessions_router
 app.include_router(sessions_router, prefix="/api")
 
+from routes.search import router as search_router
+app.include_router(search_router, prefix="/api")
+
 from routes.agents import router as agents_router
 app.include_router(agents_router)
 
@@ -117,8 +120,22 @@ app.include_router(memory_router)
 from routes.chat import chat_router
 app.include_router(chat_router)
 
+# upload route requires python-multipart; guard so a missing optional dep
+# (peer task still in flight) can't crash app import for every other route.
+try:
+    from routes.upload import router as upload_router
+    app.include_router(upload_router)
+except (ImportError, RuntimeError) as _upload_err:
+    print(f"[server] upload route disabled: {_upload_err}")
+
 from routes.kanban import router as kanban_router
 app.include_router(kanban_router)
+
+from routes.media import router as media_router
+app.include_router(media_router, prefix="/api")
+
+from routes import cron
+app.include_router(cron.router)
 
 # ---------------------------------------------------------------------------
 # SPA static file fallback
