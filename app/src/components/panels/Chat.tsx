@@ -257,6 +257,7 @@ export default function Chat({ accent }: ChatProps) {
 
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const listRef = useRef<HTMLDivElement | null>(null)
+  const bottomRef = useRef<HTMLDivElement | null>(null)
   const abortRef = useRef<AbortController | null>(null)
 
   const agent = CHAT_AGENTS.find((a) => a.key === activeAgent) || CHAT_AGENTS[0]
@@ -276,19 +277,11 @@ export default function Chat({ accent }: ChatProps) {
   const ctxNum = Math.min(99, Math.round(ctxChars / 28))
   const ringDash = `${((Math.min(100, Math.round(ctxChars / 28)) / 100) * 56.55).toFixed(1)} 56.55`
 
-  // Pin to bottom whenever the displayed messages change.
-  // Uses rAF so the scroll always happens after the browser has
-  // committed and measured the new message layout — regardless of
-  // async fetch timing or panel entrance animation duration.
+  // Scroll to bottom: use a sentinel div at the end of the list.
+  // scrollIntoView is immune to scrollHeight measurement timing issues.
   useEffect(() => {
     if (displayThread.length === 0) return
-    const el = listRef.current
-    if (!el) return
-    const id = requestAnimationFrame(() => {
-      el.style.scrollBehavior = 'auto'
-      el.scrollTop = el.scrollHeight
-    })
-    return () => cancelAnimationFrame(id)
+    bottomRef.current?.scrollIntoView({ behavior: 'instant' })
   }, [displayThread.length])
 
   useEffect(() => {
@@ -834,6 +827,7 @@ export default function Chat({ accent }: ChatProps) {
             </div>
           </div>
         )}
+        <div ref={bottomRef} style={{ height: 0, flexShrink: 0 }} />
       </div>
 
       {/* Composer */}
