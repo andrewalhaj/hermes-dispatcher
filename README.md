@@ -42,7 +42,7 @@ Dual-machine monitoring (Mac Mini + Mac Studio over Tailscale SSH):
 | VRAM % | `i915_gem_objects` stolen memory | `ioreg` in-use system memory |
 | Network MB/s | `psutil` | `psutil` (SSH) |
 
-Machine selection persists across reloads. Tile is collapsible with a hide/show toggle.
+Machine selection persists across reloads.
 
 ### 🧠 Memory Editor
 View and edit Hermes memory stores directly from the dashboard: `MEMORY.md`, `USER.md`, `SOUL.md`, and `AGENTS.md`. Per-profile support — switch between default and named profiles. Changes write through to the live agent context.
@@ -79,38 +79,36 @@ Persist dashboard preferences: theme, accent color, agent name, workspace path, 
 | Data | SQLite (kanban + sessions via Hermes), `psutil`, SSH probes |
 | Auth | Session cookie (`hd_session`), bcrypt password hash |
 | Fonts | Space Grotesk |
-| Hosting | Self-hosted on Mac Mini, exposed via Cloudflare Tunnel |
+| Hosting | Self-hosted on Mac Mini, accessible over Tailscale or Cloudflare Tunnel |
 
 ---
 
 ## Architecture
 
 ```
-Browser (Mac Studio / any Tailscale client)
+Browser (any Tailscale client)
     │
-    ├─ hermes.andrewskingdom.com  ──►  Cloudflare Tunnel
-    │                                        │
-    └─ 100.113.100.81:8787  ────────────────►│
-                                             ▼
-                                    Mac Mini (host)
-                                    ┌─────────────────────┐
-                                    │  uvicorn :8787       │
-                                    │  server.py           │
-                                    │  ├─ /api/kanban      │
-                                    │  ├─ /api/system      │
-                                    │  ├─ /api/chat        │
-                                    │  ├─ /api/sessions    │
-                                    │  ├─ /api/memory      │
-                                    │  ├─ /api/skills      │
-                                    │  ├─ /api/insights    │
-                                    │  ├─ /api/agents      │
-                                    │  └─ /api/logs        │
-                                    │                      │
-                                    │  Reads: kanban.db    │
-                                    │         ~/.hermes/   │
-                                    │                      │
-                                    │  SSH probe ──────────┼──► Mac Studio (100.93.2.43)
-                                    └─────────────────────┘    GPU/CPU/RAM metrics
+    └─ Mac Mini :8787
+           │
+           ▼
+    ┌─────────────────────┐
+    │  uvicorn :8787       │
+    │  server.py           │
+    │  ├─ /api/kanban      │
+    │  ├─ /api/system      │
+    │  ├─ /api/chat        │
+    │  ├─ /api/sessions    │
+    │  ├─ /api/memory      │
+    │  ├─ /api/skills      │
+    │  ├─ /api/insights    │
+    │  ├─ /api/agents      │
+    │  └─ /api/logs        │
+    │                      │
+    │  Reads: kanban.db    │
+    │         ~/.hermes/   │
+    │                      │
+    │  SSH probe ──────────┼──► Mac Studio (Tailscale)
+    └─────────────────────┘    GPU/CPU/RAM metrics
 ```
 
 The kanban board (`~/.hermes/kanban.db`) is a shared SQLite DB written by the Hermes dispatcher process and read by the dashboard. Workers run on the Mac Mini and SSH into remote hosts for tasks — they do not run Claude on remote machines.
@@ -154,8 +152,6 @@ Environment=HERMES_HOME=/root/.hermes
 Restart=always
 RestartSec=3
 ```
-
-Exposed externally via Cloudflare Tunnel at `hermes.andrewskingdom.com`.
 
 ---
 
