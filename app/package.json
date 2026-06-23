@@ -13,9 +13,11 @@
     "@tsparticles/engine": "^4.2.1",
     "@tsparticles/react": "^4.2.1",
     "@tsparticles/slim": "^4.2.1",
+    "@types/three": "^0.184.1",
     "framer-motion": "^12.40.0",
     "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "react-dom": "^19.1.0",
+    "three": "^0.184.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.25.0",
