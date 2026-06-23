@@ -55,13 +55,7 @@ const LAYERS: Layer[] = [
 function genBoxShadow(count: number, color: string): string {
   const parts: string[] = []
   for (let i = 0; i < count; i++) {
-    // ~60% of stars placed in the top-right quadrant, rest uniform
-    const topRight = Math.random() < 0.6
-    // X: bias right — square root pulls values toward 1, then map to right half (800–1600)
-    const rx = topRight ? 800 + Math.sqrt(Math.random()) * 800 : Math.random() * 1600
-    // Y: bias top — square root pulls values toward 1, then map to top third (0–667)
-    const ry = topRight ? Math.pow(Math.random(), 1.8) * 667 : Math.random() * 2000
-    parts.push(`${Math.floor(rx)}px ${Math.floor(ry)}px 0 ${color}`)
+    parts.push(`${Math.floor(Math.random()*1600)}px ${Math.floor(Math.random()*2000)}px 0 ${color}`)
   }
   return parts.join(', ')
 }
