@@ -72,6 +72,8 @@ function tasksToAgents(tasks: KanbanTask[]): Agent[] {
   const byAgent = new Map<string, { active: number; running: number }>()
   for (const t of tasks) {
     if (!t.assignee) continue
+    // Only surface agents with active work — skip done/archived/completed tasks
+    if (t.status === 'done' || t.status === 'archived') continue
     const entry = byAgent.get(t.assignee) ?? { active: 0, running: 0 }
     if (t.status === 'running' || t.status === 'ready') entry.active++
     if (t.status === 'running') entry.running++
