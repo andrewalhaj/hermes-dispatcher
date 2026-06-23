@@ -276,10 +276,16 @@ export default function Chat({ accent }: ChatProps) {
   const ctxNum = Math.min(99, Math.round(ctxChars / 28))
   const ringDash = `${((Math.min(100, Math.round(ctxChars / 28)) / 100) * 56.55).toFixed(1)} 56.55`
 
+  // Scroll to bottom on new messages / session switch AND on initial mount (panel switch)
   useEffect(() => {
     const el = listRef.current
     if (el) el.scrollTop = el.scrollHeight
   }, [thread.length, running, viewSession])
+
+  useEffect(() => {
+    const el = listRef.current
+    if (el) el.scrollTop = el.scrollHeight
+  }, [])
 
   useEffect(() => {
     ;(async () => {
