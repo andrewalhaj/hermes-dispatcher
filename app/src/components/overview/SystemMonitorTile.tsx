@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useSystemStats, type SysMetric, type SysDataPoint, type AgentMem } from './useSystemStats'
 
@@ -10,6 +10,161 @@ const cardLabelStyle: React.CSSProperties = {
 }
 
 const SPIKE = '#fb6f6f'
+/** Muted grey for unavailable / N/A states. */
+const MUTED = '#6b7280'
+
+/**
+ * Per-metric accent colors. Keyed on the metric `key` from the hook so we
+ * never touch the useSystemStats contract — the hook still supplies its own
+ * `color`, we just override it visually here.
+ */
+const METRIC_COLORS: Record<string, string> = {
+  cpu: '#60a5fa', // blue
+  gpu: '#a78bfa', // violet
+  vram: '#f472b6', // pink
+  network: '#34d399', // emerald
+  mem: '#fb923c', // orange (system memory section)
+}
+
+const accentFor = (key: string, unavailable: boolean): string =>
+  unavailable ? MUTED : METRIC_COLORS[key] ?? MUTED
+
+/** hex (#rrggbb) → rgba() string with the given alpha. */
+const rgba = (hex: string, alpha: number): string => {
+  const h = hex.replace('#', '')
+  const r = parseInt(h.slice(0, 2), 16)
+  const g = parseInt(h.slice(2, 4), 16)
+  const b = parseInt(h.slice(4, 6), 16)
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`
+}
+
+const easeOutCubic = (t: number): number => 1 - Math.pow(1 - t, 3)
+
+/**
+ * CSS keyframes injected once. Glow pulses behind each icon (2s healthy,
+ * 0.6s on spike); the header dot pulses as a status ring.
+ */
+const KEYFRAMES = `
+@keyframes sysmon-glow-pulse {
+  0%, 100% { box-shadow: 0 0 0px 0px currentColor; opacity: 0.5; }
+  50%      { box-shadow: 0 0 8px 3px currentColor; opacity: 1;   }
+}
+@keyframes sysmon-dot-pulse {
+  0%   { box-shadow: 0 0 0 0 currentColor; opacity: 1;   }
+  70%  { box-shadow: 0 0 0 5px rgba(0,0,0,0); opacity: 0.6; }
+  100% { box-shadow: 0 0 0 0 rgba(0,0,0,0); opacity: 1;   }
+}
+`
+
+/**
+ * 60fps numeric counter. Animates from the previous value toward `target`
+ * via requestAnimationFrame easing (easeOutCubic) — CSS transitions lag on
+ * React rerenders, so we drive the value imperatively.
+ */
+function useAnimatedNumber(target: number, duration = 300): number {
+  const [display, setDisplay] = useState(target)
+  const displayRef = useRef(target)
+  const prevTarget = useRef(target)
+  const rafRef = useRef<number | null>(null)
+
+  useEffect(() => {
+    displayRef.current = display
+  }, [display])
+
+  useEffect(() => {
+    if (target === prevTarget.current) return
+    prevTarget.current = target
+    const from = displayRef.current
+    const delta = target - from
+    const start = performance.now()
+
+    const step = (now: number) => {
+      const t = Math.min((now - start) / duration, 1)
+      setDisplay(from + delta * easeOutCubic(t))
+      if (t < 1) rafRef.current = requestAnimationFrame(step)
+    }
+    if (rafRef.current != null) cancelAnimationFrame(rafRef.current)
+    rafRef.current = requestAnimationFrame(step)
+
+    return () => {
+      if (rafRef.current != null) cancelAnimationFrame(rafRef.current)
+    }
+  }, [target, duration])
+
+  return display
+}
+
+/**
+ * Gauge semicircle arc (~40×24). Animates its stroke-dashoffset toward the
+ * current value at 60fps via requestAnimationFrame (easeOutCubic, ~500ms).
+ * Sits *above* the sparkline as the "value at a glance" visual.
+ */
+const AnimatedArc = ({
+  value,
+  max,
+  color,
+  width = 40,
+  height = 24,
+}: {
+  value: number
+  max: number
+  color: string
+  width?: number
+  height?: number
+}) => {
+  const r = 16
+  const cx = width / 2
+  const cy = height - 2
+  const arcLen = Math.PI * r
+  const target = Math.max(0, Math.min(value / max, 1))
+
+  const [frac, setFrac] = useState(target)
+  const fracRef = useRef(target)
+  const prevTarget = useRef(target)
+  const rafRef = useRef<number | null>(null)
+
+  useEffect(() => {
+    fracRef.current = frac
+  }, [frac])
+
+  useEffect(() => {
+    if (target === prevTarget.current) return
+    prevTarget.current = target
+    const from = fracRef.current
+    const delta = target - from
+    const start = performance.now()
+
+    const step = (now: number) => {
+      const t = Math.min((now - start) / 500, 1)
+      setFrac(from + delta * easeOutCubic(t))
+      if (t < 1) rafRef.current = requestAnimationFrame(step)
+    }
+    if (rafRef.current != null) cancelAnimationFrame(rafRef.current)
+    rafRef.current = requestAnimationFrame(step)
+
+    return () => {
+      if (rafRef.current != null) cancelAnimationFrame(rafRef.current)
+    }
+  }, [target])
+
+  const d = `M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`
+
+  return (
+    <svg width={width} height={height} className="overflow-visible" aria-hidden>
+      <path d={d} fill="none" stroke={rgba(color, 0.14)} strokeWidth={4} strokeLinecap="round" />
+      <path
+        d={d}
+        fill="none"
+        stroke={color}
+        strokeWidth={4}
+        strokeLinecap="round"
+        strokeDasharray={arcLen}
+        strokeDashoffset={arcLen * (1 - frac)}
+        style={{ filter: `drop-shadow(0 0 2px ${rgba(color, 0.5)})` }}
+      />
+    </svg>
+  )
+}
 
 /** Inline SVG icons (project has no lucide-react; keep zero new deps). */
 const Icon = ({ name, color }: { name: string; color: string }) => {
@@ -144,49 +299,75 @@ const Sparkline = ({
   )
 }
 
+/** Soft radial glow that pulses behind an icon. Color = accent (red on spike). */
+const IconGlow = ({ color, spike }: { color: string; spike: boolean }) => (
+  <span
+    aria-hidden
+    style={{
+      position: 'absolute',
+      inset: 3,
+      borderRadius: 8,
+      color,
+      background: `radial-gradient(circle, ${rgba(color, 0.28)} 0%, transparent 72%)`,
+      animation: `sysmon-glow-pulse ${spike ? '0.6s' : '2s'} ease-in-out infinite`,
+      pointerEvents: 'none',
+    }}
+  />
+)
+
 const ResourceCard = ({ metric }: { metric: SysMetric }) => {
   const [isHovered, setIsHovered] = useState(false)
   const { hasSpike, unavailable } = metric
+  const accent = accentFor(metric.key, unavailable)
+  const glowColor = hasSpike ? SPIKE : accent
   const valColor = hasSpike ? SPIKE : '#e4e6ee'
+  const animVal = useAnimatedNumber(metric.cur)
+  const isNet = metric.unit === 'MB/s'
+  const arcMax = isNet ? 60 : 100
 
   return (
     <motion.div
       className="flex items-center gap-2 p-1.5 rounded-lg"
-      style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.05)' }}
+      style={{
+        background: `linear-gradient(135deg, ${rgba(accent, 0.07)} 0%, rgba(255,255,255,0.02) 100%)`,
+        border: `1px solid ${rgba(accent, 0.15)}`,
+      }}
       onHoverStart={() => setIsHovered(true)}
       onHoverEnd={() => setIsHovered(false)}
       transition={{ type: 'spring', stiffness: 400, damping: 25 }}
     >
       <motion.div
-        className="flex items-center justify-center rounded-md"
-        style={{ width: 28, height: 28, background: 'rgba(255,255,255,0.04)' }}
+        className="relative flex items-center justify-center rounded-md"
+        style={{ width: 28, height: 28, background: rgba(accent, 0.06) }}
         animate={{
-          backgroundColor: hasSpike ? 'rgba(251,111,111,0.14)' : 'rgba(255,255,255,0.04)',
+          backgroundColor: hasSpike ? 'rgba(251,111,111,0.14)' : rgba(accent, 0.06),
           scale: isHovered ? 1.1 : 1,
         }}
         transition={{ type: 'spring', stiffness: 400, damping: 25 }}
       >
-        <Icon name={metric.key} color={hasSpike ? SPIKE : '#9298ab'} />
+        {!unavailable && <IconGlow color={glowColor} spike={hasSpike} />}
+        <span style={{ position: 'relative', zIndex: 1, display: 'inline-flex' }}>
+          <Icon name={metric.key} color={hasSpike ? SPIKE : unavailable ? MUTED : accent} />
+        </span>
       </motion.div>
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between" style={{ marginBottom: 2 }}>
           <span style={{ fontSize: 11, color: '#9298ab' }}>{metric.label}</span>
-          <motion.span
-            className="mono"
-            style={{ fontSize: 11.5, color: valColor }}
-            animate={{ color: valColor }}
-          >
-            {unavailable ? 'N/A' : `${metric.cur.toFixed(metric.unit === 'MB/s' ? 1 : 0)} ${metric.unit}`}
-          </motion.span>
+          <span className="mono" style={{ fontSize: 11.5, color: valColor }}>
+            {unavailable ? 'N/A' : `${animVal.toFixed(isNet ? 1 : 0)} ${metric.unit}`}
+          </span>
         </div>
-        <div style={{ marginTop: 2, height: 20 }}>
-          {unavailable ? (
-            <div style={{ fontSize: 9.5, color: 'var(--text-faint)', paddingTop: 5 }}>no device</div>
-          ) : (
-            <Sparkline data={metric.data} color={metric.color} max={metric.unit === 'MB/s' ? 60 : 100} />
-          )}
-        </div>
+        {unavailable ? (
+          <div style={{ fontSize: 9.5, color: 'var(--text-faint)', paddingTop: 5, height: 44 }}>
+            no device
+          </div>
+        ) : (
+          <div className="flex flex-col" style={{ gap: 1 }}>
+            <AnimatedArc value={metric.cur} max={arcMax} color={accent} />
+            <Sparkline data={metric.data} color={accent} max={arcMax} />
+          </div>
+        )}
       </div>
     </motion.div>
   )
@@ -226,6 +407,28 @@ const AgentMemoryCard = ({ agent }: { agent: AgentMem }) => {
   )
 }
 
+/** Pulsing status dot for the tile header. */
+const StatusDot = ({ state }: { state: 'healthy' | 'spike' | 'unreachable' }) => {
+  const color = state === 'spike' ? SPIKE : state === 'unreachable' ? '#fbbf24' : '#4ade80'
+  const animated = state !== 'unreachable'
+  const speed = state === 'spike' ? '0.6s' : '2s'
+  return (
+    <span
+      aria-hidden
+      style={{
+        width: 9,
+        height: 9,
+        borderRadius: '50%',
+        background: color,
+        color,
+        display: 'inline-block',
+        flex: 'none',
+        animation: animated ? `sysmon-dot-pulse ${speed} ease-out infinite` : 'none',
+      }}
+    />
+  )
+}
+
 /**
  * System Monitor tile — live CPU/GPU/VRAM/Network/Memory with spike detection,
  * framer-motion animations, and a collapsible per-agent memory breakdown.
@@ -242,11 +445,21 @@ export default function SystemMonitorTile() {
     setMenuOpen(false)
   }
 
+  const dotState: 'healthy' | 'spike' | 'unreachable' = sys.unreachable
+    ? 'unreachable'
+    : sys.hasAnySpike
+      ? 'spike'
+      : 'healthy'
+
+  const memAccent = METRIC_COLORS.mem
+  const memAnim = useAnimatedNumber(sys.memPct)
+
   return (
     <div
       className="relative"
       style={{ background: 'var(--s3)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden', animation: 'hcellin 0.45s ease backwards', animationDelay: '0.28s' }}
     >
+      <style>{KEYFRAMES}</style>
       <motion.div
         className="cursor-pointer"
         style={{ padding: 18 }}
@@ -256,13 +469,7 @@ export default function SystemMonitorTile() {
       >
         <div className="flex items-center justify-between" style={{ marginBottom: 16 }}>
           <div className="inline-flex items-center" style={{ gap: 8 }}>
-            <motion.div
-              animate={{ rotate: sys.hasAnySpike ? 360 : 0 }}
-              transition={{ duration: 0.5, ease: 'easeInOut' }}
-              style={{ display: 'inline-flex' }}
-            >
-              <Icon name="activity" color={sys.hasAnySpike ? SPIKE : '#4ade80'} />
-            </motion.div>
+            <StatusDot state={dotState} />
             <span style={cardLabelStyle}>System Monitor</span>
             <AnimatePresence>
               {sys.unreachable ? (
@@ -423,22 +630,25 @@ export default function SystemMonitorTile() {
                 style={{ paddingTop: 14, marginTop: 2, borderTop: '1px solid var(--border)', gap: 11 }}
               >
                 <span
-                  className="inline-flex flex-none items-center justify-center"
-                  style={{ width: 32, height: 32, borderRadius: 9, background: 'rgba(251,111,111,0.12)', border: '1px solid rgba(251,111,111,0.28)' }}
+                  className="relative inline-flex flex-none items-center justify-center"
+                  style={{ width: 32, height: 32, borderRadius: 9, background: rgba(memAccent, 0.12), border: `1px solid ${rgba(memAccent, 0.28)}` }}
                 >
-                  <Icon name="vram" color={SPIKE} />
+                  <IconGlow color={memAccent} spike={false} />
+                  <span style={{ position: 'relative', zIndex: 1, display: 'inline-flex' }}>
+                    <Icon name="vram" color={memAccent} />
+                  </span>
                 </span>
                 <div className="flex-1" style={{ minWidth: 0 }}>
                   <div className="flex items-center justify-between">
                     <span style={{ fontSize: 12, color: '#c6cad8' }}>System Memory</span>
                     <span className="mono" style={{ fontSize: 12, color: '#e4e6ee' }}>
-                      {sys.memUsedGb}/{sys.memTotalGb} GB · {sys.memPct.toFixed(0)}%
+                      {sys.memUsedGb}/{sys.memTotalGb} GB · {memAnim.toFixed(0)}%
                     </span>
                   </div>
                   <div style={{ marginTop: 2, height: 22 }}>
                     <svg viewBox="0 0 100 22" preserveAspectRatio="none" style={{ width: '100%', height: 22, display: 'block' }}>
                       {sys.memData.length > 1 && (
-                        <SparkInline data={sys.memData} />
+                        <SparkInline data={sys.memData} color={memAccent} />
                       )}
                     </svg>
                   </div>
@@ -472,7 +682,7 @@ export default function SystemMonitorTile() {
 }
 
 /** Full-width memory sparkline using the same viewBox convention as the dashboard. */
-const SparkInline = ({ data }: { data: SysDataPoint[] }) => {
+const SparkInline = ({ data, color = SPIKE }: { data: SysDataPoint[]; color?: string }) => {
   const W = 100
   const H = 22
   const pts = data.map((p, i) => [
@@ -482,10 +692,10 @@ const SparkInline = ({ data }: { data: SysDataPoint[] }) => {
   const line = 'M ' + pts.map((p) => `${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(' L ')
   const area = `${line} L ${W} ${H} L 0 ${H} Z`
   const hasSpike = data.some((d) => d.isSpike)
-  const stroke = hasSpike ? SPIKE : '#fb6f6f'
+  const stroke = hasSpike ? SPIKE : color
   return (
     <>
-      <path d={area} fill="color-mix(in oklab, #fb6f6f 18%, transparent)" />
+      <path d={area} fill={`color-mix(in oklab, ${stroke} 18%, transparent)`} />
       <path
         d={line}
         fill="none"
