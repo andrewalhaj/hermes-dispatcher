@@ -51,7 +51,6 @@
     background:
       radial-gradient(ellipse at 20% 50%, #0d1525 0%, #080b11 70%),
       var(--bg);
-    background-attachment: fixed;
     color: var(--text-body);
     font-family: var(--font-ui);
     font-size: 14px;
