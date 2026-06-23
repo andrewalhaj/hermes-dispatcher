@@ -276,15 +276,16 @@ export default function Chat({ accent }: ChatProps) {
   const ctxNum = Math.min(99, Math.round(ctxChars / 28))
   const ringDash = `${((Math.min(100, Math.round(ctxChars / 28)) / 100) * 56.55).toFixed(1)} 56.55`
 
-  // Scroll to bottom on new messages / session switch AND on initial mount (panel switch)
+  // Scroll to bottom on new messages / session switch — smooth is fine here
   useEffect(() => {
     const el = listRef.current
     if (el) el.scrollTop = el.scrollHeight
   }, [thread.length, running, viewSession])
 
+  // On mount (panel switch): jump instantly — no animation
   useEffect(() => {
     const el = listRef.current
-    if (el) el.scrollTop = el.scrollHeight
+    if (el) el.scrollTo({ top: el.scrollHeight, behavior: 'instant' })
   }, [])
 
   useEffect(() => {
