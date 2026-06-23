@@ -221,6 +221,20 @@ const Icon = ({ name, color }: { name: string; color: string }) => {
           <path d="M8 21h8M12 17v4" />
         </svg>
       )
+    case 'eye':
+      return (
+        <svg {...common}>
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+          <circle cx="12" cy="12" r="3" />
+        </svg>
+      )
+    case 'eye-off':
+      return (
+        <svg {...common}>
+          <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+          <line x1="1" y1="1" x2="23" y2="23" />
+        </svg>
+      )
     default:
       return null
   }
@@ -429,19 +443,156 @@ const StatusDot = ({ state }: { state: 'healthy' | 'spike' | 'unreachable' }) =>
   )
 }
 
+/** Machine selector dropdown (Mac Mini / Mac Studio). Shared by collapsed + expanded headers. */
+function MachineSelector({
+  machine,
+  menuOpen,
+  setMenuOpen,
+  onSelect,
+}: {
+  machine: 'mini' | 'studio'
+  menuOpen: boolean
+  setMenuOpen: (v: boolean) => void
+  onSelect: (m: 'mini' | 'studio') => void
+}) {
+  return (
+    <div className="relative" style={{ display: 'inline-flex' }}>
+      <button
+        onClick={(e) => {
+          e.stopPropagation()
+          setMenuOpen(!menuOpen)
+        }}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          fontSize: 11,
+          color: 'var(--text-muted)',
+          background: 'rgba(255,255,255,0.05)',
+          border: '1px solid rgba(255,255,255,0.08)',
+          borderRadius: 6,
+          padding: '3px 8px',
+          cursor: 'pointer',
+        }}
+      >
+        <Icon name="monitor" color="#9298ab" />
+        {machine === 'studio' ? 'Mac Studio' : 'Mac Mini'}
+        <motion.span
+          animate={{ rotate: menuOpen ? 180 : 0 }}
+          transition={{ duration: 0.2 }}
+          style={{ fontSize: 9, display: 'inline-block', lineHeight: 1 }}
+        >
+          ▾
+        </motion.span>
+      </button>
+      <AnimatePresence>
+        {menuOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -4, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -4, scale: 0.96 }}
+            transition={{ duration: 0.14 }}
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              position: 'absolute',
+              top: '100%',
+              right: 0,
+              marginTop: 5,
+              minWidth: 130,
+              background: 'var(--s2, #1a1b22)',
+              border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: 8,
+              boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+              padding: 4,
+              zIndex: 30,
+            }}
+          >
+            {(['mini', 'studio'] as const).map((m) => (
+              <button
+                key={m}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onSelect(m)
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 7,
+                  width: '100%',
+                  fontSize: 11.5,
+                  textAlign: 'left',
+                  color: machine === m ? '#e4e6ee' : '#9298ab',
+                  background: machine === m ? 'rgba(255,255,255,0.06)' : 'transparent',
+                  border: 'none',
+                  borderRadius: 6,
+                  padding: '6px 8px',
+                  cursor: 'pointer',
+                }}
+              >
+                <Icon name="monitor" color={machine === m ? '#e4e6ee' : '#9298ab'} />
+                {m === 'studio' ? 'Mac Studio' : 'Mac Mini'}
+              </button>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
+/** Eye toggle button to hide/show the tile body. */
+function HideButton({ hidden, onToggle }: { hidden: boolean; onToggle: () => void }) {
+  return (
+    <button
+      onClick={(e) => {
+        e.stopPropagation()
+        onToggle()
+      }}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: 28,
+        height: 28,
+        borderRadius: 6,
+        border: '1px solid rgba(255,255,255,0.08)',
+        background: 'rgba(255,255,255,0.04)',
+        cursor: 'pointer',
+        color: '#9298ab',
+      }}
+      title={hidden ? 'Show' : 'Hide'}
+    >
+      <Icon name={hidden ? 'eye' : 'eye-off'} color="#9298ab" />
+    </button>
+  )
+}
+
 /**
  * System Monitor tile — live CPU/GPU/VRAM/Network/Memory with spike detection,
  * framer-motion animations, and a collapsible per-agent memory breakdown.
  * Integrated as a panel tile (NOT a floating overlay). Polls /api/system @3s.
  */
 export default function SystemMonitorTile() {
-  const [machine, setMachine] = useState<'mini' | 'studio'>('mini')
+  const [machine, setMachine] = useState<'mini' | 'studio'>(
+    () => (localStorage.getItem('sysmon_machine') as 'mini' | 'studio') ?? 'mini',
+  )
   const [menuOpen, setMenuOpen] = useState(false)
   const sys = useSystemStats(machine)
   const [isExpanded, setIsExpanded] = useState(false)
+  const [isHidden, setIsHidden] = useState<boolean>(
+    () => localStorage.getItem('sysmon_hidden') === 'true',
+  )
+  const toggleHidden = () => {
+    setIsHidden((v) => {
+      const next = !v
+      localStorage.setItem('sysmon_hidden', String(next))
+      return next
+    })
+  }
 
   const selectMachine = (m: 'mini' | 'studio') => {
     setMachine(m)
+    localStorage.setItem('sysmon_machine', m)
     setMenuOpen(false)
   }
 
