@@ -308,9 +308,16 @@ export default function Shell() {
               </span>
             </div>
           )}
-          <div key={activePanel} style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, minWidth: 0, animation: 'hpanelin 0.38s var(--ease-out, cubic-bezier(0.16,1,0.3,1)) both' }}>
-            <PanelView panel={activePanel} accent={accent} setAccent={setAccent} setPanel={setActivePanel} />
+          {/* Chat always mounted — never unmounted so scroll position + loaded messages survive tab switches */}
+          <div style={{ flex: 1, display: activePanel === 'chat' ? 'flex' : 'none', flexDirection: 'column', minHeight: 0, minWidth: 0 }}>
+            <Chat accent={accent} />
           </div>
+          {/* All other panels — keyed so they remount on switch (fine, they don't need scroll persistence) */}
+          {activePanel !== 'chat' && (
+            <div key={activePanel} style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, minWidth: 0, animation: 'hpanelin 0.38s var(--ease-out, cubic-bezier(0.16,1,0.3,1)) both' }}>
+              <PanelView panel={activePanel} accent={accent} setAccent={setAccent} setPanel={setActivePanel} />
+            </div>
+          )}
         </main>
 
         {/* Universal tile info drawer (shared across panels) */}
