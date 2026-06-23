@@ -47,9 +47,9 @@ void main() {
 // ---------------------------------------------------------------------------
 interface Layer { size: number; count: number; duration: string; color: string }
 const LAYERS: Layer[] = [
-  { size: 1, count: 560, duration: '90s',  color: 'rgba(255,255,255,0.65)' },
-  { size: 2, count: 220, duration: '150s', color: 'rgba(255,255,255,0.45)' },
-  { size: 3, count: 90,  duration: '220s', color: 'var(--ac, #f6b73c)' },
+  { size: 1, count: 800, duration: '90s',  color: 'rgba(255,255,255,0.65)' },
+  { size: 2, count: 340, duration: '150s', color: 'rgba(255,255,255,0.45)' },
+  { size: 3, count: 140, duration: '220s', color: 'rgba(255,255,255,0.30)' },
 ]
 
 function genBoxShadow(count: number, color: string): string {
