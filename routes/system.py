@@ -7,8 +7,10 @@ GPU/VRAM degrade gracefully to ``None`` when nvidia-smi is unavailable.
 from __future__ import annotations
 
 import asyncio
+import glob
 import json
 import os
+import re
 import shutil
 import sqlite3
 import subprocess
@@ -32,6 +34,8 @@ _last_net: dict[str, float] = {"ts": 0.0, "bytes": 0.0}
 _last_net_studio: dict[str, float] = {"ts": 0.0, "bytes": 0.0}
 # Cache the nvidia-smi availability probe so we don't shell out on every request.
 _HAS_NVIDIA_SMI = shutil.which("nvidia-smi") is not None
+# Intel iGPU (e.g. Mac Mini UHD 630) debugfs path for VRAM/stolen-memory readout.
+_INTEL_I915_OBJECTS = "/sys/kernel/debug/dri/0000:00:02.0/i915_gem_objects"
 
 
 def _open_ro() -> sqlite3.Connection:
@@ -62,10 +66,8 @@ def _network_mbps(state: dict[str, float] | None = None, total: float | None = N
     return round((total - prev_bytes) / elapsed / (1024 * 1024), 2)
 
 
-def _gpu_stats() -> dict:
-    """Return GPU util %% and VRAM used %% via nvidia-smi, or None values if absent."""
-    if not _HAS_NVIDIA_SMI:
-        return {"gpu_pct": None, "vram_pct": None}
+def _nvidia_gpu_stats() -> dict:
+    """Return GPU util %% and VRAM used %% via nvidia-smi, or None values on failure."""
     try:
         out = subprocess.run(
             [
@@ -87,6 +89,64 @@ def _gpu_stats() -> dict:
         return {"gpu_pct": gpu_pct, "vram_pct": vram_pct}
     except (subprocess.SubprocessError, ValueError, IndexError):
         return {"gpu_pct": None, "vram_pct": None}
+
+
+def _intel_gpu_pct() -> float | None:
+    """Intel iGPU render-engine busy %% via two /proc/*/fdinfo samples ~250ms apart.
+
+    Sums the cumulative ``drm-engine-render`` nanoseconds across every open DRM
+    fd, takes two snapshots, and divides the delta by elapsed wall-clock time.
+    Blocks ~250ms — callers must already be off the event loop.
+    """
+    def _read_ns() -> int:
+        total = 0
+        for path in glob.glob("/proc/*/fdinfo/*"):
+            try:
+                with open(path) as fh:
+                    for m in re.finditer(r"drm-engine-render:\s+(\d+) ns", fh.read()):
+                        total += int(m.group(1))
+            except Exception:
+                pass
+        return total
+
+    try:
+        ns0 = _read_ns()
+        t0 = time.monotonic()
+        time.sleep(0.25)
+        ns1 = _read_ns()
+        t1 = time.monotonic()
+        elapsed_ns = (t1 - t0) * 1e9
+        return round((ns1 - ns0) / elapsed_ns * 100, 1) if elapsed_ns > 0 else 0.0
+    except Exception:
+        return None
+
+
+def _intel_vram_pct() -> float | None:
+    """Intel iGPU stolen/shared memory as %% of total RAM via i915_gem_objects."""
+    try:
+        txt = open(_INTEL_I915_OBJECTS).read()
+        m = re.search(r"stolen.*?total:(0x[0-9a-f]+)", txt)
+        if not m:
+            return None
+        stolen = int(m.group(1), 16)
+        total = psutil.virtual_memory().total
+        return round(stolen / total * 100, 1) if total else None
+    except Exception:
+        return None
+
+
+def _gpu_stats() -> dict:
+    """GPU util %% and VRAM used %%.
+
+    Prefers nvidia-smi when present; otherwise falls back to the Intel iGPU
+    probe (fdinfo render-engine delta + i915 stolen memory) for hosts like the
+    Mac Mini (UHD 630). Returns ``None`` values when neither is available.
+    """
+    if _HAS_NVIDIA_SMI:
+        return _nvidia_gpu_stats()
+    if os.path.exists(_INTEL_I915_OBJECTS):
+        return {"gpu_pct": _intel_gpu_pct(), "vram_pct": _intel_vram_pct()}
+    return {"gpu_pct": None, "vram_pct": None}
 
 
 def _agent_memory() -> list:
