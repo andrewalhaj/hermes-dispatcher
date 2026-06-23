@@ -95,7 +95,7 @@ export function useGalaxy({ data, paused, selectedId, onSelect }: UseGalaxyOpts)
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
       }
       if (!view.drag && !pausedRef.current) view.yaw += 0.0006
-      const cx = w / 2 - w * 0.12, cy = h / 2, focal = 4.6, baseScale = Math.min(w, h) * 0.2 * view.zoom
+      const cx = w / 2 - w * 0.07, cy = h / 2, focal = 4.6, baseScale = Math.min(w, h) * 0.2 * view.zoom
       const cosY = Math.cos(view.yaw), sinY = Math.sin(view.yaw), cosP = Math.cos(view.pitch), sinP = Math.sin(view.pitch)
       proj.fill(null)
       const pts: NonNullable<(typeof proj)[number]>[] = []
