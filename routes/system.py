@@ -242,6 +242,7 @@ def _fetch_studio_metrics() -> dict:
                 "-o", "StrictHostKeyChecking=no",
                 "-o", "ConnectTimeout=3",
                 "-o", "BatchMode=yes",
+                "-i", "/root/.ssh/id_ed25519",
                 f"{STUDIO_USER}@{STUDIO_HOST}",
                 "python3 -",
             ],

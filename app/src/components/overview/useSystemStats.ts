@@ -123,7 +123,7 @@ export function useSystemStats(machine: 'mini' | 'studio' = 'mini'): SystemStats
 
     async function tick() {
       try {
-        const res = await fetch(`/api/system?machine=${machine}`)
+        const res = await fetch(`/api/system?machine=${machine}`, { credentials: 'include' })
         if (!res.ok) return
         const json = (await res.json()) as SystemApi
         if (cancelled) return
