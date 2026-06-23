@@ -23,26 +23,25 @@ float fbm(vec2 x) {
   return v;
 }
 void main() {
-  vec2 shake = vec2(sin(iTime*1.2)*0.005, cos(iTime*2.1)*0.005);
+  vec2 shake = vec2(sin(iTime*1.2)*0.004, cos(iTime*2.1)*0.004);
+  // Wider transform so streaks span the full viewport
   vec2 p = ((gl_FragCoord.xy + shake*iResolution.xy) - iResolution.xy*0.5)
-           / iResolution.y * mat2(6.0,-4.0,4.0,6.0);
+           / iResolution.y * mat2(4.5,-3.0,3.0,4.5);
   vec2 v; vec4 o = vec4(0.0);
-  float f = 2.0 + fbm(p + vec2(iTime*5.0,0.0))*0.5;
-  for(float i=0.0;i<35.0;i++){
-    v = p + cos(i*i+(iTime+p.x*0.08)*0.025+i*vec2(13.0,11.0))*3.5
-        + vec2(sin(iTime*3.0+i)*0.003, cos(iTime*3.5-i)*0.003);
-    float tailNoise = fbm(v+vec2(iTime*0.5,i))*0.3*(1.0-(i/35.0));
+  float f = 2.0 + fbm(p + vec2(iTime*4.0,0.0))*0.5;
+  // 55 streaks — more coverage, each contributes less so it stays tasteful
+  for(float i=0.0;i<55.0;i++){
+    v = p + cos(i*i+(iTime+p.x*0.06)*0.02+i*vec2(13.0,11.0))*4.5
+        + vec2(sin(iTime*2.5+i)*0.004, cos(iTime*3.0-i)*0.004);
+    float tailNoise = fbm(v+vec2(iTime*0.4,i))*0.25*(1.0-(i/55.0));
     vec4 col = vec4(0.1+0.3*sin(i*0.2+iTime*0.4), 0.3+0.5*cos(i*0.3+iTime*0.5),
                    0.7+0.3*sin(i*0.4+iTime*0.3), 1.0);
-    vec4 contrib = col*exp(sin(i*i+iTime*0.8))/length(max(v,vec2(v.x*f*0.015,v.y*1.5)));
-    o += contrib*(1.0+tailNoise*0.8)*smoothstep(0.0,1.0,i/35.0)*0.6;
+    vec4 contrib = col*exp(sin(i*i+iTime*0.7))/length(max(v,vec2(v.x*f*0.015,v.y*1.5)));
+    // Scale contribution down per-streak so 55 streaks don't overpower
+    o += contrib*(1.0+tailNoise*0.7)*smoothstep(0.0,1.0,i/55.0)*0.38;
   }
-  o = tanh(pow(o/100.0, vec4(1.6)));
-  // Concentrate aurora in top-right corner (UV: x right=1, y top=1 in GL coords)
-  vec2 uv = gl_FragCoord.xy / iResolution.xy;
-  float mask = smoothstep(0.0, 1.0, uv.x) * smoothstep(0.0, 1.0, uv.y);
-  mask = pow(mask, 0.6);
-  gl_FragColor = o * 1.5 * mask;
+  o = tanh(pow(o/100.0, vec4(1.5)));
+  gl_FragColor = o * 1.4;
 }
 `
 
