@@ -617,7 +617,7 @@ export default function SystemMonitorTile() {
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+        <div className="sysmon-metric-grid">
           {sys.metrics.map((m) => (
             <ResourceCard key={m.key} metric={m} />
           ))}

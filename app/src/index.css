@@ -53,4 +53,25 @@
   textarea::placeholder {
     color: var(--text-faint);
   }
+
+  /* Scale base font slightly on small screens so dense UI stays legible
+     without horizontal overflow. */
+  @media (max-width: 767px) {
+    :root {
+      font-size: 14px;
+    }
+  }
+}
+
+/* System Monitor metric cards: two-up by default, single column on very
+   narrow viewports so the cards don't crush. */
+.sysmon-metric-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+@media (max-width: 480px) {
+  .sysmon-metric-grid {
+    grid-template-columns: 1fr;
+  }
 }

@@ -171,7 +171,7 @@ export default function Insights({ accent = ACCENT }: InsightsProps) {
           </div>
 
           {/* Activity by Day + Token Breakdown */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1.3fr) minmax(0,1fr)', gap: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 16 }}>
             <div style={{ ...cardBase, animation: 'hcellin 0.45s ease backwards', animationDelay: '0.35s' }} onClick={() => open(activityInfo)} onMouseEnter={hoverIn} onMouseLeave={hoverOut}>
               <div className="flex items-center justify-between" style={{ marginBottom: 16 }}>
                 <div style={cardLabel}>Activity by Day</div>

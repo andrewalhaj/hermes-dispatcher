@@ -574,7 +574,7 @@ export default function Chat({ accent }: ChatProps) {
         </div>
 
         {/* Right cluster: live pill + history + reset */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, flex: 'none' }}>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 600, color: live.color, background: live.bg, border: `1px solid ${live.border}`, borderRadius: 99, padding: '4px 11px' }}>
             <span style={{ width: 7, height: 7, borderRadius: '50%', background: live.color, boxShadow: `0 0 7px ${live.color}` }} />
             {live.label}

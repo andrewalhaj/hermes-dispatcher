@@ -7,13 +7,16 @@ interface NavItemProps {
   active: boolean
   accent: string
   onSelect: (panel: PanelId) => void
+  /** Icon-only rail mode (md tablet): hide the label, center the icon. */
+  collapsed?: boolean
 }
 
-export default function NavItem({ panel, label, active, accent, onSelect }: NavItemProps) {
+export default function NavItem({ panel, label, active, accent, onSelect, collapsed = false }: NavItemProps) {
   return (
     <button
       onClick={() => onSelect(panel)}
-      className="group relative flex w-full items-center gap-[11px] rounded-[10px] px-[11px] py-[10px] text-left"
+      title={collapsed ? label : undefined}
+      className={`group relative flex w-full items-center rounded-[10px] py-[10px] text-left ${collapsed ? 'justify-center px-0 gap-0' : 'gap-[11px] px-[11px]'}`}
       style={{
         background: active ? `color-mix(in oklab, ${accent} 12%, transparent)` : 'transparent',
         border: `1px solid ${active ? `color-mix(in oklab, ${accent} 24%, transparent)` : 'transparent'}`,
@@ -55,7 +58,7 @@ export default function NavItem({ panel, label, active, accent, onSelect }: NavI
       <span className="flex w-5 flex-none items-center justify-center">
         <NavIcon panel={panel} />
       </span>
-      <span>{label}</span>
+      {!collapsed && <span>{label}</span>}
     </button>
   )
 }

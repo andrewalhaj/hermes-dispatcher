@@ -56,7 +56,7 @@ export default function Overview({ accent, navigateTo }: OverviewProps) {
             className="relative overflow-hidden"
             style={{
               borderRadius: 16,
-              padding: '28px 32px',
+              padding: 'clamp(16px, 3vw, 32px)',
               background: `linear-gradient(120deg, color-mix(in oklab, ${accent} 13%, transparent) 0%, rgba(255,138,76,0.11) 46%, rgba(232,72,128,0.08) 100%)`,
               border: '1px solid rgba(255,255,255,0.08)',
               animation: 'hcellin 0.45s ease backwards',
@@ -126,7 +126,7 @@ export default function Overview({ accent, navigateTo }: OverviewProps) {
           </div>
 
           {/* Agent breakdown + activity heatmap */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(280px, 1fr) minmax(360px, 1.3fr)', gap: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
             <div
               onClick={() =>
                 openInfo({
@@ -227,7 +227,7 @@ export default function Overview({ accent, navigateTo }: OverviewProps) {
           </div>
 
           {/* System monitor + swarm */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(360px, 1.3fr) minmax(300px, 1fr)', gap: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 16 }}>
             {/* System monitor */}
             <SystemMonitorTile />
 
