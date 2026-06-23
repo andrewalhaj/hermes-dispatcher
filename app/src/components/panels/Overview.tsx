@@ -1,11 +1,11 @@
 import { useMemo, useState } from 'react'
 import { buildOverview, PALETTE } from '../../data/overview'
+import { GlowHorizonFM } from '../ui/glow-horizon'
 import { profileDisplayName } from '../../data/profileDisplayNames'
 import { tileBlurb } from '../../data/info'
 import StatTile from '../overview/StatTile'
 import Sparkline from '../overview/Sparkline'
 import SwarmCanvas from '../overview/SwarmCanvas'
-import SparklesCore from '../overview/SparklesCore'
 import { useSystemMonitor } from '../overview/useSystemMonitor'
 import { useInfo } from '../TileInfoDrawer'
 import { useOverviewData } from '../overview/useOverviewData'
@@ -60,22 +60,15 @@ export default function Overview({ accent, navigateTo }: OverviewProps) {
               border: '1px solid rgba(255,255,255,0.08)',
             }}
           >
-            <SparklesCore
-              particleColor="#ffffff"
-              particleDensity={90}
-              speed={0.6}
-              minSize={0.5}
-              maxSize={1.6}
-              className="absolute inset-0 w-full h-full"
-            />
+            <GlowHorizonFM variant="bottom" className="opacity-40" />
             <div style={{ position: 'absolute', width: 280, height: 280, right: -60, top: -120, borderRadius: '50%', background: `radial-gradient(circle, color-mix(in oklab, ${accent} 30%, transparent), transparent 70%)`, pointerEvents: 'none', animation: 'hpulse 3s ease-in-out infinite' }} />
             <div style={{ position: 'absolute', width: 240, height: 240, left: -80, bottom: -140, borderRadius: '50%', background: 'radial-gradient(circle, rgba(155,140,255,0.22), transparent 70%)', pointerEvents: 'none', animation: 'hpulse 3s ease-in-out infinite 1.5s' }} />
-            <div className="relative flex flex-wrap items-center justify-between" style={{ gap: 24 }}>
-              <div style={{ minWidth: 0 }}>
+            <div className="relative flex flex-col items-center text-center" style={{ gap: 24 }}>
+              <div>
                 <div style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.16em', color: accent }}>{ov.eyebrow}</div>
                 <h1 style={{ margin: '7px 0 4px', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 30, letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>{ov.greeting}</h1>
                 <p style={{ margin: '0 0 14px', fontSize: 13.5, color: 'var(--text-muted)' }}>{ov.date}</p>
-                <div className="flex flex-wrap" style={{ gap: 8 }}>
+                <div className="flex flex-wrap justify-center" style={{ gap: 8 }}>
                   {ov.chips.map((chip) => (
                     <span key={chip.label} className="inline-flex items-center" style={{ gap: 7, fontSize: 11.5, color: '#d4d8e4', background: 'rgba(8,11,17,0.5)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 20, padding: '5px 12px' }}>
                       <span style={{ width: 7, height: 7, borderRadius: '50%', background: chip.dot, boxShadow: `0 0 8px ${chip.dot}`, animation: 'blink 1.2s ease-in-out infinite' }} />
@@ -84,9 +77,9 @@ export default function Overview({ accent, navigateTo }: OverviewProps) {
                   ))}
                 </div>
               </div>
-              <div className="flex flex-none" style={{ gap: 12 }}>
+              <div className="flex justify-center" style={{ gap: 12 }}>
                 {ov.kpis.map((k) => (
-                  <div key={k.lbl} style={{ minWidth: 96, textAlign: 'right', padding: '4px 0' }}>
+                  <div key={k.lbl} style={{ minWidth: 96, textAlign: 'center', padding: '4px 0' }}>
                     <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 32, lineHeight: 1, background: `linear-gradient(135deg, #fff, color-mix(in oklab, ${accent} 90%, #fff))`, WebkitBackgroundClip: 'text', backgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{k.val}</div>
                     <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text-muted)', marginTop: 5 }}>{k.lbl}</div>
                   </div>
@@ -166,7 +159,7 @@ export default function Overview({ accent, navigateTo }: OverviewProps) {
               </div>
             </div>
 
-            {ov.heatRows.length > 0 && (
+            {(
               <div
                 style={{ background: 'var(--s3)', border: '1px solid var(--border)', borderRadius: 14, padding: 18 }}
               >
@@ -193,7 +186,11 @@ export default function Overview({ accent, navigateTo }: OverviewProps) {
                   </select>
                 </div>
                 <div className="flex flex-col" style={{ gap: 7 }}>
-                  {ov.heatRows.map((row) => (
+                  {ov.heatRows.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--text-faint)', fontSize: 12 }}>
+                      No agent activity yet today
+                    </div>
+                  ) : ov.heatRows.map((row) => (
                     <div key={row.key} className="flex items-center" style={{ gap: 10 }}>
                       <div className="flex flex-none items-center" style={{ width: 92, gap: 6 }}>
                         <span style={{ color: row.color }}>{row.icon}</span>
