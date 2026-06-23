@@ -154,12 +154,12 @@ export default function Insights({ accent = ACCENT }: InsightsProps) {
 
           {/* KPI tiles */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 12 }}>
-            {kpis.map((k) => (
+            {kpis.map((k, i) => (
               <button
                 key={k.label}
                 onClick={() => open(k.info)}
                 className="relative overflow-hidden text-left"
-                style={{ background: 'var(--s3)', border: '1px solid var(--border)', borderRadius: 13, padding: '16px 17px', cursor: 'pointer', transition: 'transform 0.25s, border-color 0.25s, box-shadow 0.25s' }}
+                style={{ background: 'var(--s3)', border: '1px solid var(--border)', borderRadius: 13, padding: '16px 17px', cursor: 'pointer', transition: 'transform 0.25s, border-color 0.25s, box-shadow 0.25s', animation: 'hcellin 0.45s ease backwards', animationDelay: `${i * 0.07}s` }}
                 onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.16)'; e.currentTarget.style.boxShadow = '0 14px 34px rgba(0,0,0,0.45)' }}
                 onMouseLeave={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.boxShadow = 'none' }}
               >
@@ -172,7 +172,7 @@ export default function Insights({ accent = ACCENT }: InsightsProps) {
 
           {/* Activity by Day + Token Breakdown */}
           <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1.3fr) minmax(0,1fr)', gap: 16 }}>
-            <div style={cardBase} onClick={() => open(activityInfo)} onMouseEnter={hoverIn} onMouseLeave={hoverOut}>
+            <div style={{ ...cardBase, animation: 'hcellin 0.45s ease backwards', animationDelay: '0.35s' }} onClick={() => open(activityInfo)} onMouseEnter={hoverIn} onMouseLeave={hoverOut}>
               <div className="flex items-center justify-between" style={{ marginBottom: 16 }}>
                 <div style={cardLabel}>Activity by Day</div>
                 <span style={{ fontSize: 10.5, color: '#2dd4bf', background: 'rgba(45,212,191,0.1)', border: '1px solid rgba(45,212,191,0.28)', borderRadius: 6, padding: '2px 8px' }}>Peak {peakEntry.date}</span>
@@ -184,7 +184,7 @@ export default function Insights({ accent = ACCENT }: InsightsProps) {
               </div>
             </div>
 
-            <div style={cardBase} onClick={() => open(tokenInfo)} onMouseEnter={hoverIn} onMouseLeave={hoverOut}>
+            <div style={{ ...cardBase, animation: 'hcellin 0.45s ease backwards', animationDelay: '0.42s' }} onClick={() => open(tokenInfo)} onMouseEnter={hoverIn} onMouseLeave={hoverOut}>
               <div style={{ ...cardLabel, marginBottom: 16 }}>Token Breakdown</div>
               <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 26, color: 'var(--text-primary)', marginBottom: 16 }}>{fmtNum(tokensTotal)}</div>
               <div className="flex" style={{ height: 10, borderRadius: 99, overflow: 'hidden', background: 'rgba(255,255,255,0.05)', marginBottom: 14 }}>
@@ -205,7 +205,7 @@ export default function Insights({ accent = ACCENT }: InsightsProps) {
           </div>
 
           {/* Skill usage */}
-          <div style={cardBase} onClick={() => open(skillsInfo)} onMouseEnter={hoverIn} onMouseLeave={hoverOut}>
+          <div style={{ ...cardBase, animation: 'hcellin 0.45s ease backwards', animationDelay: '0.49s' }} onClick={() => open(skillsInfo)} onMouseEnter={hoverIn} onMouseLeave={hoverOut}>
             <div style={{ ...cardLabel, marginBottom: 14 }}>Skill Usage</div>
             <div className="flex flex-col" style={{ gap: 11 }}>
               {data.top_skills.map((sk) => (

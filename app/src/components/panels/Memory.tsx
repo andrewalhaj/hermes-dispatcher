@@ -31,9 +31,10 @@ interface EditorPanelProps {
   status: string
   onSave: () => void
   accent: string
+  delay?: number
 }
 
-function EditorPanel({ label, subtitle, value, onChange, chars, cap, status, onSave, accent }: EditorPanelProps) {
+function EditorPanel({ label, subtitle, value, onChange, chars, cap, status, onSave, accent, delay = 0 }: EditorPanelProps) {
   const pct = cap > 0 ? chars / cap : 0
   const pctStr = (pct * 100).toFixed(1) + '%'
   const charColor = pct >= 1 ? '#fb6f6f' : pct >= 0.9 ? '#f6b73c' : '#6a7088'
@@ -41,7 +42,7 @@ function EditorPanel({ label, subtitle, value, onChange, chars, cap, status, onS
   const errored = status.includes('✗')
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 12, padding: 16, gap: 10 }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 12, padding: 16, gap: 10, animation: 'hcellin 0.45s ease backwards', animationDelay: `${delay * 0.07}s` }}>
       <div className="flex items-center justify-between" style={{ flexWrap: 'wrap', gap: 8 }}>
         <div>
           <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>{label}</div>
@@ -325,6 +326,7 @@ export default function Memory({ accent = ACCENT }: MemoryProps) {
             status={memStatus}
             onSave={() => saveFile('memory')}
             accent={accent}
+            delay={0}
           />
           <EditorPanel
             label="User Profile"
@@ -336,6 +338,7 @@ export default function Memory({ accent = ACCENT }: MemoryProps) {
             status={userStatus}
             onSave={() => saveFile('user')}
             accent={accent}
+            delay={1}
           />
           <EditorPanel
             label="Soul"
@@ -347,6 +350,7 @@ export default function Memory({ accent = ACCENT }: MemoryProps) {
             status={soulStatus}
             onSave={() => saveFile('soul')}
             accent={accent}
+            delay={2}
           />
           <EditorPanel
             label="Agents"
@@ -358,6 +362,7 @@ export default function Memory({ accent = ACCENT }: MemoryProps) {
             status={agentsStatus}
             onSave={() => saveFile('agents')}
             accent={accent}
+            delay={3}
           />
         </div>
       )}

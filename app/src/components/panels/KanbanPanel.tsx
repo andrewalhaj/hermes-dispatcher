@@ -310,7 +310,7 @@ export default function KanbanPanel({ accent }: KanbanPanelProps) {
           backgroundPosition: '-1px -1px',
         }}
       >
-        {DISPLAY_LANES.map((col) => {
+        {DISPLAY_LANES.map((col, i) => {
           const isVirtual = !!col.virtual
           const isLocked = col.id === 'running'
           const colTasks = isVirtual
@@ -357,6 +357,8 @@ export default function KanbanPanel({ accent }: KanbanPanelProps) {
                 overflow: 'hidden',
                 transition: 'border-color 0.12s, background 0.12s',
                 boxShadow: over && !isLocked && !isVirtual ? `0 0 0 1px ${col.color}, 0 8px 30px rgba(0,0,0,0.35)` : 'none',
+                animation: 'hcellin 0.45s ease backwards',
+                animationDelay: `${i * 0.07}s`,
               }}
             >
               {/* Lane header */}

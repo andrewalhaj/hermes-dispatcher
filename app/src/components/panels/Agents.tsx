@@ -45,7 +45,7 @@ export default function Agents({ accent }: AgentsProps) {
         <div style={{ maxWidth: 1120, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 18 }}>
           {/* Fleet summary tiles */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12 }}>
-            {summary.map((m) => (
+            {summary.map((m, i) => (
               <div
                 key={m.label}
                 onClick={() =>
@@ -62,7 +62,7 @@ export default function Agents({ accent }: AgentsProps) {
                   })
                 }
                 className="relative overflow-hidden"
-                style={{ background: 'var(--s3)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 13, padding: '15px 16px', cursor: 'pointer', transition: 'transform 0.25s, border-color 0.25s, box-shadow 0.25s' }}
+                style={{ background: 'var(--s3)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 13, padding: '15px 16px', cursor: 'pointer', transition: 'transform 0.25s, border-color 0.25s, box-shadow 0.25s', animation: 'hcellin 0.45s ease backwards', animationDelay: `${i * 0.07}s` }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.transform = 'translateY(-4px)'
                   e.currentTarget.style.borderColor = 'rgba(255,255,255,0.16)'
@@ -83,7 +83,7 @@ export default function Agents({ accent }: AgentsProps) {
 
           {/* Agent cards */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(330px, 1fr))', gap: 14 }}>
-            {ops.map((a) => {
+            {ops.map((a, i) => {
               const st = AG_STATUS[a.status]
               const progW = `${Math.min(100, a.today * 12 + 4)}%`
               return (
@@ -107,7 +107,7 @@ export default function Agents({ accent }: AgentsProps) {
                     })
                   }
                   className="relative overflow-hidden"
-                  style={{ background: 'var(--s3)', border: '1px solid rgba(255,255,255,0.06)', borderTop: `2px solid ${a.color}`, borderRadius: 16, padding: 17, cursor: 'pointer', transition: 'transform 0.28s cubic-bezier(0.16,1,0.3,1), border-color 0.28s, box-shadow 0.28s' }}
+                  style={{ background: 'var(--s3)', border: '1px solid rgba(255,255,255,0.06)', borderTop: `2px solid ${a.color}`, borderRadius: 16, padding: 17, cursor: 'pointer', transition: 'transform 0.28s cubic-bezier(0.16,1,0.3,1), border-color 0.28s, box-shadow 0.28s', animation: 'hcellin 0.45s ease backwards', animationDelay: `${i * 0.07}s` }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.transform = 'translateY(-4px)'
                     e.currentTarget.style.borderColor = 'rgba(255,255,255,0.16)'

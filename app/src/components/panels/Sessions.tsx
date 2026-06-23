@@ -179,14 +179,14 @@ export default function Sessions({ accent = ACCENT, onOpenSession }: SessionsPro
             <div style={{ padding: 48, textAlign: 'center', fontSize: 13, color: '#565d72' }}>Loading sessions…</div>
           ) : (
             <div className="flex flex-col" style={{ gap: 10 }}>
-              {rows.map((x) => {
+              {rows.map((x, i) => {
                 const color = srcColor(x.source)
                 return (
                   <button
                     key={x.id}
                     onClick={() => openDrawer(x)}
                     className="text-left"
-                    style={{ display: 'grid', gridTemplateColumns: '44px 1fr 150px 96px 96px 64px', gap: 12, alignItems: 'center', background: 'var(--s3)', border: '1px solid var(--border)', borderLeft: `3px solid ${color}`, borderRadius: 10, padding: '13px 16px', cursor: 'pointer', transition: 'border-color 0.15s, background 0.15s' }}
+                    style={{ display: 'grid', gridTemplateColumns: '44px 1fr 150px 96px 96px 64px', gap: 12, alignItems: 'center', background: 'var(--s3)', border: '1px solid var(--border)', borderLeft: `3px solid ${color}`, borderRadius: 10, padding: '13px 16px', cursor: 'pointer', transition: 'border-color 0.15s, background 0.15s', animation: 'hcellin 0.45s ease backwards', animationDelay: `${i * 0.07}s` }}
                     onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.18)'; e.currentTarget.style.borderLeftColor = color; e.currentTarget.style.background = 'var(--s4)' }}
                     onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.borderLeftColor = color; e.currentTarget.style.background = 'var(--s3)' }}
                   >

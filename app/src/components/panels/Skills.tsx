@@ -141,7 +141,7 @@ export default function Skills({ accent }: SkillsProps) {
         {loading && <div style={{ color: '#6a7088', fontSize: 13 }}>Loading skills…</div>}
         {error && <div style={{ color: '#f87171', fontSize: 13 }}>Error: {error}</div>}
         <div style={{ maxWidth: 1080, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 14 }}>
-          {skills.map((p) => {
+          {skills.map((p, i) => {
             const on = enabled[p.id] ?? true
             const sel = selId === p.id
             const selBorder = sel ? accent : on ? `color-mix(in oklab, ${accent} 28%, transparent)` : 'rgba(255,255,255,0.06)'
@@ -158,6 +158,8 @@ export default function Skills({ accent }: SkillsProps) {
                   gap: 11,
                   cursor: 'pointer',
                   transition: 'transform 0.28s cubic-bezier(0.16,1,0.3,1), border-color 0.28s, box-shadow 0.28s',
+                  animation: 'hcellin 0.45s ease backwards',
+                  animationDelay: `${i * 0.07}s`,
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.transform = 'translateY(-4px)'
