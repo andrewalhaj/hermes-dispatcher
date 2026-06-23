@@ -364,6 +364,28 @@ export default function Memory({ accent = ACCENT }: MemoryProps) {
             accent={accent}
             delay={3}
           />
+          <EditorPanel
+            label="Soul"
+            subtitle="default · SOUL.md"
+            value={soulContent}
+            onChange={setSoulContent}
+            chars={soulContent.length}
+            cap={99999}
+            status={soulStatus}
+            onSave={() => saveFile('soul')}
+            accent={accent}
+          />
+          <EditorPanel
+            label="Agents"
+            subtitle="default · AGENTS.md"
+            value={agentsContent}
+            onChange={setAgentsContent}
+            chars={agentsContent.length}
+            cap={99999}
+            status={agentsStatus}
+            onSave={() => saveFile('agents')}
+            accent={accent}
+          />
         </div>
       )}
     </div>
