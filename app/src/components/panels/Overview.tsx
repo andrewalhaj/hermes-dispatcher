@@ -69,8 +69,7 @@ export default function Overview({ accent, navigateTo }: OverviewProps) {
                 deep: '#E84880',
               }}
             />
-            <div style={{ position: 'absolute', width: 280, height: 280, right: -60, top: -120, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,154,86,0.30), rgba(232,96,140,0.16) 45%, rgba(196,58,140,0.07) 64%, transparent 74%)', pointerEvents: 'none' }} />
-            <div style={{ position: 'absolute', width: 240, height: 240, left: -80, bottom: -140, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,138,76,0.30), rgba(232,72,128,0.20) 42%, rgba(196,58,140,0.10) 62%, transparent 74%)', pointerEvents: 'none' }} />
+
             <div className="relative flex flex-col items-center text-center" style={{ gap: 24 }}>
               <div>
                 <div style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.16em', color: accent }}>{ov.eyebrow}</div>

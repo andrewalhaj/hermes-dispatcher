@@ -105,6 +105,9 @@ app.include_router(agents_router)
 from routes.overview import router as overview_router
 app.include_router(overview_router, prefix="/api")
 
+from routes.system import router as system_router
+app.include_router(system_router, prefix="/api")
+
 from routes.workspace import router as workspace_router
 app.include_router(workspace_router, prefix="/api")
 
