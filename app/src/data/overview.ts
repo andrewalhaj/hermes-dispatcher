@@ -83,13 +83,15 @@ export function buildOverview(accent = ACCENT, opts?: BuildOverviewOpts): Overvi
   const blockedCount = opts?.blocked ?? 0
   const activeAgents = opts?.activeAgents ?? 0
 
+  const breakdownTotal = agentBreakdown.reduce((s, a) => s + a.count, 0)
+
   const R = 100
   const C = 2 * Math.PI * R
   const GAP = 6
   let cum = 0
   const ringSegs: RingSeg[] = agentBreakdown.map((a, i) => {
     const color = PALETTE[i] ?? '#888'
-    const frac = totalTasks > 0 ? a.count / totalTasks : 0
+    const frac = breakdownTotal > 0 ? a.count / breakdownTotal : 0
     const len = Math.max(0, frac * C - GAP)
     const seg = { color, dash: `${len.toFixed(1)} ${(C - len).toFixed(1)}`, offset: (-cum * C).toFixed(1) }
     cum += frac
@@ -101,7 +103,7 @@ export function buildOverview(accent = ACCENT, opts?: BuildOverviewOpts): Overvi
     name: a.name,
     color: PALETTE[i] ?? '#888',
     count: a.count,
-    pct: totalTasks > 0 ? Math.round((a.count / totalTasks) * 100) : 0,
+    pct: breakdownTotal > 0 ? Math.round((a.count / breakdownTotal) * 100) : 0,
   }))
 
   const heatWindow = opts?.window ?? 'day'

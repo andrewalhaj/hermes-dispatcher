@@ -128,16 +128,9 @@ async def get_overview(
                 (today_epoch,),
             )
             rows = cur.fetchall()
-            existing_profiles = (
-                {p.name for p in PROFILES_DIR.iterdir() if p.is_dir()}
-                if PROFILES_DIR.exists()
-                else set()
-            )
 
             agent_breakdown: list = []
             for assignee, cnt in rows:
-                if existing_profiles and assignee not in existing_profiles:
-                    continue
                 agent_breakdown.append({'name': assignee, 'count': cnt})
 
             top_agents = [item['name'] for item in agent_breakdown[:5]]
