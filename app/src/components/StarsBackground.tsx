@@ -38,7 +38,11 @@ void main() {
     o += contrib*(1.0+tailNoise*0.8)*smoothstep(0.0,1.0,i/35.0)*0.6;
   }
   o = tanh(pow(o/100.0, vec4(1.6)));
-  gl_FragColor = o * 1.5;
+  // Concentrate aurora in top-right corner (UV: x right=1, y top=1 in GL coords)
+  vec2 uv = gl_FragCoord.xy / iResolution.xy;
+  float mask = smoothstep(0.0, 1.0, uv.x) * smoothstep(0.0, 1.0, uv.y);
+  mask = pow(mask, 0.6);
+  gl_FragColor = o * 1.5 * mask;
 }
 `
 
