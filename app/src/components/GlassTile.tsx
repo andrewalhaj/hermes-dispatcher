@@ -1,5 +1,4 @@
-import LiquidGlass from "liquid-glass-react"
-import type { CSSProperties, ReactNode } from "react"
+import type { CSSProperties, ReactNode, MouseEvent } from 'react'
 
 interface GlassTileProps {
   children: ReactNode
@@ -8,15 +7,15 @@ interface GlassTileProps {
   padding?: string
   cornerRadius?: number
   onClick?: () => void
-  onMouseEnter?: (e: React.MouseEvent<HTMLElement>) => void
-  onMouseLeave?: (e: React.MouseEvent<HTMLElement>) => void
+  onMouseEnter?: (e: MouseEvent<HTMLDivElement>) => void
+  onMouseLeave?: (e: MouseEvent<HTMLDivElement>) => void
 }
 
 export default function GlassTile({
   children,
   style,
   className,
-  padding = "18px",
+  padding = '18px',
   cornerRadius = 14,
   onClick,
   onMouseEnter,
@@ -25,30 +24,22 @@ export default function GlassTile({
   return (
     <div
       className={className}
-      style={{ position: "relative", ...style }}
       onClick={onClick}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
+      style={{
+        position: 'relative',
+        borderRadius: cornerRadius,
+        border: '1px solid rgba(255,255,255,0.07)',
+        background: 'rgba(14, 19, 30, 0.82)',
+        backdropFilter: 'blur(18px) saturate(130%)',
+        WebkitBackdropFilter: 'blur(18px) saturate(130%)',
+        boxShadow: '0 0 0 1px rgba(255,255,255,0.03) inset, 0 8px 32px rgba(0,0,0,0.4)',
+        padding,
+        ...style,
+      }}
     >
-      <LiquidGlass
-        displacementScale={45}
-        blurAmount={0.05}
-        saturation={110}
-        aberrationIntensity={1.5}
-        elasticity={0.1}
-        cornerRadius={cornerRadius}
-        padding={padding}
-        overLight={false}
-        mode="standard"
-        style={{
-          background: "rgba(14, 19, 30, 0.97)",
-          border: "1px solid rgba(255,255,255,0.06)",
-          width: "100%",
-          height: "100%",
-        }}
-      >
-        {children}
-      </LiquidGlass>
+      {children}
     </div>
   )
 }
