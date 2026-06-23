@@ -638,6 +638,39 @@ export default function SystemMonitorTile() {
         </div>
       </motion.div>
 
+      {/* System Memory — always visible, directly below the metric cards grid */}
+      <div style={{ padding: '0 18px 18px' }}>
+        <div
+          className="flex items-center"
+          style={{ paddingTop: 14, marginTop: 2, borderTop: '1px solid var(--border)', gap: 11 }}
+        >
+          <span
+            className="relative inline-flex flex-none items-center justify-center"
+            style={{ width: 32, height: 32, borderRadius: 9, background: rgba(memAccent, 0.12), border: `1px solid ${rgba(memAccent, 0.28)}` }}
+          >
+            <IconGlow color={memAccent} spike={false} />
+            <span style={{ position: 'relative', zIndex: 1, display: 'inline-flex' }}>
+              <Icon name="vram" color={memAccent} />
+            </span>
+          </span>
+          <div className="flex-1" style={{ minWidth: 0 }}>
+            <div className="flex items-center justify-between">
+              <span style={{ fontSize: 12, color: '#c6cad8' }}>System Memory</span>
+              <span className="mono" style={{ fontSize: 12, color: '#e4e6ee' }}>
+                {sys.memUsedGb}/{sys.memTotalGb} GB · {memAnim.toFixed(0)}%
+              </span>
+            </div>
+            <div style={{ marginTop: 2, height: 22 }}>
+              <svg viewBox="0 0 100 22" preserveAspectRatio="none" style={{ width: '100%', height: 22, display: 'block' }}>
+                {sys.memData.length > 1 && (
+                  <SparkInline data={sys.memData} color={memAccent} />
+                )}
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <AnimatePresence initial={false}>
         {isExpanded && (
           <motion.div
@@ -648,40 +681,9 @@ export default function SystemMonitorTile() {
             style={{ overflow: 'hidden' }}
           >
             <div style={{ padding: '0 18px 18px' }}>
-              {/* System Memory */}
-              <div
-                className="flex items-center"
-                style={{ paddingTop: 14, marginTop: 2, borderTop: '1px solid var(--border)', gap: 11 }}
-              >
-                <span
-                  className="relative inline-flex flex-none items-center justify-center"
-                  style={{ width: 32, height: 32, borderRadius: 9, background: rgba(memAccent, 0.12), border: `1px solid ${rgba(memAccent, 0.28)}` }}
-                >
-                  <IconGlow color={memAccent} spike={false} />
-                  <span style={{ position: 'relative', zIndex: 1, display: 'inline-flex' }}>
-                    <Icon name="vram" color={memAccent} />
-                  </span>
-                </span>
-                <div className="flex-1" style={{ minWidth: 0 }}>
-                  <div className="flex items-center justify-between">
-                    <span style={{ fontSize: 12, color: '#c6cad8' }}>System Memory</span>
-                    <span className="mono" style={{ fontSize: 12, color: '#e4e6ee' }}>
-                      {sys.memUsedGb}/{sys.memTotalGb} GB · {memAnim.toFixed(0)}%
-                    </span>
-                  </div>
-                  <div style={{ marginTop: 2, height: 22 }}>
-                    <svg viewBox="0 0 100 22" preserveAspectRatio="none" style={{ width: '100%', height: 22, display: 'block' }}>
-                      {sys.memData.length > 1 && (
-                        <SparkInline data={sys.memData} color={memAccent} />
-                      )}
-                    </svg>
-                  </div>
-                </div>
-              </div>
-
               {/* Per-agent memory */}
               {sys.agents.length > 0 && (
-                <div style={{ marginTop: 14 }}>
+                <div style={{ marginTop: 2, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
                   <div style={{ ...cardLabelStyle, marginBottom: 9 }}>Per-Agent Memory</div>
                   <div className="flex flex-col" style={{ gap: 2 }}>
                     {sys.agents.map((agent, index) => (
