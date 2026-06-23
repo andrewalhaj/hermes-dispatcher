@@ -204,17 +204,22 @@ import json, psutil, shutil, subprocess
 c = psutil.cpu_percent(interval=0.2)
 m = psutil.virtual_memory()
 n = psutil.net_io_counters()
+# Apple Silicon GPU via ioreg (no sudo required)
 g = v = None
 try:
-    if shutil.which("nvidia-smi"):
-        o = subprocess.run(
-            ["nvidia-smi", "--query-gpu=utilization.gpu,memory.used,memory.total",
-             "--format=csv,noheader,nounits"],
-            capture_output=True, text=True, timeout=2)
-        if o.returncode == 0 and o.stdout.strip():
-            u, us, t = [x.strip() for x in o.stdout.strip().splitlines()[0].split(",")]
-            g = round(float(u), 1)
-            v = round(float(us) / float(t) * 100, 1) if float(t) else None
+    import subprocess as _sp, re as _re
+    ioreg = _sp.run(
+        ['ioreg', '-l', '-c', 'IOAccelerator'],
+        capture_output=True, text=True, timeout=3
+    )
+    m_util = _re.search(r'"Device Utilization %"\s*=\s*(\d+)', ioreg.stdout)
+    m_mem  = _re.search(r'"In use system memory"\s*=\s*(\d+)', ioreg.stdout)
+    if m_util:
+        g = round(float(m_util.group(1)), 1)
+    if m_mem:
+        mem_used_bytes = int(m_mem.group(1))
+        total_bytes = m.total  # psutil virtual_memory already called above
+        v = round(mem_used_bytes / total_bytes * 100, 1)
 except Exception:
     g = v = None
 print(json.dumps({
