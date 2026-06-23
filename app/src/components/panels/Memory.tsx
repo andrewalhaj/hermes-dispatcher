@@ -4,7 +4,6 @@ import { galaxyDecor } from '../../data/phase3'
 import type { GalaxyData, GalaxySelection, MemNode } from '../../data/phase3'
 import { useGalaxy } from '../memory/useGalaxy'
 import { fetchGalaxyData } from '../../data/memoryGalaxy'
-import GlassTile from '../GlassTile'
 import '../../styles/phase3.css'
 
 interface MemoryProps {
@@ -42,7 +41,7 @@ function EditorPanel({ label, subtitle, value, onChange, chars, cap, status, onS
   const errored = status.includes('✗')
 
   return (
-    <GlassTile cornerRadius={12} padding="16px" style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, gap: 10 }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 12, padding: 16, gap: 10 }}>
       <div className="flex items-center justify-between" style={{ flexWrap: 'wrap', gap: 8 }}>
         <div>
           <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>{label}</div>
@@ -90,7 +89,7 @@ function EditorPanel({ label, subtitle, value, onChange, chars, cap, status, onS
           outline: 'none',
         }}
       />
-    </GlassTile>
+    </div>
   )
 }
 

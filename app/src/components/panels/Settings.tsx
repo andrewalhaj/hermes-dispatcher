@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { ACCENT } from '../../data/agents'
 import { ACCENT_SWATCHES, API_KEYS, LANG_OPTS, MODEL_OPTS, SETTINGS_TOGGLES } from '../../data/phase3'
-import GlassTile from '../GlassTile'
 import '../../styles/phase3.css'
 
 interface SettingsProps {
@@ -35,6 +34,7 @@ function lsSet(key: string, value: string): void {
   try { localStorage.setItem(key, value) } catch { /* storage unavailable */ }
 }
 
+const sectionStyle: React.CSSProperties = { background: 'var(--s3)', border: '1px solid var(--border)', borderRadius: 12, padding: '4px 18px' }
 const sectionLabel: React.CSSProperties = { fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#6a7088', margin: '16px 0 4px' }
 const rowStyle: React.CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 18, padding: '14px 0' }
 const rowTopBorder: React.CSSProperties = { ...rowStyle, borderTop: '1px solid rgba(255,255,255,0.05)' }
@@ -270,7 +270,7 @@ export default function Settings({ accent = ACCENT, onAccentChange }: SettingsPr
       <div className="flex-1 overflow-y-auto" style={{ minHeight: 0, padding: '24px 26px 40px' }}>
         <div style={{ maxWidth: 720, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 18, animation: 'hpanelin 0.4s var(--ease-out)' }}>
           {/* Appearance */}
-          <GlassTile padding="4px 18px" cornerRadius={12}>
+          <div style={sectionStyle}>
             <div style={sectionLabel}>Appearance</div>
             <div style={rowStyle}>
               <div>
@@ -306,10 +306,10 @@ export default function Settings({ accent = ACCENT, onAccentChange }: SettingsPr
                 ))}
               </select>
             </div>
-          </GlassTile>
+          </div>
 
           {/* Agent defaults */}
-          <GlassTile padding="4px 18px" cornerRadius={12}>
+          <div style={sectionStyle}>
             <div style={sectionLabel}>Agent defaults</div>
             <div style={rowStyle}>
               <div>
@@ -343,10 +343,10 @@ export default function Settings({ accent = ACCENT, onAccentChange }: SettingsPr
               </div>
               <Segmented value={reason} accent={accent} options={[{ label: 'Low', value: 'low' }, { label: 'Medium', value: 'medium' }, { label: 'High', value: 'high' }, { label: 'xHigh', value: 'xhigh' }]} onChange={(v) => { setReason(v); persist({ reason: v }) }} />
             </div>
-          </GlassTile>
+          </div>
 
           {/* Behavior toggles */}
-          <GlassTile padding="4px 18px" cornerRadius={12}>
+          <div style={sectionStyle}>
             <div style={sectionLabel}>Behavior</div>
             {SETTINGS_TOGGLES.map((t, i) => (
               <div key={t.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '13px 0', borderTop: i === 0 ? undefined : '1px solid rgba(255,255,255,0.05)' }}>
@@ -361,10 +361,10 @@ export default function Settings({ accent = ACCENT, onAccentChange }: SettingsPr
                 }} />
               </div>
             ))}
-          </GlassTile>
+          </div>
 
           {/* API keys */}
-          <GlassTile padding="4px 18px" cornerRadius={12}>
+          <div style={sectionStyle}>
             <div style={sectionLabel}>API keys</div>
             {API_KEYS.map((k, i) => (
               <div key={k.label} style={i === 0 ? rowStyle : rowTopBorder}>
@@ -386,10 +386,10 @@ export default function Settings({ accent = ACCENT, onAccentChange }: SettingsPr
                 </div>
               </div>
             ))}
-          </GlassTile>
+          </div>
 
           {/* About */}
-          <GlassTile padding="4px 18px" cornerRadius={12}>
+          <div style={sectionStyle}>
             <div style={sectionLabel}>About</div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '13px 0' }}>
               <span style={{ fontSize: 13, color: '#c6cad8' }}>WebUI version</span>
@@ -399,7 +399,7 @@ export default function Settings({ accent = ACCENT, onAccentChange }: SettingsPr
               <span style={{ fontSize: 13, color: '#c6cad8' }}>Host</span>
               <span className="mono" style={{ fontSize: 12, color: 'var(--text-muted)' }}>localhost · encrypted</span>
             </div>
-          </GlassTile>
+          </div>
         </div>
       </div>
       {toast && <Toast msg={toast} accent={accent} />}

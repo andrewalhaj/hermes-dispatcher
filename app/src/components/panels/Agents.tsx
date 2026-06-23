@@ -4,7 +4,6 @@ import type { AgentOp, FleetMetric } from '../../data/fleet'
 import { tileBlurb } from '../../data/info'
 import { useInfo } from '../TileInfoDrawer'
 import { profileDisplayName } from '../../data/profileDisplayNames'
-import GlassTile from '../GlassTile'
 
 interface AgentsProps {
   accent: string
@@ -47,9 +46,8 @@ export default function Agents({ accent }: AgentsProps) {
           {/* Fleet summary tiles */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12 }}>
             {summary.map((m) => (
-              <GlassTile
+              <div
                 key={m.label}
-                padding="15px 16px"
                 onClick={() =>
                   openInfo({
                     category: 'Fleet metric',
@@ -63,7 +61,8 @@ export default function Agents({ accent }: AgentsProps) {
                     ],
                   })
                 }
-                style={{ cursor: 'pointer', transition: 'transform 0.25s, border-color 0.25s, box-shadow 0.25s' }}
+                className="relative overflow-hidden"
+                style={{ background: 'var(--s3)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 13, padding: '15px 16px', cursor: 'pointer', transition: 'transform 0.25s, border-color 0.25s, box-shadow 0.25s' }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.transform = 'translateY(-4px)'
                   e.currentTarget.style.borderColor = 'rgba(255,255,255,0.16)'
@@ -78,7 +77,7 @@ export default function Agents({ accent }: AgentsProps) {
                 <span style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, background: m.color }} />
                 <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 25, lineHeight: 1, color: m.color }}>{m.value}</div>
                 <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#6a7088', marginTop: 7 }}>{m.label}</div>
-              </GlassTile>
+              </div>
             ))}
           </div>
 
@@ -88,9 +87,8 @@ export default function Agents({ accent }: AgentsProps) {
               const st = AG_STATUS[a.status]
               const progW = `${Math.min(100, a.today * 12 + 4)}%`
               return (
-                <GlassTile
+                <div
                   key={a.name}
-                  padding="17px"
                   onClick={() =>
                     openInfo({
                       category: `Agent · ${st.label}`,
@@ -108,7 +106,8 @@ export default function Agents({ accent }: AgentsProps) {
                       actionLabel: `Open chat with ${profileDisplayName(a.name)}`,
                     })
                   }
-                  style={{ cursor: 'pointer', transition: 'transform 0.28s cubic-bezier(0.16,1,0.3,1), border-color 0.28s, box-shadow 0.28s', borderTop: `2px solid ${a.color}` }}
+                  className="relative overflow-hidden"
+                  style={{ background: 'var(--s3)', border: '1px solid rgba(255,255,255,0.06)', borderTop: `2px solid ${a.color}`, borderRadius: 16, padding: 17, cursor: 'pointer', transition: 'transform 0.28s cubic-bezier(0.16,1,0.3,1), border-color 0.28s, box-shadow 0.28s' }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.transform = 'translateY(-4px)'
                     e.currentTarget.style.borderColor = 'rgba(255,255,255,0.16)'
@@ -167,7 +166,7 @@ export default function Agents({ accent }: AgentsProps) {
                       <span style={{ color: '#c6cad8' }}>{a.lastActive}</span>
                     </div>
                   </div>
-                </GlassTile>
+                </div>
               )
             })}
           </div>

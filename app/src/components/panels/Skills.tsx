@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react'
-import GlassTile from '../GlassTile'
 
 interface SkillsProps {
   accent: string
@@ -145,27 +144,30 @@ export default function Skills({ accent }: SkillsProps) {
           {skills.map((p) => {
             const on = enabled[p.id] ?? true
             const sel = selId === p.id
-            void sel // used for aria/selected state — GlassTile handles border styling
+            const selBorder = sel ? accent : on ? `color-mix(in oklab, ${accent} 28%, transparent)` : 'rgba(255,255,255,0.06)'
             return (
-              <GlassTile
+              <div
                 key={p.id}
-                cornerRadius={12}
-                padding="16px"
                 onClick={() => openDrawer(p.id)}
+                className="flex flex-col"
+                style={{
+                  background: 'var(--s3)',
+                  border: `1px solid ${selBorder}`,
+                  borderRadius: 12,
+                  padding: 16,
+                  gap: 11,
+                  cursor: 'pointer',
+                  transition: 'transform 0.28s cubic-bezier(0.16,1,0.3,1), border-color 0.28s, box-shadow 0.28s',
+                }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.transform = 'translateY(-4px)'
+                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.28)'
                   e.currentTarget.style.boxShadow = '0 14px 34px rgba(0,0,0,0.45)'
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.transform = 'none'
+                  e.currentTarget.style.borderColor = selBorder
                   e.currentTarget.style.boxShadow = 'none'
-                }}
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 11,
-                  cursor: 'pointer',
-                  transition: 'transform 0.28s cubic-bezier(0.16,1,0.3,1), border-color 0.28s, box-shadow 0.28s',
                 }}
               >
                 <div className="flex items-start" style={{ gap: 11 }}>
@@ -200,7 +202,7 @@ export default function Skills({ accent }: SkillsProps) {
                     </span>
                   ))}
                 </div>
-              </GlassTile>
+              </div>
             )
           })}
         </div>

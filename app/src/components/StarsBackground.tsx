@@ -1,13 +1,11 @@
-import { useEffect, useRef, useId } from 'react'
+import { useEffect, useRef, useMemo } from 'react'
 import * as THREE from 'three'
-import Particles, { ParticlesProvider, useParticlesProvider } from '@tsparticles/react'
-import { loadSlim } from '@tsparticles/slim'
-import type { Engine } from '@tsparticles/engine'
 
 // ---------------------------------------------------------------------------
-// Aurora shader (layer 2)
+// Aurora shader (layer 2 — sits above the star dots, below the UI)
 // ---------------------------------------------------------------------------
 const VERT = `void main() { gl_Position = vec4(position, 1.0); }`
+
 const FRAG = `
 uniform float iTime;
 uniform vec2 iResolution;
@@ -45,93 +43,98 @@ void main() {
 `
 
 // ---------------------------------------------------------------------------
-// tsParticles star field (layer 1)
+// CSS star layers (layer 1 — the original drifting dots)
 // ---------------------------------------------------------------------------
-async function particlesInit(engine: Engine) {
-  await loadSlim(engine)
-}
+interface Layer { size: number; count: number; duration: string; color: string }
+const LAYERS: Layer[] = [
+  { size: 1, count: 560, duration: '90s',  color: 'rgba(255,255,255,0.65)' },
+  { size: 2, count: 220, duration: '150s', color: 'rgba(255,255,255,0.45)' },
+  { size: 3, count: 90,  duration: '220s', color: 'var(--ac, #f6b73c)' },
+]
 
-function StarField() {
-  const { loaded } = useParticlesProvider()
-  const id = useId()
-  if (!loaded) return null
-  return (
-    <Particles
-      id={id}
-      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
-      options={{
-        background: { color: { value: 'transparent' } },
-        fullScreen: { enable: false, zIndex: 0 },
-        fpsLimit: 60,
-        interactivity: { events: { onClick: { enable: false }, onHover: { enable: false } } },
-        particles: {
-          color: { value: ['#ffffff', '#fffbe6', '#cce8ff'] },
-          move: {
-            direction: 'none',
-            enable: true,
-            outModes: { default: 'out' },
-            speed: { min: 0.05, max: 0.25 },
-            random: true,
-            straight: false,
-          },
-          number: {
-            density: { enable: true, width: 1200, height: 900 },
-            value: 320,
-          },
-          opacity: {
-            value: { min: 0.15, max: 0.9 },
-            animation: { enable: true, speed: 0.8, sync: false },
-          },
-          shape: { type: 'circle' },
-          size: { value: { min: 0.4, max: 1.8 } },
-        },
-        detectRetina: true,
-      }}
-    />
-  )
+function genBoxShadow(count: number, color: string): string {
+  const parts: string[] = []
+  for (let i = 0; i < count; i++) {
+    parts.push(`${Math.floor(Math.random()*1600)}px ${Math.floor(Math.random()*2000)}px 0 ${color}`)
+  }
+  return parts.join(', ')
 }
 
 // ---------------------------------------------------------------------------
-// Aurora canvas (layer 2)
+// Component
 // ---------------------------------------------------------------------------
-function AuroraCanvas() {
-  const mountRef = useRef<HTMLDivElement>(null)
+export default function StarsBackground() {
+  const auroraRef = useRef<HTMLDivElement>(null)
+  const shadows = useMemo(() => LAYERS.map((l) => genBoxShadow(l.count, l.color)), [])
+
   useEffect(() => {
-    const el = mountRef.current
+    const el = auroraRef.current
     if (!el) return
-    const w = window.innerWidth, h = window.innerHeight
+
+    const w = window.innerWidth
+    const h = window.innerHeight
+
     const scene = new THREE.Scene()
     const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1)
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5))
     renderer.setSize(w, h)
-    renderer.domElement.style.cssText = 'position:absolute;inset:0;width:100%;height:100%'
+    // Canvas sits inside our absolutely-positioned div; pointer-events off
+    renderer.domElement.style.position = 'absolute'
+    renderer.domElement.style.inset = '0'
+    renderer.domElement.style.width = '100%'
+    renderer.domElement.style.height = '100%'
     el.appendChild(renderer.domElement)
+
     const material = new THREE.ShaderMaterial({
-      uniforms: { iTime: { value: 0 }, iResolution: { value: new THREE.Vector2(w, h) } },
-      vertexShader: VERT, fragmentShader: FRAG, transparent: true,
+      uniforms: {
+        iTime:       { value: 0 },
+        iResolution: { value: new THREE.Vector2(w, h) },
+      },
+      vertexShader:   VERT,
+      fragmentShader: FRAG,
+      transparent:    true,
     })
     scene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), material))
-    let raf: number
-    const tick = () => { material.uniforms.iTime.value += 0.016; renderer.render(scene, camera); raf = requestAnimationFrame(tick) }
-    tick()
-    const onResize = () => { const nw = window.innerWidth, nh = window.innerHeight; renderer.setSize(nw, nh); material.uniforms.iResolution.value.set(nw, nh) }
-    window.addEventListener('resize', onResize)
-    return () => { cancelAnimationFrame(raf); window.removeEventListener('resize', onResize); if (el.contains(renderer.domElement)) el.removeChild(renderer.domElement); material.dispose(); renderer.dispose() }
-  }, [])
-  return <div ref={mountRef} style={{ position: 'absolute', inset: 0, opacity: 0.5, mixBlendMode: 'screen' }} />
-}
 
-// ---------------------------------------------------------------------------
-// Composed background
-// ---------------------------------------------------------------------------
-export default function StarsBackground() {
+    let frameId: number
+    const tick = () => {
+      material.uniforms.iTime.value += 0.016
+      renderer.render(scene, camera)
+      frameId = requestAnimationFrame(tick)
+    }
+    tick()
+
+    const onResize = () => {
+      const nw = window.innerWidth, nh = window.innerHeight
+      renderer.setSize(nw, nh)
+      material.uniforms.iResolution.value.set(nw, nh)
+    }
+    window.addEventListener('resize', onResize)
+
+    return () => {
+      cancelAnimationFrame(frameId)
+      window.removeEventListener('resize', onResize)
+      if (el.contains(renderer.domElement)) el.removeChild(renderer.domElement)
+      material.dispose()
+      renderer.dispose()
+    }
+  }, [])
+
   return (
     <div style={{ position: 'fixed', inset: 0, overflow: 'hidden', pointerEvents: 'none', zIndex: 0 }}>
-      <ParticlesProvider init={particlesInit}>
-        <StarField />
-      </ParticlesProvider>
-      <AuroraCanvas />
+      {/* Layer 1: CSS drifting star dots */}
+      {LAYERS.map((layer, i) => (
+        <div key={i} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: 2000,
+          animation: `hstars ${layer.duration} linear infinite` }}>
+          <span style={{ position: 'absolute', top: 0, left: 0, width: layer.size, height: layer.size,
+            borderRadius: '50%', background: 'transparent', boxShadow: shadows[i] }} />
+          <span style={{ position: 'absolute', top: 2000, left: 0, width: layer.size, height: layer.size,
+            borderRadius: '50%', background: 'transparent', boxShadow: shadows[i] }} />
+        </div>
+      ))}
+      {/* Layer 2: Aurora GLSL shader — blended over the stars */}
+      <div ref={auroraRef} style={{ position: 'absolute', inset: 0, opacity: 0.55, mixBlendMode: 'screen' }} />
     </div>
   )
 }

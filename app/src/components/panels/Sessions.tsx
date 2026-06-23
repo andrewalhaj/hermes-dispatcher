@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { ACCENT } from '../../data/agents'
 import { profileDisplayName } from '../../data/profileDisplayNames'
-import GlassTile from '../GlassTile'
 import '../../styles/phase3.css'
 
 interface SessionsProps {
@@ -183,14 +182,13 @@ export default function Sessions({ accent = ACCENT, onOpenSession }: SessionsPro
               {rows.map((x) => {
                 const color = srcColor(x.source)
                 return (
-                  <GlassTile
+                  <button
                     key={x.id}
-                    cornerRadius={10}
-                    padding="13px 16px"
                     onClick={() => openDrawer(x)}
+                    className="text-left"
+                    style={{ display: 'grid', gridTemplateColumns: '44px 1fr 150px 96px 96px 64px', gap: 12, alignItems: 'center', background: 'var(--s3)', border: '1px solid var(--border)', borderLeft: `3px solid ${color}`, borderRadius: 10, padding: '13px 16px', cursor: 'pointer', transition: 'border-color 0.15s, background 0.15s' }}
                     onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.18)'; e.currentTarget.style.borderLeftColor = color; e.currentTarget.style.background = 'var(--s4)' }}
                     onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.borderLeftColor = color; e.currentTarget.style.background = 'var(--s3)' }}
-                    style={{ display: 'grid', gridTemplateColumns: '44px 1fr 150px 96px 96px 64px', gap: 12, alignItems: 'center', borderLeft: `3px solid ${color}`, cursor: 'pointer', transition: 'border-color 0.15s, background 0.15s' }}
                   >
                     <span className="inline-flex items-center justify-center" style={{ width: 28, height: 28, borderRadius: 8, fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', color, background: `color-mix(in oklab, ${color} 14%, transparent)`, fontFamily: 'var(--font-mono)' }}>
                       {x.source.slice(0, 3).toUpperCase()}
@@ -205,7 +203,7 @@ export default function Sessions({ accent = ACCENT, onOpenSession }: SessionsPro
                     </span>
                     <span className="mono" style={{ fontSize: 11.5, color: '#9298ab' }}>{fmtAge(x.updated_at)} ago</span>
                     <span className="mono" style={{ fontSize: 11.5, color: '#9298ab' }}>{x.message_count}</span>
-                  </GlassTile>
+                  </button>
                 )
               })}
               {rows.length === 0 && (
