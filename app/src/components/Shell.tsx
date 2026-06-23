@@ -230,7 +230,9 @@ export default function Shell() {
 
         {/* Main content */}
         <main className="flex flex-1 flex-col" style={{ minWidth: 0, minHeight: 0 }}>
-          <PanelView panel={activePanel} accent={accent} setAccent={setAccent} setPanel={setActivePanel} />
+          <div key={activePanel} style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, minWidth: 0, animation: 'hpanelin 0.38s var(--ease-out, cubic-bezier(0.16,1,0.3,1)) both' }}>
+            <PanelView panel={activePanel} accent={accent} setAccent={setAccent} setPanel={setActivePanel} />
+          </div>
         </main>
 
         {/* Universal tile info drawer (shared across panels) */}

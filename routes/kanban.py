@@ -23,7 +23,22 @@ def _conn() -> sqlite3.Connection:
     return c
 
 
-def _row_to_task(row: sqlite3.Row) -> dict:
+def _blocked_reasons(conn: sqlite3.Connection) -> dict:
+    """Return mapping of task_id -> latest blocked-event reason string."""
+    cur = conn.execute(
+        "SELECT task_id, payload FROM task_events WHERE kind='blocked' ORDER BY created_at ASC"
+    )
+    reasons: dict = {}
+    for row in cur.fetchall():
+        try:
+            payload = json.loads(row["payload"] or "")
+            reasons[row["task_id"]] = payload.get("reason", "")
+        except Exception:
+            pass
+    return reasons
+
+
+def _row_to_task(row: sqlite3.Row, block_reason: str = "") -> dict:
     now = int(time.time())
     started_at = row["started_at"]
     created_at = row["created_at"]
@@ -59,14 +74,16 @@ def _row_to_task(row: sqlite3.Row) -> dict:
         "skills": skills,
         "branch": row["branch_name"] or "",
         "desc": row["body"] or "",
+        "blockReason": block_reason,
     }
 
 
 def _fetch_tasks(conn: sqlite3.Connection) -> list[dict]:
+    reasons = _blocked_reasons(conn)
     cur = conn.execute(
         "SELECT * FROM tasks WHERE status != 'archived' ORDER BY created_at DESC"
     )
-    return [_row_to_task(r) for r in cur.fetchall()]
+    return [_row_to_task(r, reasons.get(r["id"], "")) for r in cur.fetchall()]
 
 
 def _signature(conn: sqlite3.Connection) -> int:

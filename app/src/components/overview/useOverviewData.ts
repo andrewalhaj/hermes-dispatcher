@@ -43,6 +43,8 @@ export interface AgentMemoryItem {
 export interface OverviewApiData {
   kanban_summary: KanbanSummary
   active_agents: number
+  tenant_count: number
+  memory_count: number
   system: OverviewSystem
   recent_activity: RecentActivity[]
   sparkline: SparklinePoint[]
@@ -55,6 +57,8 @@ export interface OverviewApiData {
 const EMPTY: OverviewApiData = {
   kanban_summary: { running: 0, blocked: 0, done_today: 0, ready: 0 },
   active_agents: 0,
+  tenant_count: 0,
+  memory_count: 0,
   system: { cpu_pct: 0, mem_pct: 0, disk_pct: 0 },
   recent_activity: [],
   sparkline: Array.from({ length: 24 }, (_, i) => ({ hour: i, count: 0 })),

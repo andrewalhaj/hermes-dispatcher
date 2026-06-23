@@ -403,6 +403,8 @@ export default function Logs({ accent = ACCENT }: LogsProps) {
               display: 'flex',
               flexDirection: 'column',
               gap: 0,
+              animation: 'hcellin 0.45s ease backwards',
+              animationDelay: '0s',
             }}
           >
             {/* Clear filters button */}
@@ -544,6 +546,8 @@ export default function Logs({ accent = ACCENT }: LogsProps) {
             overflowX: 'hidden',
             display: 'flex',
             flexDirection: 'column',
+            animation: 'hcellin 0.45s ease backwards',
+            animationDelay: '0.07s',
           }}
         >
           {filteredEntries.length === 0 && !loading ? (

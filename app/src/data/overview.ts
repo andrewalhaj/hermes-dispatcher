@@ -61,6 +61,8 @@ export interface BuildOverviewOpts {
   agentBreakdown?: { name: string; count: number }[]
   agentActivity?: { name: string; hours: number[] }[]
   totalTasks?: number
+  tenantCount?: number
+  memoryCount?: number
   window?: 'day' | 'week' | 'month'
 }
 
@@ -75,6 +77,8 @@ const fmt = (n: number) => (n >= 1000 ? (n / 1000).toFixed(1) + 'k' : String(n))
 /** Build the Overview view-model from live API data. */
 export function buildOverview(accent = ACCENT, opts?: BuildOverviewOpts): OverviewData {
   const totalTasks = opts?.totalTasks ?? 0
+  const tenantCount = opts?.tenantCount ?? 0
+  const memoryCount = opts?.memoryCount ?? 0
   const agentBreakdown = opts?.agentBreakdown ?? []
   const agentActivity = opts?.agentActivity ?? []
 
@@ -145,6 +149,8 @@ export function buildOverview(accent = ACCENT, opts?: BuildOverviewOpts): Overvi
     stats: [
       { value: fmt(totalTasks), label: 'Tasks Run', accent, glowX: '30%', glowY: '74%', sub: 'View the board', target: 'kanban', iconPath: 'M9 11l3 3L20 5M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11' },
       { value: String(activeAgents), label: 'Active Sessions', accent: '#2dd4bf', glowX: '72%', glowY: '18%', sub: 'Open chat', target: 'chat', iconPath: 'M3 12h4l3 8 4-16 3 8h4' },
+      { value: String(tenantCount), label: 'Tenants', accent: '#5aa2f0', glowX: '18%', glowY: '34%', sub: 'View logs', target: 'logs', iconPath: 'M3 21V8l9-5 9 5v13M9 21v-6h6v6' },
+      { value: memoryCount > 0 ? fmt(memoryCount) : '5.0k', label: 'Memory Items', accent: '#9b8cff', glowX: '72%', glowY: '80%', sub: 'Explore galaxy', target: 'memory', iconPath: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 3v18' },
     ],
     ringSegs,
     ringTotal: fmt(totalTasks),

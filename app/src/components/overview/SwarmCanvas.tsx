@@ -1,5 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 
+interface Agent {
+  name: string
+  tasks: number
+  status: 'running' | 'idle'
+  color: string
+}
+
 interface Particle {
   x: number
   y: number
@@ -9,6 +16,8 @@ interface Particle {
   o: number
   name: string
   tasks: number
+  status: 'running' | 'idle'
+  color: string
 }
 
 interface TooltipState {
@@ -16,6 +25,7 @@ interface TooltipState {
   y: number
   name: string
   tasks: number
+  status: 'running' | 'idle'
 }
 
 interface SwarmCanvasProps {
@@ -24,31 +34,96 @@ interface SwarmCanvasProps {
 
 interface SwarmStats {
   agents: number
-  connections: number
-  active: number
+  running: number
+  tasks: number
 }
 
-const AGENT_NAMES = [
-  'Orchestrator','Planner','Executor','Monitor','Router',
-  'Analyzer','Dispatcher','Fetcher','Classifier','Summarizer',
-  'Validator','Scheduler','Indexer','Synthesizer','Embedder',
-  'Retriever','Encoder','Parser','Logger','Notifier',
-  'Batcher','Merger','Splitter','Filter','Ranker',
-  'Scorer','Tagger','Linker','Mapper','Resolver',
-  'Crawler','Extractor','Formatter','Transformer','Reducer',
-  'Aggregator','Publisher','Consumer','Producer','Relay',
-  'Broker','Cache','Guard','Auditor','Tracer',
-  'Inspector',
-]
+/** Shape of a task row from GET /api/kanban/tasks. */
+interface KanbanTask {
+  assignee: string | null
+  status: string
+}
+
+// Deterministic per-agent colors so they don't change on re-render.
+const AGENT_COLORS: Record<string, string> = {
+  coder: '#5aa2f0', // blue
+  'coder-b': '#2dd4bf', // teal
+  'ha-bot': '#4ade80', // green
+  default: '#f6b73c', // amber (accent)
+  executor: '#f59e0b', // yellow
+  'swarm-synthesizer': '#9b8cff', // purple
+  'swarm-verifier': '#a78bfa',
+}
+
+const FALLBACK_COLORS = ['#fb923c', '#e879f9', '#38bdf8', '#a3e635', '#f472b6']
+
+/** Stable hash → fallback color for agents not in the explicit palette. */
+function colorForAgent(name: string): string {
+  if (AGENT_COLORS[name]) return AGENT_COLORS[name]
+  let h = 0
+  for (let i = 0; i < name.length; i++) {
+    h = (h * 31 + name.charCodeAt(i)) | 0
+  }
+  return FALLBACK_COLORS[Math.abs(h) % FALLBACK_COLORS.length]
+}
+
+/** Reduce live kanban tasks to a per-agent agent list. */
+function tasksToAgents(tasks: KanbanTask[]): Agent[] {
+  const byAgent = new Map<string, { active: number; running: number }>()
+  for (const t of tasks) {
+    if (!t.assignee) continue
+    // Only surface agents with active work — skip done/archived/completed tasks
+    if (t.status === 'done' || t.status === 'archived') continue
+    const entry = byAgent.get(t.assignee) ?? { active: 0, running: 0 }
+    if (t.status === 'running' || t.status === 'ready') entry.active++
+    if (t.status === 'running') entry.running++
+    byAgent.set(t.assignee, entry)
+  }
+  return Array.from(byAgent.entries())
+    .map(([name, e]) => ({
+      name,
+      tasks: e.active,
+      status: (e.running > 0 ? 'running' : 'idle') as 'running' | 'idle',
+      color: colorForAgent(name),
+    }))
+    .sort((a, b) => b.tasks - a.tasks || a.name.localeCompare(b.name))
+}
 
 /** Animated particle swarm — drifting nodes attracted to a slowly orbiting center,
- *  linked by proximity lines. Cancels its RAF on unmount. */
+ *  linked by proximity lines. Each particle is a real agent, colored by profile and
+ *  sized by active task count. Live data polls every 10s; canvas draws at 60fps. */
 export default function SwarmCanvas({ accent }: SwarmCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const particlesRef = useRef<Particle[]>([])
+  const agentsRef = useRef<Agent[]>([])
+  const [agents, setAgents] = useState<Agent[]>([])
   const [tooltip, setTooltip] = useState<TooltipState | null>(null)
-  const [stats, setStats] = useState<SwarmStats>({ agents: 0, connections: 0, active: 0 })
+  const [stats, setStats] = useState<SwarmStats>({ agents: 0, running: 0, tasks: 0 })
   const frameRef = useRef(0)
+
+  // Poll live agent data every 10s (NOT on every draw frame).
+  useEffect(() => {
+    let cancelled = false
+
+    const load = () => {
+      fetch('/api/kanban/tasks')
+        .then((r) => r.json())
+        .then((data: KanbanTask[]) => {
+          if (cancelled || !Array.isArray(data)) return
+          const next = tasksToAgents(data)
+          agentsRef.current = next
+          setAgents(next)
+        })
+        .catch(() => {/* server not up yet — keep last known agents */})
+    }
+
+    load()
+    const id = window.setInterval(load, 10_000)
+    return () => {
+      cancelled = true
+      window.clearInterval(id)
+    }
+  }, [])
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -56,9 +131,47 @@ export default function SwarmCanvas({ accent }: SwarmCanvasProps) {
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
-    let seeded = false
     let raf = 0
     const start = performance.now()
+    let lastSig = ''
+
+    /** Particle radius scales with active task count so busier agents are bigger. */
+    const radiusFor = (tasks: number) => 1.5 + Math.min(tasks, 10) * 0.25
+
+    /** (Re)seed particles when the agent set changes; preserve positions of agents
+     *  that persist so the swarm doesn't visually reshuffle on every poll. */
+    const reconcile = (w: number, h: number) => {
+      const agentList = agentsRef.current
+      const sig = agentList.map((a) => `${a.name}:${a.tasks}:${a.status}`).join('|')
+      if (sig === lastSig) return
+      lastSig = sig
+
+      const existing = new Map(particlesRef.current.map((p) => [p.name, p]))
+      const next: Particle[] = agentList.map((a) => {
+        const prev = existing.get(a.name)
+        if (prev) {
+          prev.tasks = a.tasks
+          prev.status = a.status
+          prev.color = a.color
+          prev.r = radiusFor(a.tasks)
+          prev.o = a.status === 'running' ? 0.9 : 0.4
+          return prev
+        }
+        return {
+          x: Math.random() * w,
+          y: Math.random() * h,
+          vx: (Math.random() - 0.5) * 0.6,
+          vy: (Math.random() - 0.5) * 0.6,
+          r: radiusFor(a.tasks),
+          o: a.status === 'running' ? 0.9 : 0.4,
+          name: a.name,
+          tasks: a.tasks,
+          status: a.status,
+          color: a.color,
+        }
+      })
+      particlesRef.current = next
+    }
 
     const draw = () => {
       const w = canvas.clientWidth
@@ -68,22 +181,8 @@ export default function SwarmCanvas({ accent }: SwarmCanvasProps) {
           canvas.width = w
           canvas.height = h
         }
-        if (!seeded) {
-          particlesRef.current = []
-          for (let i = 0; i < 46; i++) {
-            particlesRef.current.push({
-              x: Math.random() * w,
-              y: Math.random() * h,
-              vx: (Math.random() - 0.5) * 0.6,
-              vy: (Math.random() - 0.5) * 0.6,
-              r: Math.random() * 1.6 + 0.8,
-              o: Math.random() * 0.5 + 0.5,
-              name: AGENT_NAMES[i % AGENT_NAMES.length],
-              tasks: Math.floor(Math.random() * 8) + 1,
-            })
-          }
-          seeded = true
-        }
+
+        reconcile(w, h)
 
         const particles = particlesRef.current
         const t = performance.now() - start
@@ -91,8 +190,9 @@ export default function SwarmCanvas({ accent }: SwarmCanvasProps) {
         const cx = w / 2 + Math.sin(t / 2600) * w * 0.18
         const cy = h / 2 + Math.cos(t / 2600) * h * 0.18
 
-        let activeCount = 0
+        let runningCount = 0
         for (const p of particles) {
+          if (p.status === 'running') runningCount++
           const dx = cx - p.x
           const dy = cy - p.y
           const d = Math.hypot(dx, dy) || 1
@@ -110,7 +210,6 @@ export default function SwarmCanvas({ accent }: SwarmCanvasProps) {
             p.vx *= mx / sp
             p.vy *= mx / sp
           }
-          if (sp > 0.32) activeCount++
           p.x += p.vx
           p.y += p.vy
           if (p.x < 0 || p.x > w) p.vx = -p.vx
@@ -119,14 +218,14 @@ export default function SwarmCanvas({ accent }: SwarmCanvasProps) {
           p.y = Math.max(0, Math.min(h, p.y))
           ctx.beginPath()
           ctx.arc(p.x, p.y, p.r, 0, 6.283)
-          ctx.fillStyle = accent
+          ctx.fillStyle = p.color
           ctx.globalAlpha = p.o
           ctx.fill()
         }
 
+        // Connection lines between nearby agents — neutral blend so colors don't clash.
         ctx.globalAlpha = 1
         ctx.lineWidth = 0.6
-        ctx.strokeStyle = accent
         const CD = 88
         let connCount = 0
         for (let i = 0; i < particles.length; i++) {
@@ -136,7 +235,8 @@ export default function SwarmCanvas({ accent }: SwarmCanvasProps) {
             const dist = Math.hypot(dx, dy)
             if (dist < CD) {
               connCount++
-              ctx.globalAlpha = (1 - dist / CD) * 0.5
+              const fade = (1 - dist / CD) * 0.15
+              ctx.strokeStyle = `rgba(255,255,255,${fade.toFixed(3)})`
               ctx.beginPath()
               ctx.moveTo(particles[i].x, particles[i].y)
               ctx.lineTo(particles[j].x, particles[j].y)
@@ -148,15 +248,17 @@ export default function SwarmCanvas({ accent }: SwarmCanvasProps) {
 
         frameRef.current++
         if (frameRef.current % 20 === 0) {
-          setStats({ agents: particles.length, connections: connCount, active: activeCount })
+          const totalTasks = particles.reduce((acc, p) => acc + p.tasks, 0)
+          setStats({ agents: particles.length, running: runningCount, tasks: totalTasks })
         }
+        void connCount
       }
       raf = requestAnimationFrame(draw)
     }
 
     raf = requestAnimationFrame(draw)
     return () => cancelAnimationFrame(raf)
-  }, [accent])
+  }, [])
 
   const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current
@@ -169,7 +271,7 @@ export default function SwarmCanvas({ accent }: SwarmCanvasProps) {
     let found: TooltipState | null = null
     for (const p of particlesRef.current) {
       if (Math.hypot(p.x - mx, p.y - my) < HIT) {
-        found = { x: mx, y: my, name: p.name, tasks: p.tasks }
+        found = { x: mx, y: my, name: p.name, tasks: p.tasks, status: p.status }
         break
       }
     }
@@ -187,7 +289,7 @@ export default function SwarmCanvas({ accent }: SwarmCanvasProps) {
         style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', display: 'block', zIndex: 0 }}
       />
 
-      {/* Legend — bottom-left */}
+      {/* Legend — bottom-left: real agent names + colored dots */}
       <div style={{
         position: 'absolute',
         bottom: 14,
@@ -202,13 +304,31 @@ export default function SwarmCanvas({ accent }: SwarmCanvasProps) {
         flexDirection: 'column',
         gap: 5,
         pointerEvents: 'none',
+        maxHeight: '60%',
+        overflow: 'hidden',
       }}>
-        <LegendRow icon={<DotIcon accent={accent} />} label="Each dot = an agent profile" />
-        <LegendRow icon={<LineIcon accent={accent} />} label="Lines = cross-profile task links" />
-        <LegendRow icon={<MoveIcon accent={accent} />} label="Movement = recent activity" />
+        {agents.length === 0 ? (
+          <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>No active agents</span>
+        ) : (
+          agents.slice(0, 8).map((a) => (
+            <div key={a.name} style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+              <svg width="10" height="10" viewBox="0 0 10 10" style={{ flexShrink: 0 }}>
+                <circle cx="5" cy="5" r="3" fill={a.color} opacity={a.status === 'running' ? 0.95 : 0.45} />
+              </svg>
+              <span style={{
+                fontSize: 10,
+                color: a.status === 'running' ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.4)',
+                letterSpacing: '0.01em',
+              }}>{a.name}</span>
+              <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.32)', marginLeft: 'auto', paddingLeft: 8 }}>
+                {a.tasks}
+              </span>
+            </div>
+          ))
+        )}
       </div>
 
-      {/* Stats overlay — top-right */}
+      {/* Stats overlay — top-right: real counts */}
       <div style={{
         position: 'absolute',
         top: 14,
@@ -226,12 +346,12 @@ export default function SwarmCanvas({ accent }: SwarmCanvasProps) {
       }}>
         <StatChip value={stats.agents} label="agents" accent={accent} />
         <div style={{ width: 1, height: 14, background: 'rgba(255,255,255,0.1)' }} />
-        <StatChip value={stats.connections} label="connections" accent={accent} />
+        <StatChip value={stats.running} label="running" accent="#4ade80" pulse={stats.running > 0} />
         <div style={{ width: 1, height: 14, background: 'rgba(255,255,255,0.1)' }} />
-        <StatChip value={stats.active} label="active" accent="#4ade80" pulse />
+        <StatChip value={stats.tasks} label="tasks" accent={accent} />
       </div>
 
-      {/* Hover tooltip */}
+      {/* Hover tooltip — real agent name, status, task count */}
       {tooltip && (
         <div style={{
           position: 'absolute',
@@ -247,7 +367,9 @@ export default function SwarmCanvas({ accent }: SwarmCanvasProps) {
           whiteSpace: 'nowrap',
         }}>
           <div style={{ fontSize: 11, fontWeight: 600, color: accent, letterSpacing: '0.01em' }}>{tooltip.name}</div>
-          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.55)', marginTop: 2 }}>{tooltip.tasks} active task{tooltip.tasks !== 1 ? 's' : ''}</div>
+          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.55)', marginTop: 2 }}>
+            {tooltip.status} · {tooltip.tasks} active task{tooltip.tasks !== 1 ? 's' : ''}
+          </div>
         </div>
       )}
     </div>
@@ -266,41 +388,5 @@ function StatChip({ value, label, accent, pulse }: { value: number; label: strin
       }}>{value}</span>
       <span style={{ fontSize: 9.5, color: 'rgba(255,255,255,0.38)', letterSpacing: '0.02em' }}>{label}</span>
     </div>
-  )
-}
-
-function LegendRow({ icon, label }: { icon: React.ReactNode; label: string }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-      {icon}
-      <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.01em' }}>{label}</span>
-    </div>
-  )
-}
-
-function DotIcon({ accent }: { accent: string }) {
-  return (
-    <svg width="10" height="10" viewBox="0 0 10 10" style={{ flexShrink: 0 }}>
-      <circle cx="5" cy="5" r="3" fill={accent} opacity={0.8} />
-    </svg>
-  )
-}
-
-function LineIcon({ accent }: { accent: string }) {
-  return (
-    <svg width="10" height="10" viewBox="0 0 10 10" style={{ flexShrink: 0 }}>
-      <circle cx="1.5" cy="5" r="1.5" fill={accent} opacity={0.8} />
-      <circle cx="8.5" cy="5" r="1.5" fill={accent} opacity={0.8} />
-      <line x1="3" y1="5" x2="7" y2="5" stroke={accent} strokeWidth="0.8" opacity={0.5} />
-    </svg>
-  )
-}
-
-function MoveIcon({ accent }: { accent: string }) {
-  return (
-    <svg width="10" height="10" viewBox="0 0 10 10" style={{ flexShrink: 0 }}>
-      <circle cx="3" cy="5" r="1.5" fill={accent} opacity={0.8} />
-      <path d="M5.5 5 L8.5 5 M7 3.5 L8.5 5 L7 6.5" stroke={accent} strokeWidth="0.8" fill="none" opacity={0.6} />
-    </svg>
   )
 }

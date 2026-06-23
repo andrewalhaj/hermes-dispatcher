@@ -270,7 +270,7 @@ export default function Settings({ accent = ACCENT, onAccentChange }: SettingsPr
       <div className="flex-1 overflow-y-auto" style={{ minHeight: 0, padding: '24px 26px 40px' }}>
         <div style={{ maxWidth: 720, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 18, animation: 'hpanelin 0.4s var(--ease-out)' }}>
           {/* Appearance */}
-          <div style={sectionStyle}>
+          <div style={{ ...sectionStyle, animation: 'hcellin 0.45s ease backwards', animationDelay: '0s' }}>
             <div style={sectionLabel}>Appearance</div>
             <div style={rowStyle}>
               <div>
@@ -309,7 +309,7 @@ export default function Settings({ accent = ACCENT, onAccentChange }: SettingsPr
           </div>
 
           {/* Agent defaults */}
-          <div style={sectionStyle}>
+          <div style={{ ...sectionStyle, animation: 'hcellin 0.45s ease backwards', animationDelay: '0.07s' }}>
             <div style={sectionLabel}>Agent defaults</div>
             <div style={rowStyle}>
               <div>
@@ -346,7 +346,7 @@ export default function Settings({ accent = ACCENT, onAccentChange }: SettingsPr
           </div>
 
           {/* Behavior toggles */}
-          <div style={sectionStyle}>
+          <div style={{ ...sectionStyle, animation: 'hcellin 0.45s ease backwards', animationDelay: '0.14s' }}>
             <div style={sectionLabel}>Behavior</div>
             {SETTINGS_TOGGLES.map((t, i) => (
               <div key={t.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '13px 0', borderTop: i === 0 ? undefined : '1px solid rgba(255,255,255,0.05)' }}>
@@ -364,7 +364,7 @@ export default function Settings({ accent = ACCENT, onAccentChange }: SettingsPr
           </div>
 
           {/* API keys */}
-          <div style={sectionStyle}>
+          <div style={{ ...sectionStyle, animation: 'hcellin 0.45s ease backwards', animationDelay: '0.21s' }}>
             <div style={sectionLabel}>API keys</div>
             {API_KEYS.map((k, i) => (
               <div key={k.label} style={i === 0 ? rowStyle : rowTopBorder}>
@@ -389,7 +389,7 @@ export default function Settings({ accent = ACCENT, onAccentChange }: SettingsPr
           </div>
 
           {/* About */}
-          <div style={sectionStyle}>
+          <div style={{ ...sectionStyle, animation: 'hcellin 0.45s ease backwards', animationDelay: '0.28s' }}>
             <div style={sectionLabel}>About</div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '13px 0' }}>
               <span style={{ fontSize: 13, color: '#c6cad8' }}>WebUI version</span>

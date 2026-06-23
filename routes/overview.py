@@ -11,10 +11,37 @@ router = APIRouter()
 
 KANBAN_DB = Path(os.environ.get("KANBAN_DB", "/root/.hermes/kanban.db"))
 PROFILES_DIR = Path(os.environ.get("HERMES_PROFILES_DIR", "/root/.hermes/profiles"))
+HERMES_HOME = Path(os.environ.get("HERMES_HOME", "/root/.hermes"))
+MEMORY_FILE = HERMES_HOME / "memories" / "MEMORY.md"
+USER_FILE = HERMES_HOME / "memories" / "USER.md"
 
 
 def _open_ro() -> sqlite3.Connection:
     return sqlite3.connect(f"file:{KANBAN_DB}?mode=ro", uri=True)
+
+
+def _count_entries(text: str) -> int:
+    """Cheap count of discrete memory entries in a memory file."""
+    if not text.strip():
+        return 0
+    # Primary Hermes format uses § as the entry delimiter.
+    if "§" in text:
+        return len([p for p in text.split("§") if p.strip()])
+    # Fall back to markdown HR (---) separated blocks.
+    if "\n---" in text:
+        return len([p for p in text.split("\n---") if p.strip()])
+    # Last resort: blank-line separated paragraphs.
+    return len([p for p in text.split("\n\n") if p.strip()])
+
+
+def _memory_count() -> int:
+    total = 0
+    for path in (MEMORY_FILE, USER_FILE):
+        try:
+            total += _count_entries(path.read_text(encoding="utf-8"))
+        except (FileNotFoundError, OSError):
+            continue
+    return total
 
 
 def _empty_summary() -> dict:
@@ -96,6 +123,11 @@ async def get_overview(
             active_agents: int = cur.fetchone()[0]
 
             cur.execute(
+                "SELECT COUNT(DISTINCT tenant) FROM tasks WHERE tenant IS NOT NULL"
+            )
+            tenant_count: int = cur.fetchone()[0]
+
+            cur.execute(
                 "SELECT id, title, assignee, completed_at FROM tasks"
                 " WHERE status='done' ORDER BY completed_at DESC LIMIT 5"
             )
@@ -162,6 +194,7 @@ async def get_overview(
     except Exception:
         summary = _empty_summary()
         active_agents = 0
+        tenant_count = 0
         recent = []
         sparkline = [{"hour": i, "count": 0} for i in range(24)]
         total_tasks = 0
@@ -171,6 +204,8 @@ async def get_overview(
     return {
         "kanban_summary": summary,
         "active_agents": active_agents,
+        "tenant_count": tenant_count,
+        "memory_count": _memory_count(),
         "system": {"cpu_pct": cpu, "mem_pct": mem, "disk_pct": disk},
         "recent_activity": recent,
         "sparkline": sparkline,

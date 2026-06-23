@@ -139,7 +139,7 @@ function MessageContent({ text }: { text: string }) {
         if (seg.type === 'mermaid') return <MermaidBlock key={i} content={seg.content} />
         if (seg.type === 'code') return <CodeBlock key={i} lang={seg.lang} content={seg.content} />
         return (
-          <span key={i} style={{ fontSize: 14, lineHeight: 1.55, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+          <span key={i} style={{ fontSize: 15, lineHeight: 1.62, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
             {seg.content}
           </span>
         )
@@ -151,6 +151,47 @@ function MessageContent({ text }: { text: string }) {
 interface ChatProps {
   accent: string
 }
+
+// ── Read/delivered tick (echoes reference CheckCheck / Check) ─────────────────
+
+function StatusTick({ color }: { color: string }) {
+  // Double-check "read" style tick, mirrors the reference's CheckCheck affordance.
+  return (
+    <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" style={{ flex: 'none' }}>
+      <path d="M1 13l4 4L13 7" />
+      <path d="M11 13l4 4L23 7" />
+    </svg>
+  )
+}
+
+// ── Inline icons (lucide-react translated to our inline-SVG convention) ───────
+
+function SmilePlusIcon({ size = 16, color = 'currentColor' }: { size?: number; color?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ flex: 'none' }}>
+      <path d="M22 11v1a10 10 0 1 1-9-10" />
+      <path d="M8 14s1.5 2 4 2 4-2 4-2" />
+      <line x1={9} y1={9} x2={9.01} y2={9} />
+      <line x1={15} y1={9} x2={15.01} y2={9} />
+      <path d="M16 5h6M19 2v6" />
+    </svg>
+  )
+}
+
+function UsersIcon({ size = 16, color = 'currentColor' }: { size?: number; color?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ flex: 'none' }}>
+      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+      <circle cx={9} cy={7} r={4} />
+      <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
+    </svg>
+  )
+}
+
+// Quick-reaction palette for the SmilePlus picker.
+const REACTION_EMOJIS = ['👍', '🙌', '✨', '🎉', '❤️', '👀']
+
+type Reaction = { emoji: string; count: number; reacted: boolean }
 
 const clone = <T,>(o: T): T => JSON.parse(JSON.stringify(o)) as T
 
@@ -167,6 +208,33 @@ export default function Chat({ accent }: ChatProps) {
   const [reason, setReason] = useState(() => localStorage.getItem('hermes-chat-reason') || 'xhigh')
   const [planMainOpen, setPlanMainOpen] = useState<Record<string, boolean>>({})
   const [planStepOpen, setPlanStepOpen] = useState<Record<string, boolean>>({})
+
+  // Participant filter (ruixen-mono-chat selectedSender pattern, adapted to a
+  // single-agent chat: the two "senders" are You and the active agent).
+  const [selectedSender, setSelectedSender] = useState<'user' | 'agent' | null>(null)
+
+  // Per-message emoji reactions (local UX state — not persisted to the backend).
+  const [reactions, setReactions] = useState<Record<string, Reaction[]>>({})
+  const [reactionPicker, setReactionPicker] = useState<string | null>(null)
+  const [composerEmoji, setComposerEmoji] = useState(false)
+
+  function toggleReaction(msgId: string, emoji: string) {
+    setReactions((s) => {
+      const list = s[msgId] ? [...s[msgId]] : []
+      const idx = list.findIndex((r) => r.emoji === emoji)
+      if (idx === -1) {
+        list.push({ emoji, count: 1, reacted: true })
+      } else {
+        const r = list[idx]
+        const reacted = !r.reacted
+        const count = r.count + (reacted ? 1 : -1)
+        if (count <= 0) list.splice(idx, 1)
+        else list[idx] = { ...r, reacted, count }
+      }
+      return { ...s, [msgId]: list }
+    })
+    setReactionPicker(null)
+  }
 
   // Voice input
   const [listening, setListening] = useState(false)
@@ -193,12 +261,20 @@ export default function Chat({ accent }: ChatProps) {
 
   const agent = CHAT_AGENTS.find((a) => a.key === activeAgent) || CHAT_AGENTS[0]
   const thread = threads[activeAgent] || []
-  const displayThread = viewSession ? viewSession.msgs.map((m, i) => ({ id: `v${i}`, ...m })) : thread
+  const baseThread = viewSession ? viewSession.msgs.map((m, i) => ({ id: `v${i}`, ...m })) : thread
+  // Participant filter: narrow to one sender (user/agent). Plan blocks are
+  // attributed to the agent so they stay visible when filtering by agent.
+  const displayThread = selectedSender
+    ? baseThread.filter((m) => (m.role === 'user' ? 'user' : 'agent') === selectedSender)
+    : baseThread
+  // Show the participant strip only once the thread actually has both sides.
+  const hasUserMsg = baseThread.some((m) => m.role === 'user')
+  const hasAgentMsg = baseThread.some((m) => m.role !== 'user')
+  const showParticipants = hasUserMsg && hasAgentMsg
   const pastList = activeAgent === 'hermes' && hermesSessions ? hermesSessions : (PAST_SESSIONS[activeAgent] || [])
   const ctxChars = thread.reduce((n, m) => n + m.text.length, 0)
   const ctxNum = Math.min(99, Math.round(ctxChars / 28))
   const ringDash = `${((Math.min(100, Math.round(ctxChars / 28)) / 100) * 56.55).toFixed(1)} 56.55`
-  const todayStr = new Date().toDateString()
 
   useEffect(() => {
     const el = listRef.current
@@ -507,11 +583,60 @@ export default function Chat({ accent }: ChatProps) {
         </div>
       </div>
 
-      {/* Viewing-past banner */}
-
-
-      {/* Message list */}
-      <div ref={listRef} style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', padding: '22px 26px', display: 'flex', flexDirection: 'column', gap: 4, position: 'relative', zIndex: 1 }}>
+      {/* Participant filter strip — horizontal avatars (sidebar doesn't fit a
+          narrow vertical chat). Translates ruixen's selectedSender pattern to
+          our single-agent chat: filter by You vs the active agent. */}
+      {showParticipants && !viewSession && (
+        <div
+          style={{
+            flex: 'none',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            padding: '9px 22px',
+            borderBottom: '1px solid rgba(255,255,255,0.05)',
+          }}
+        >
+          <UsersIcon size={14} color="#6a7088" />
+          <span style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#565d72', marginRight: 2 }}>Filter</span>
+          {([
+            { key: 'user' as const, name: 'You', avatar: 'https://github.com/shadcn.png', color: accent, online: true },
+            { key: 'agent' as const, name: agent.name, avatar: 'https://github.com/evilrabbit.png', color: agent.color, online: !running },
+          ]).map((p) => {
+            const on = selectedSender === p.key
+            return (
+              <button
+                key={p.key}
+                onClick={() => setSelectedSender(on ? null : p.key)}
+                title={on ? `Showing ${p.name} — click to clear` : `Show only ${p.name}`}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 7,
+                  padding: '4px 11px 4px 4px', borderRadius: 99, cursor: 'pointer',
+                  fontFamily: 'inherit', fontSize: 12.5, fontWeight: 600,
+                  color: on ? p.color : '#9298ab',
+                  background: on ? `color-mix(in oklab, ${p.color} 15%, transparent)` : 'rgba(255,255,255,0.04)',
+                  border: `1px solid ${on ? `color-mix(in oklab, ${p.color} 42%, transparent)` : 'rgba(255,255,255,0.08)'}`,
+                  transition: 'all 0.16s',
+                }}
+              >
+                <span style={{ position: 'relative', width: 24, height: 24, flex: 'none' }}>
+                  <img src={p.avatar} alt={p.name} width={24} height={24} style={{ width: 24, height: 24, borderRadius: '50%', objectFit: 'cover', display: 'block' }} />
+                  <span
+                    style={{
+                      position: 'absolute', bottom: -1, right: -1, width: 8, height: 8, borderRadius: '50%',
+                      background: p.online ? '#4ade80' : '#565d72',
+                      boxShadow: p.online ? '0 0 6px #4ade80' : 'none',
+                      border: '1.5px solid #080b11',
+                    }}
+                  />
+                </span>
+                {p.name}
+              </button>
+            )
+          })}
+        </div>
+      )}
+      <div ref={listRef} style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', padding: '14px 26px 22px', display: 'flex', flexDirection: 'column', gap: 0, position: 'relative', zIndex: 1 }}>
         {displayThread.length === 0 && !running ? (
           pastList.length === 0 ? (
             // WELCOME SCREEN — first time ever, no sessions
@@ -564,39 +689,135 @@ export default function Chat({ accent }: ChatProps) {
                     onToggleStep={(key) => setPlanStepOpen((s) => ({ ...s, [key]: !(s[key] ?? key.endsWith('/3')) }))}
                   />
                 ) : (
-                  <div style={{ display: 'flex', justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start', margin: '3px 0' }}>
-                    <div
-                      style={{
-                        maxWidth: '74%',
-                        padding: '10px 15px',
-                        borderRadius: 16,
-                        borderBottomRightRadius: m.role === 'user' ? 5 : 16,
-                        borderBottomLeftRadius: m.role === 'user' ? 16 : 5,
-                        background: m.role === 'user' ? `linear-gradient(135deg, color-mix(in oklab, ${accent} 76%, #c2410c), ${accent})` : '#11151f',
-                        border: m.role === 'user' ? 'none' : '1px solid rgba(255,255,255,0.08)',
-                        color: m.role === 'user' ? '#1c1404' : '#d8dbe6',
-                        boxShadow: '0 2px 12px rgba(0,0,0,0.25)',
-                      }}
-                    >
-                      <div style={{ fontSize: 14, lineHeight: 1.55, wordWrap: 'break-word' }}>
-                        <MessageContent text={m.text} />
-                      </div>
+                  (() => {
+                    const isUser = m.role === 'user'
+                    const senderName = isUser ? 'You' : agent.name
+                    const avColor = isUser ? accent : agent.color
+                    const rowAvBg = `color-mix(in oklab, ${avColor} 16%, transparent)`
+                    const rowAvBorder = `color-mix(in oklab, ${avColor} 42%, transparent)`
+                    return (
                       <div
-                        title={`${todayStr} ${m.at}`}
-                        style={{ fontSize: 9.5, marginTop: 5, textAlign: 'right', color: m.role === 'user' ? 'rgba(28,20,4,0.6)' : '#565d72', cursor: 'default' }}
+                        style={{
+                          padding: '14px 2px 16px',
+                          borderBottom: '1px solid rgba(255,255,255,0.05)',
+                        }}
                       >
-                        {m.at}
+                        {/* Sender header: avatar + name + timestamp */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+                          <span
+                            style={{
+                              width: 38, height: 38, flex: 'none', borderRadius: '50%',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              fontSize: 17, background: rowAvBg, border: `1px solid ${rowAvBorder}`,
+                              color: avColor, fontFamily: 'var(--font-display)', fontWeight: 600,
+                            }}
+                          >
+                            {isUser ? 'Y' : agent.icon}
+                          </span>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 0 }}>
+                            <span style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 14.5, color: '#f0f2f8' }}>
+                              {senderName}
+                            </span>
+                            <span style={{ fontSize: 11, color: '#6a7088' }}>{m.at}</span>
+                          </div>
+                        </div>
+
+                        {/* Body — larger, airier per reference */}
+                        <div style={{ color: '#d8dbe6', wordWrap: 'break-word', paddingLeft: 50 }}>
+                          <MessageContent text={m.text} />
+                        </div>
+
+                        {/* Status row — read tick on the user's own messages (decorative) */}
+                        {isUser && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 7, paddingLeft: 50, fontSize: 11.5, color: '#565d72' }}>
+                            <StatusTick color={running && !viewSession && i === displayThread.length - 1 ? '#6a7088' : 'var(--success)'} />
+                            <span>{m.at}</span>
+                          </div>
+                        )}
+
+                        {/* Reaction pills + add-reaction affordance */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8, paddingLeft: 50, flexWrap: 'wrap', position: 'relative' }}>
+                          {(reactions[m.id] || []).map((r) => (
+                            <button
+                              key={r.emoji}
+                              onClick={() => toggleReaction(m.id, r.emoji)}
+                              title={r.reacted ? 'Remove reaction' : 'Add reaction'}
+                              style={{
+                                display: 'inline-flex', alignItems: 'center', gap: 4,
+                                padding: '2px 9px', borderRadius: 99, cursor: 'pointer',
+                                fontFamily: 'inherit', fontSize: 12, lineHeight: 1.4,
+                                color: r.reacted ? 'var(--ac)' : '#9298ab',
+                                background: r.reacted ? 'color-mix(in oklab, var(--ac) 15%, transparent)' : 'rgba(255,255,255,0.05)',
+                                border: `1px solid ${r.reacted ? 'color-mix(in oklab, var(--ac) 42%, transparent)' : 'rgba(255,255,255,0.08)'}`,
+                                transition: 'all 0.14s',
+                              }}
+                            >
+                              <span>{r.emoji}</span>
+                              <span className="mono" style={{ fontSize: 11 }}>{r.count}</span>
+                            </button>
+                          ))}
+                          <button
+                            onClick={() => setReactionPicker((p) => (p === m.id ? null : m.id))}
+                            title="Add reaction"
+                            style={{
+                              width: 24, height: 24, flex: 'none', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                              borderRadius: 99, cursor: 'pointer', border: '1px solid rgba(255,255,255,0.08)',
+                              background: reactionPicker === m.id ? 'rgba(255,255,255,0.08)' : 'transparent',
+                              color: reactionPicker === m.id ? '#e9ebf2' : '#565d72', transition: 'all 0.14s',
+                            }}
+                            onMouseEnter={(e) => { e.currentTarget.style.color = '#e9ebf2'; e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
+                            onMouseLeave={(e) => { if (reactionPicker !== m.id) { e.currentTarget.style.color = '#565d72'; e.currentTarget.style.background = 'transparent' } }}
+                          >
+                            <SmilePlusIcon size={14} />
+                          </button>
+                          {reactionPicker === m.id && (
+                            <>
+                              <div onClick={() => setReactionPicker(null)} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />
+                              <div
+                                style={{
+                                  position: 'absolute', bottom: 'calc(100% + 6px)', left: 50, zIndex: 50,
+                                  display: 'flex', gap: 2, padding: 5,
+                                  background: '#0c1119', border: '1px solid rgba(255,255,255,0.12)',
+                                  borderRadius: 12, boxShadow: '0 8px 28px rgba(0,0,0,0.55)',
+                                  animation: 'hcmdin 0.15s cubic-bezier(0.16,1,0.3,1)',
+                                }}
+                              >
+                                {REACTION_EMOJIS.map((emoji) => (
+                                  <button
+                                    key={emoji}
+                                    onClick={() => toggleReaction(m.id, emoji)}
+                                    style={{ width: 30, height: 30, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, background: 'none', border: 'none', borderRadius: 8, cursor: 'pointer' }}
+                                    onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
+                                    onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
+                                  >
+                                    {emoji}
+                                  </button>
+                                ))}
+                              </div>
+                            </>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  </div>
+                    )
+                  })()
                 )}
               </div>
             )
           })
         )}
-        {running && !viewSession && (
-          <div style={{ display: 'flex', justifyContent: 'flex-start', margin: '3px 0' }}>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: '#11151f', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16, borderBottomLeftRadius: 5, padding: '14px 16px' }}>
+        {running && !viewSession && selectedSender !== 'user' && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 2px 16px' }}>
+            <span
+              style={{
+                width: 38, height: 38, flex: 'none', borderRadius: '50%',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 17, background: avBg, border: `1px solid ${avBorder}`,
+                color: agent.color, fontFamily: 'var(--font-display)', fontWeight: 600,
+              }}
+            >
+              {agent.icon}
+            </span>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
               {[0, 0.18, 0.36].map((d) => (
                 <span key={d} style={{ width: 7, height: 7, borderRadius: '50%', background: '#9aa0b4', animation: `hbounce 1.3s ease-in-out ${d}s infinite` }} />
               ))}
@@ -688,6 +909,50 @@ export default function Chat({ accent }: ChatProps) {
           />
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', flex: 1, minWidth: 0 }}>
+              {/* Emoji insert button (ruixen SmilePlus, left of composer) */}
+              <div style={{ position: 'relative', flex: 'none' }}>
+                <button
+                  title="Insert emoji"
+                  onClick={() => setComposerEmoji((v) => !v)}
+                  style={{
+                    width: 30, height: 30, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                    background: composerEmoji ? 'rgba(255,255,255,0.06)' : 'none',
+                    border: 'none', borderRadius: 8,
+                    color: composerEmoji ? '#e9ebf2' : '#6a7088', cursor: 'pointer', transition: 'all 0.2s',
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = '#e9ebf2'; e.currentTarget.style.background = 'rgba(255,255,255,0.05)' }}
+                  onMouseLeave={(e) => { if (!composerEmoji) { e.currentTarget.style.color = '#6a7088'; e.currentTarget.style.background = 'none' } }}
+                >
+                  <SmilePlusIcon size={16} />
+                </button>
+                {composerEmoji && (
+                  <>
+                    <div onClick={() => setComposerEmoji(false)} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />
+                    <div
+                      style={{
+                        position: 'absolute', bottom: 'calc(100% + 8px)', left: 0, zIndex: 50,
+                        display: 'flex', gap: 2, padding: 5,
+                        background: '#0c1119', border: '1px solid rgba(255,255,255,0.12)',
+                        borderRadius: 12, boxShadow: '0 8px 28px rgba(0,0,0,0.55)',
+                        animation: 'hcmdin 0.15s cubic-bezier(0.16,1,0.3,1)',
+                      }}
+                    >
+                      {REACTION_EMOJIS.map((emoji) => (
+                        <button
+                          key={emoji}
+                          onMouseDown={(e) => { e.preventDefault(); setDraft((d) => d + emoji); setComposerEmoji(false) }}
+                          style={{ width: 30, height: 30, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, background: 'none', border: 'none', borderRadius: 8, cursor: 'pointer' }}
+                          onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
+                          onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
+                        >
+                          {emoji}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+
               {/* Voice button — hidden when SpeechRecognition is unavailable */}
               {hasSpeech && (
                 <button
