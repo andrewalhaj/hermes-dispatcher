@@ -26,7 +26,7 @@ export default function StatTile({ stat, onClick }: StatTileProps) {
         background: 'var(--s3)',
         border: '1px solid var(--border)',
         borderRadius: 13,
-        padding: '16px 17px',
+        padding: '18px 20px',
         transform: hover ? 'translateY(-3px)' : 'none',
         borderColor: hover ? 'rgba(255,255,255,0.16)' : 'var(--border)',
         boxShadow: hover ? '0 12px 30px rgba(0,0,0,0.42)' : 'none',
@@ -72,18 +72,18 @@ export default function StatTile({ stat, onClick }: StatTileProps) {
           background: `color-mix(in oklab, ${stat.accent} 14%, transparent)`,
           border: `1px solid color-mix(in oklab, ${stat.accent} 30%, transparent)`,
           color: stat.accent,
-          marginBottom: 12,
+          marginBottom: 14,
         }}
       >
         <PathIcon d={stat.iconPath} />
       </span>
-      <div style={{ position: 'relative', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 28, lineHeight: 1, color: 'var(--text-primary)' }}>
+      <div style={{ position: 'relative', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 34, lineHeight: 1, letterSpacing: '-0.01em', color: 'var(--text-primary)' }}>
         {stat.value}
       </div>
-      <div style={{ position: 'relative', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-faint)', marginTop: 6 }}>
+      <div style={{ position: 'relative', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-faint)', marginTop: 8 }}>
         {stat.label}
       </div>
-      <div style={{ position: 'relative', height: 18, marginTop: 9, overflow: 'hidden' }}>
+      <div style={{ position: 'relative', height: 18, marginTop: 10, overflow: 'hidden' }}>
         <span
           className="inline-flex items-center"
           style={{
