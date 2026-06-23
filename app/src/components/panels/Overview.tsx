@@ -62,7 +62,7 @@ export default function Overview({ accent, navigateTo }: OverviewProps) {
           >
             <GlowHorizonFM variant="bottom" className="opacity-40" />
             <div style={{ position: 'absolute', width: 280, height: 280, right: -60, top: -120, borderRadius: '50%', background: `radial-gradient(circle, color-mix(in oklab, ${accent} 30%, transparent), transparent 70%)`, pointerEvents: 'none', animation: 'hpulse 3s ease-in-out infinite' }} />
-            <div style={{ position: 'absolute', width: 240, height: 240, left: -80, bottom: -140, borderRadius: '50%', background: 'radial-gradient(circle, rgba(155,140,255,0.22), transparent 70%)', pointerEvents: 'none', animation: 'hpulse 3s ease-in-out infinite 1.5s' }} />
+            <div style={{ position: 'absolute', width: 240, height: 240, left: -80, bottom: -140, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,138,76,0.30), rgba(232,72,128,0.20) 42%, rgba(196,58,140,0.10) 62%, transparent 74%)', pointerEvents: 'none', animation: 'hpulse 3s ease-in-out infinite 1.5s' }} />
             <div className="relative flex flex-col items-center text-center" style={{ gap: 24 }}>
               <div>
                 <div style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.16em', color: accent }}>{ov.eyebrow}</div>
