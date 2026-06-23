@@ -34,6 +34,8 @@ export default function Overview({ accent, navigateTo }: OverviewProps) {
         ready: live.kanban_summary.ready,
         blocked: live.kanban_summary.blocked,
         totalTasks: live.total_tasks,
+        tenantCount: live.tenant_count,
+        memoryCount: live.memory_count,
         agentBreakdown: live.agent_breakdown,
         agentActivity: live.agent_activity,
         window: heatmapWindow,
@@ -102,7 +104,7 @@ export default function Overview({ accent, navigateTo }: OverviewProps) {
               <StatTile
                 stat={st}
                 onClick={() => {
-                  if ((st.label === 'Tasks Run' || st.label === 'Active Sessions') && navigateTo) {
+                  if ((st.label === 'Tasks Run' || st.label === 'Active Sessions' || st.label === 'Tenants' || st.label === 'Memory Items') && navigateTo) {
                     navigateTo(st.target as PanelId)
                   } else {
                     openInfo({
