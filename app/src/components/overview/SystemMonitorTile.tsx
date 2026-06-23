@@ -460,6 +460,44 @@ export default function SystemMonitorTile() {
       style={{ background: 'var(--s3)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden', animation: 'hcellin 0.45s ease backwards', animationDelay: '0.28s' }}
     >
       <style>{KEYFRAMES}</style>
+      <AnimatePresence initial={false} mode="wait">
+        {isHidden ? (
+          <motion.div
+            key="collapsed"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            style={{ overflow: 'hidden' }}
+          >
+            <div
+              className="flex items-center justify-between"
+              style={{ padding: '0 18px', minHeight: 40 }}
+            >
+              <div className="inline-flex items-center" style={{ gap: 8 }}>
+                <StatusDot state={dotState} />
+                <span style={cardLabelStyle}>System Monitor</span>
+              </div>
+              <div className="inline-flex items-center" style={{ gap: 10 }}>
+                <MachineSelector
+                  machine={machine}
+                  menuOpen={menuOpen}
+                  setMenuOpen={setMenuOpen}
+                  onSelect={selectMachine}
+                />
+                <HideButton hidden onToggle={toggleHidden} />
+              </div>
+            </div>
+          </motion.div>
+        ) : (
+          <motion.div
+            key="full"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            style={{ overflow: 'hidden' }}
+          >
       <motion.div
         className="cursor-pointer"
         style={{ padding: 18 }}
@@ -515,88 +553,13 @@ export default function SystemMonitorTile() {
             </AnimatePresence>
           </div>
           <div className="inline-flex items-center" style={{ gap: 10 }}>
-            {/* Machine selector dropdown */}
-            <div className="relative" style={{ display: 'inline-flex' }}>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setMenuOpen((v) => !v)
-                }}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  fontSize: 11,
-                  color: 'var(--text-muted)',
-                  background: 'rgba(255,255,255,0.05)',
-                  border: '1px solid rgba(255,255,255,0.08)',
-                  borderRadius: 6,
-                  padding: '3px 8px',
-                  cursor: 'pointer',
-                }}
-              >
-                <Icon name="monitor" color="#9298ab" />
-                {machine === 'studio' ? 'Mac Studio' : 'Mac Mini'}
-                <motion.span
-                  animate={{ rotate: menuOpen ? 180 : 0 }}
-                  transition={{ duration: 0.2 }}
-                  style={{ fontSize: 9, display: 'inline-block', lineHeight: 1 }}
-                >
-                  ▾
-                </motion.span>
-              </button>
-              <AnimatePresence>
-                {menuOpen && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -4, scale: 0.96 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: -4, scale: 0.96 }}
-                    transition={{ duration: 0.14 }}
-                    onClick={(e) => e.stopPropagation()}
-                    style={{
-                      position: 'absolute',
-                      top: '100%',
-                      right: 0,
-                      marginTop: 5,
-                      minWidth: 130,
-                      background: 'var(--s2, #1a1b22)',
-                      border: '1px solid rgba(255,255,255,0.1)',
-                      borderRadius: 8,
-                      boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
-                      padding: 4,
-                      zIndex: 30,
-                    }}
-                  >
-                    {(['mini', 'studio'] as const).map((m) => (
-                      <button
-                        key={m}
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          selectMachine(m)
-                        }}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 7,
-                          width: '100%',
-                          fontSize: 11.5,
-                          textAlign: 'left',
-                          color: machine === m ? '#e4e6ee' : '#9298ab',
-                          background: machine === m ? 'rgba(255,255,255,0.06)' : 'transparent',
-                          border: 'none',
-                          borderRadius: 6,
-                          padding: '6px 8px',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        <Icon name="monitor" color={machine === m ? '#e4e6ee' : '#9298ab'} />
-                        {m === 'studio' ? 'Mac Studio' : 'Mac Mini'}
-                      </button>
-                    ))}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
+            <MachineSelector
+              machine={machine}
+              menuOpen={menuOpen}
+              setMenuOpen={setMenuOpen}
+              onSelect={selectMachine}
+            />
+            <HideButton hidden={false} onToggle={toggleHidden} />
             <motion.span
               animate={{ rotate: isExpanded ? 180 : 0 }}
               transition={{ type: 'spring', stiffness: 300, damping: 30 }}
@@ -674,6 +637,9 @@ export default function SystemMonitorTile() {
                 </div>
               )}
             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
           </motion.div>
         )}
       </AnimatePresence>
