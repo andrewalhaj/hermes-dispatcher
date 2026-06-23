@@ -1,12 +1,11 @@
 import { useMemo, useState } from 'react'
-import { buildOverview, PALETTE } from '../../data/overview'
+import { buildOverview } from '../../data/overview'
 import { GlowHorizonFM } from '../ui/glow-horizon'
 import { profileDisplayName } from '../../data/profileDisplayNames'
 import { tileBlurb } from '../../data/info'
 import StatTile from '../overview/StatTile'
-import Sparkline from '../overview/Sparkline'
 import SwarmCanvas from '../overview/SwarmCanvas'
-import { useSystemMonitor } from '../overview/useSystemMonitor'
+import SystemMonitorTile from '../overview/SystemMonitorTile'
 import { useInfo } from '../TileInfoDrawer'
 import { useOverviewData } from '../overview/useOverviewData'
 import type { PanelId } from '../../data/types'
@@ -41,8 +40,8 @@ export default function Overview({ accent, navigateTo }: OverviewProps) {
       }),
     [accent, live, heatmapWindow],
   )
-  const sys = useSystemMonitor(live.system)
   const { openInfo } = useInfo()
+
 
   return (
     <div className="flex flex-1 flex-col" style={{ minHeight: 0 }}>
@@ -56,13 +55,22 @@ export default function Overview({ accent, navigateTo }: OverviewProps) {
             style={{
               borderRadius: 16,
               padding: '28px 32px',
-              background: `linear-gradient(120deg, color-mix(in oklab, ${accent} 13%, transparent) 0%, rgba(155,140,255,0.1) 46%, rgba(45,212,191,0.07) 100%)`,
+              background: `linear-gradient(120deg, color-mix(in oklab, ${accent} 13%, transparent) 0%, rgba(255,138,76,0.11) 46%, rgba(232,72,128,0.08) 100%)`,
               border: '1px solid rgba(255,255,255,0.08)',
             }}
           >
-            <GlowHorizonFM variant="bottom" className="opacity-40" />
-            <div style={{ position: 'absolute', width: 280, height: 280, right: -60, top: -120, borderRadius: '50%', background: `radial-gradient(circle, color-mix(in oklab, ${accent} 30%, transparent), transparent 70%)`, pointerEvents: 'none', animation: 'hpulse 3s ease-in-out infinite' }} />
-            <div style={{ position: 'absolute', width: 240, height: 240, left: -80, bottom: -140, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,138,76,0.30), rgba(232,72,128,0.20) 42%, rgba(196,58,140,0.10) 62%, transparent 74%)', pointerEvents: 'none', animation: 'hpulse 3s ease-in-out infinite 1.5s' }} />
+            <GlowHorizonFM
+              variant="bottom"
+              className="opacity-40"
+              palette={{
+                rim: '#FFE8D2',
+                rimShadow: '0px -4px 23px 0px #ffd9b5b5',
+                mid: '#FF8A4C',
+                deep: '#E84880',
+              }}
+            />
+            <div style={{ position: 'absolute', width: 280, height: 280, right: -60, top: -120, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,154,86,0.30), rgba(232,96,140,0.16) 45%, rgba(196,58,140,0.07) 64%, transparent 74%)', pointerEvents: 'none' }} />
+            <div style={{ position: 'absolute', width: 240, height: 240, left: -80, bottom: -140, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,138,76,0.30), rgba(232,72,128,0.20) 42%, rgba(196,58,140,0.10) 62%, transparent 74%)', pointerEvents: 'none' }} />
             <div className="relative flex flex-col items-center text-center" style={{ gap: 24 }}>
               <div>
                 <div style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.16em', color: accent }}>{ov.eyebrow}</div>
@@ -218,80 +226,7 @@ export default function Overview({ accent, navigateTo }: OverviewProps) {
           {/* System monitor + swarm */}
           <div style={{ display: 'grid', gridTemplateColumns: 'minmax(360px, 1.3fr) minmax(300px, 1fr)', gap: 16 }}>
             {/* System monitor */}
-            <div className="relative" style={{ background: 'var(--s3)', border: '1px solid var(--border)', borderRadius: 14, padding: 18 }}>
-              <div className="flex items-center justify-between" style={{ marginBottom: 16 }}>
-                <div className="inline-flex items-center" style={{ gap: 8 }}>
-                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#4ade80', boxShadow: '0 0 7px #4ade80', animation: 'blink 2s ease-in-out infinite' }} />
-                  <span style={cardLabelStyle}>System Monitor</span>
-                </div>
-                <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>{sys.hostLabel}</span>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                {sys.metrics.map((m) => (
-                  <div
-                    key={m.key}
-                    onClick={() =>
-                      openInfo({
-                        category: 'System monitor',
-                        title: m.label,
-                        value: `${m.cur}${m.unit}`,
-                        accent: m.stroke,
-                        desc: tileBlurb(m.label),
-                        stats: [{ label: 'Current', value: `${m.cur}${m.unit}` }],
-                      })
-                    }
-                    style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 10, padding: '9px 11px 7px', cursor: 'pointer' }}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="inline-flex items-center" style={{ gap: 6, fontSize: 11, color: '#9298ab' }}>
-                        <span style={{ width: 6, height: 6, borderRadius: '50%', background: m.dot }} />
-                        {m.label}
-                      </span>
-                      <span className="mono" style={{ fontSize: 11.5, color: m.valColor }}>{m.cur}{m.unit}</span>
-                    </div>
-                    <Sparkline line={m.line} area={m.area} stroke={m.stroke} fill={m.fill} />
-                  </div>
-                ))}
-              </div>
-
-              {/* Memory % sparkline */}
-              <div className="flex items-center" style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border)', gap: 11 }}>
-                <span className="inline-flex flex-none items-center justify-center" style={{ width: 32, height: 32, borderRadius: 9, background: 'rgba(251,111,111,0.12)', border: '1px solid rgba(251,111,111,0.28)', color: '#fb6f6f' }}>
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
-                    <rect x="3" y="5" width="18" height="14" rx="2" />
-                    <path d="M7 9h.01M7 13h.01" />
-                  </svg>
-                </span>
-                <div className="flex-1" style={{ minWidth: 0 }}>
-                  <div className="flex items-center justify-between">
-                    <span style={{ fontSize: 12, color: '#c6cad8' }}>Memory %</span>
-                    <span className="mono" style={{ fontSize: 12, color: '#e4e6ee' }}>{sys.mem.cur}%</span>
-                  </div>
-                  <Sparkline line={sys.mem.line} area={sys.mem.area} stroke="#fb6f6f" fill={sys.mem.fill} height={22} />
-                </div>
-              </div>
-
-              {/* Per-agent memory — hidden when list is empty */}
-              {live.agent_memory.length > 0 && (
-                <div style={{ marginTop: 12 }}>
-                  <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-faint)', marginBottom: 9 }}>Per-Agent Memory</div>
-                  <div className="flex flex-col" style={{ gap: 9 }}>
-                    {live.agent_memory.map((a, i) => (
-                      <div key={a.name} className="flex items-center" style={{ gap: 10 }}>
-                        <span className="flex-none" style={{ width: 8, height: 8, borderRadius: '50%', background: PALETTE[i % PALETTE.length] }} />
-                        <div className="flex-1" style={{ minWidth: 0 }}>
-                          <div className="flex items-center justify-between">
-                            <span style={{ fontSize: 12, color: '#c6cad8' }}>{a.name}</span>
-                            <span className="mono" style={{ fontSize: 11.5, color: '#fb6f6f' }}>{a.rss_mb}MB</span>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
+            <SystemMonitorTile />
 
             {/* Agent swarm */}
             <div
