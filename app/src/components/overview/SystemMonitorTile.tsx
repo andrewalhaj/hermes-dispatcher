@@ -221,20 +221,6 @@ const Icon = ({ name, color }: { name: string; color: string }) => {
           <path d="M8 21h8M12 17v4" />
         </svg>
       )
-    case 'eye':
-      return (
-        <svg {...common}>
-          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-          <circle cx="12" cy="12" r="3" />
-        </svg>
-      )
-    case 'eye-off':
-      return (
-        <svg {...common}>
-          <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
-          <line x1="1" y1="1" x2="23" y2="23" />
-        </svg>
-      )
     default:
       return null
   }
@@ -540,33 +526,6 @@ function MachineSelector({
   )
 }
 
-/** Eye toggle button to hide/show the tile body. */
-function HideButton({ hidden, onToggle }: { hidden: boolean; onToggle: () => void }) {
-  return (
-    <button
-      onClick={(e) => {
-        e.stopPropagation()
-        onToggle()
-      }}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        width: 28,
-        height: 28,
-        borderRadius: 6,
-        border: '1px solid rgba(255,255,255,0.08)',
-        background: 'rgba(255,255,255,0.04)',
-        cursor: 'pointer',
-        color: '#9298ab',
-      }}
-      title={hidden ? 'Show' : 'Hide'}
-    >
-      <Icon name={hidden ? 'eye' : 'eye-off'} color="#9298ab" />
-    </button>
-  )
-}
-
 /**
  * System Monitor tile — live CPU/GPU/VRAM/Network/Memory with spike detection,
  * framer-motion animations, and a collapsible per-agent memory breakdown.
@@ -579,16 +538,6 @@ export default function SystemMonitorTile() {
   const [menuOpen, setMenuOpen] = useState(false)
   const sys = useSystemStats(machine)
   const [isExpanded, setIsExpanded] = useState(false)
-  const [isHidden, setIsHidden] = useState<boolean>(
-    () => localStorage.getItem('sysmon_hidden') === 'true',
-  )
-  const toggleHidden = () => {
-    setIsHidden((v) => {
-      const next = !v
-      localStorage.setItem('sysmon_hidden', String(next))
-      return next
-    })
-  }
 
   const selectMachine = (m: 'mini' | 'studio') => {
     setMachine(m)
@@ -611,44 +560,6 @@ export default function SystemMonitorTile() {
       style={{ background: 'var(--s3)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden', animation: 'hcellin 0.45s ease backwards', animationDelay: '0.28s' }}
     >
       <style>{KEYFRAMES}</style>
-      <AnimatePresence initial={false} mode="wait">
-        {isHidden ? (
-          <motion.div
-            key="collapsed"
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            style={{ overflow: 'hidden' }}
-          >
-            <div
-              className="flex items-center justify-between"
-              style={{ padding: '0 18px', minHeight: 40 }}
-            >
-              <div className="inline-flex items-center" style={{ gap: 8 }}>
-                <StatusDot state={dotState} />
-                <span style={cardLabelStyle}>System Monitor</span>
-              </div>
-              <div className="inline-flex items-center" style={{ gap: 10 }}>
-                <MachineSelector
-                  machine={machine}
-                  menuOpen={menuOpen}
-                  setMenuOpen={setMenuOpen}
-                  onSelect={selectMachine}
-                />
-                <HideButton hidden onToggle={toggleHidden} />
-              </div>
-            </div>
-          </motion.div>
-        ) : (
-          <motion.div
-            key="full"
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            style={{ overflow: 'hidden' }}
-          >
       <motion.div
         className="cursor-pointer"
         style={{ padding: 18 }}
@@ -710,7 +621,6 @@ export default function SystemMonitorTile() {
               setMenuOpen={setMenuOpen}
               onSelect={selectMachine}
             />
-            <HideButton hidden={false} onToggle={toggleHidden} />
             <motion.span
               animate={{ rotate: isExpanded ? 180 : 0 }}
               transition={{ type: 'spring', stiffness: 300, damping: 30 }}
@@ -788,9 +698,6 @@ export default function SystemMonitorTile() {
                 </div>
               )}
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
           </motion.div>
         )}
       </AnimatePresence>
