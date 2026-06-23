@@ -24,6 +24,8 @@
 
   /* Lines / hover */
   --border: rgba(255, 255, 255, 0.06);
+  --tile-border: rgba(246, 183, 60, 0.18);
+  --tile-border-hover: rgba(246, 183, 60, 0.36);
   --hover: rgba(255, 255, 255, 0.05);
 
   /* Fonts */

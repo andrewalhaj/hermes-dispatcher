@@ -24,7 +24,7 @@ interface InsightsProps {
 
 const cardLabel: React.CSSProperties = { fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#6a7088' }
 const cardBase: React.CSSProperties = {
-  background: 'var(--s3)', border: '1px solid var(--border)', borderRadius: 14, padding: 18,
+  background: 'var(--s3)', border: '1px solid var(--tile-border)', borderRadius: 14, padding: 18,
   transition: 'transform 0.28s cubic-bezier(0.16,1,0.3,1), border-color 0.28s, box-shadow 0.28s', cursor: 'pointer',
 }
 
@@ -159,9 +159,9 @@ export default function Insights({ accent = ACCENT }: InsightsProps) {
                 key={k.label}
                 onClick={() => open(k.info)}
                 className="relative overflow-hidden text-left"
-                style={{ background: 'var(--s3)', border: '1px solid var(--border)', borderRadius: 13, padding: '16px 17px', cursor: 'pointer', transition: 'transform 0.25s, border-color 0.25s, box-shadow 0.25s', animation: 'hcellin 0.45s ease backwards', animationDelay: `${i * 0.07}s` }}
-                onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.16)'; e.currentTarget.style.boxShadow = '0 14px 34px rgba(0,0,0,0.45)' }}
-                onMouseLeave={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.boxShadow = 'none' }}
+                style={{ background: 'var(--s3)', border: '1px solid var(--tile-border)', borderRadius: 13, padding: '16px 17px', cursor: 'pointer', transition: 'transform 0.25s, border-color 0.25s, box-shadow 0.25s', animation: 'hcellin 0.45s ease backwards', animationDelay: `${i * 0.07}s` }}
+                onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.borderColor = 'var(--tile-border-hover)'; e.currentTarget.style.boxShadow = '0 14px 34px rgba(0,0,0,0.45)' }}
+                onMouseLeave={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.borderColor = 'var(--tile-border)'; e.currentTarget.style.boxShadow = 'none' }}
               >
                 <span style={{ position: 'absolute', left: 0, right: 0, top: 0, height: 2, background: k.accent }} />
                 <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 26, color: 'var(--text-primary)' }}>{k.value}</div>

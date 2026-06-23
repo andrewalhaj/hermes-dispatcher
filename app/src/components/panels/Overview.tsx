@@ -58,7 +58,7 @@ export default function Overview({ accent, navigateTo }: OverviewProps) {
               borderRadius: 16,
               padding: 'clamp(16px, 3vw, 32px)',
               background: `linear-gradient(120deg, color-mix(in oklab, ${accent} 13%, transparent) 0%, rgba(255,138,76,0.11) 46%, rgba(232,72,128,0.08) 100%)`,
-              border: '1px solid rgba(255,255,255,0.08)',
+              border: '1px solid var(--tile-border)',
               animation: 'hcellin 0.45s ease backwards',
               animationDelay: '0s',
             }}
@@ -141,7 +141,7 @@ export default function Overview({ accent, navigateTo }: OverviewProps) {
                   ],
                 })
               }
-              style={{ background: 'var(--s3)', border: '1px solid var(--border)', borderRadius: 14, padding: 18, cursor: 'pointer', animation: 'hcellin 0.45s ease backwards', animationDelay: '0.14s' }}
+              style={{ background: 'var(--s3)', border: '1px solid var(--tile-border)', borderRadius: 14, padding: 18, cursor: 'pointer', animation: 'hcellin 0.45s ease backwards', animationDelay: '0.14s' }}
             >
               <div style={{ ...cardLabelStyle, marginBottom: 14 }}>Agent Breakdown</div>
               <div className="flex flex-wrap items-center" style={{ gap: 18 }}>
@@ -172,7 +172,7 @@ export default function Overview({ accent, navigateTo }: OverviewProps) {
 
             {(
               <div
-                style={{ background: 'var(--s3)', border: '1px solid var(--border)', borderRadius: 14, padding: 18, animation: 'hcellin 0.45s ease backwards', animationDelay: '0.21s' }}
+                style={{ background: 'var(--s3)', border: '1px solid var(--tile-border)', borderRadius: 14, padding: 18, animation: 'hcellin 0.45s ease backwards', animationDelay: '0.21s' }}
               >
                 <div className="flex items-center justify-between" style={{ marginBottom: 16 }}>
                   <div style={cardLabelStyle}>Agent Activity Heatmap</div>
@@ -243,7 +243,7 @@ export default function Overview({ accent, navigateTo }: OverviewProps) {
                 })
               }
               className="relative overflow-hidden"
-              style={{ background: 'var(--s3)', border: '1px solid var(--border)', borderRadius: 14, minHeight: 286, cursor: 'pointer', animation: 'hcellin 0.45s ease backwards', animationDelay: '0.35s' }}
+              style={{ background: 'var(--s3)', border: '1px solid var(--tile-border)', borderRadius: 14, minHeight: 286, cursor: 'pointer', animation: 'hcellin 0.45s ease backwards', animationDelay: '0.35s' }}
             >
               <SwarmCanvas accent={accent} />
               <div className="relative flex items-center justify-between" style={{ zIndex: 1, padding: 18 }}>

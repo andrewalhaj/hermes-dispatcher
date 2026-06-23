@@ -24,11 +24,11 @@ export default function StatTile({ stat, onClick }: StatTileProps) {
       className="relative cursor-pointer overflow-hidden"
       style={{
         background: 'var(--s3)',
-        border: '1px solid var(--border)',
+        border: '1px solid var(--tile-border)',
         borderRadius: 13,
         padding: '18px 20px',
         transform: hover ? 'translateY(-3px)' : 'none',
-        borderColor: hover ? 'rgba(255,255,255,0.16)' : 'var(--border)',
+        borderColor: hover ? 'var(--tile-border-hover)' : 'var(--tile-border)',
         boxShadow: hover ? '0 12px 30px rgba(0,0,0,0.42)' : 'none',
         transition: 'transform 0.25s, border-color 0.25s, box-shadow 0.25s',
       }}

@@ -568,7 +568,7 @@ export default function SystemMonitorTile() {
   return (
     <div
       className="relative"
-      style={{ background: 'var(--s3)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden', animation: 'hcellin 0.45s ease backwards', animationDelay: '0.28s' }}
+      style={{ background: 'var(--s3)', border: '1px solid var(--tile-border)', borderRadius: 14, overflow: 'hidden', animation: 'hcellin 0.45s ease backwards', animationDelay: '0.28s' }}
     >
       <style>{KEYFRAMES}</style>
       <div style={{ padding: 18 }}>

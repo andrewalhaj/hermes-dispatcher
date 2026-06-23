@@ -62,15 +62,15 @@ export default function Agents({ accent }: AgentsProps) {
                   })
                 }
                 className="relative overflow-hidden"
-                style={{ background: 'var(--s3)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 13, padding: '15px 16px', cursor: 'pointer', transition: 'transform 0.25s, border-color 0.25s, box-shadow 0.25s', animation: 'hcellin 0.45s ease backwards', animationDelay: `${i * 0.07}s` }}
+                style={{ background: 'var(--s3)', border: '1px solid var(--tile-border)', borderRadius: 13, padding: '15px 16px', cursor: 'pointer', transition: 'transform 0.25s, border-color 0.25s, box-shadow 0.25s', animation: 'hcellin 0.45s ease backwards', animationDelay: `${i * 0.07}s` }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.transform = 'translateY(-4px)'
-                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.16)'
+                  e.currentTarget.style.borderColor = 'var(--tile-border-hover)'
                   e.currentTarget.style.boxShadow = '0 14px 34px rgba(0,0,0,0.45)'
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.transform = 'none'
-                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'
+                  e.currentTarget.style.borderColor = 'var(--tile-border)'
                   e.currentTarget.style.boxShadow = 'none'
                 }}
               >

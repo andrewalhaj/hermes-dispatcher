@@ -34,7 +34,7 @@ function lsSet(key: string, value: string): void {
   try { localStorage.setItem(key, value) } catch { /* storage unavailable */ }
 }
 
-const sectionStyle: React.CSSProperties = { background: 'var(--s3)', border: '1px solid var(--border)', borderRadius: 12, padding: '4px 18px' }
+const sectionStyle: React.CSSProperties = { background: 'var(--s3)', border: '1px solid var(--tile-border)', borderRadius: 12, padding: '4px 18px' }
 const sectionLabel: React.CSSProperties = { fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#6a7088', margin: '16px 0 4px' }
 const rowStyle: React.CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 18, padding: '14px 0' }
 const rowTopBorder: React.CSSProperties = { ...rowStyle, borderTop: '1px solid rgba(255,255,255,0.05)' }

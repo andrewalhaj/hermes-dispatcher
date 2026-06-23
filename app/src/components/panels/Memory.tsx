@@ -42,7 +42,7 @@ function EditorPanel({ label, subtitle, value, onChange, chars, cap, status, onS
   const errored = status.includes('✗')
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 12, padding: 16, gap: 10, animation: 'hcellin 0.45s ease backwards', animationDelay: `${delay * 0.07}s` }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, background: 'var(--s2)', border: '1px solid var(--tile-border)', borderRadius: 12, padding: 16, gap: 10, animation: 'hcellin 0.45s ease backwards', animationDelay: `${delay * 0.07}s` }}>
       <div className="flex items-center justify-between" style={{ flexWrap: 'wrap', gap: 8 }}>
         <div>
           <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>{label}</div>
