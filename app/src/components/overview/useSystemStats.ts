@@ -38,15 +38,19 @@ export interface SystemStats {
   agents: AgentMem[]
   hasAnySpike: boolean
   hostLabel: string
+  /** True when the selected machine is unreachable (SSH failure on the backend). */
+  unreachable: boolean
 }
 
 interface SystemApi {
-  cpu_pct: number
-  mem_pct: number
-  mem_used_gb: number
-  mem_total_gb: number
-  disk_pct: number
-  net_mbps: number
+  machine?: string
+  error?: string | null
+  cpu_pct: number | null
+  mem_pct: number | null
+  mem_used_gb: number | null
+  mem_total_gb: number | null
+  disk_pct: number | null
+  net_mbps: number | null
   gpu_pct: number | null
   vram_pct: number | null
   agent_memory: { name: string; rss_mb: number }[]
@@ -54,6 +58,8 @@ interface SystemApi {
 }
 
 const EMPTY: SystemApi = {
+  machine: 'mini',
+  error: null,
   cpu_pct: 0,
   mem_pct: 0,
   mem_used_gb: 0,
@@ -89,9 +95,11 @@ function toPoints(buf: number[], spikeFn: (v: number) => boolean): SysDataPoint[
 /**
  * Polls /api/system every 3s and accumulates rolling sparkline buffers with
  * spike detection. GPU/VRAM degrade to `unavailable` when the backend reports
- * null (non-NVIDIA host).
+ * null (non-NVIDIA host). Pass `machine` to switch between the local Mac Mini
+ * (`mini`) and the remote Mac Studio (`studio`); rolling buffers reset on switch
+ * so stale data from the other machine never bleeds across.
  */
-export function useSystemStats(): SystemStats {
+export function useSystemStats(machine: 'mini' | 'studio' = 'mini'): SystemStats {
   const cpu = useRef<number[]>([])
   const gpu = useRef<number[]>([])
   const vram = useRef<number[]>([])
@@ -103,18 +111,35 @@ export function useSystemStats(): SystemStats {
   useEffect(() => {
     let cancelled = false
 
+    // Reset all rolling buffers when the machine changes — stale sparkline
+    // history from the other host would otherwise render as misleading spikes.
+    cpu.current = []
+    gpu.current = []
+    vram.current = []
+    net.current = []
+    mem.current = []
+    agentBufs.current.clear()
+    setSnap(EMPTY)
+
     async function tick() {
       try {
-        const res = await fetch('/api/system')
+        const res = await fetch(`/api/system?machine=${machine}`)
         if (!res.ok) return
         const json = (await res.json()) as SystemApi
         if (cancelled) return
 
-        cpu.current = pushBuf(cpu.current, json.cpu_pct, LEN)
+        // Unreachable remote: surface the error snapshot, skip buffer pushes so
+        // the sparklines flatten/clear rather than charting bogus zeros.
+        if (json.error) {
+          setSnap(json)
+          return
+        }
+
+        cpu.current = pushBuf(cpu.current, json.cpu_pct ?? 0, LEN)
         gpu.current = pushBuf(gpu.current, json.gpu_pct ?? 0, LEN)
         vram.current = pushBuf(vram.current, json.vram_pct ?? 0, LEN)
-        net.current = pushBuf(net.current, json.net_mbps, LEN)
-        mem.current = pushBuf(mem.current, json.mem_pct, LEN)
+        net.current = pushBuf(net.current, json.net_mbps ?? 0, LEN)
+        mem.current = pushBuf(mem.current, json.mem_pct ?? 0, LEN)
 
         const seen = new Set<string>()
         for (const a of json.agent_memory) {
@@ -139,10 +164,11 @@ export function useSystemStats(): SystemStats {
       cancelled = true
       clearInterval(id)
     }
-  }, [])
+  }, [machine])
 
-  const gpuUnavailable = snap.gpu_pct === null
-  const vramUnavailable = snap.vram_pct === null
+  const unreachable = !!snap.error
+  const gpuUnavailable = unreachable || snap.gpu_pct === null
+  const vramUnavailable = unreachable || snap.vram_pct === null
 
   const metrics: SysMetric[] = [
     {
@@ -150,10 +176,10 @@ export function useSystemStats(): SystemStats {
       label: 'CPU',
       color: '#3b82f6',
       unit: '%',
-      cur: snap.cpu_pct,
-      data: toPoints(cpu.current, pctSpike),
-      hasSpike: cpu.current.some(pctSpike),
-      unavailable: false,
+      cur: snap.cpu_pct ?? 0,
+      data: unreachable ? [] : toPoints(cpu.current, pctSpike),
+      hasSpike: !unreachable && cpu.current.some(pctSpike),
+      unavailable: unreachable,
     },
     {
       key: 'gpu',
@@ -180,14 +206,14 @@ export function useSystemStats(): SystemStats {
       label: 'Network',
       color: '#8b5cf6',
       unit: 'MB/s',
-      cur: snap.net_mbps,
-      data: toPoints(net.current, netSpike),
-      hasSpike: net.current.some(netSpike),
-      unavailable: false,
+      cur: snap.net_mbps ?? 0,
+      data: unreachable ? [] : toPoints(net.current, netSpike),
+      hasSpike: !unreachable && net.current.some(netSpike),
+      unavailable: unreachable,
     },
   ]
 
-  const memData = toPoints(mem.current, pctSpike)
+  const memData = unreachable ? [] : toPoints(mem.current, pctSpike)
 
   const agents: AgentMem[] = snap.agent_memory.map((a, i) => ({
     name: a.name,
@@ -201,12 +227,13 @@ export function useSystemStats(): SystemStats {
 
   return {
     metrics,
-    memPct: snap.mem_pct,
+    memPct: snap.mem_pct ?? 0,
     memData,
-    memUsedGb: snap.mem_used_gb,
-    memTotalGb: snap.mem_total_gb,
+    memUsedGb: snap.mem_used_gb ?? 0,
+    memTotalGb: snap.mem_total_gb ?? 0,
     agents,
     hasAnySpike,
-    hostLabel: 'Local host',
+    hostLabel: machine === 'studio' ? 'Mac Studio' : 'Mac Mini',
+    unreachable,
   }
 }
