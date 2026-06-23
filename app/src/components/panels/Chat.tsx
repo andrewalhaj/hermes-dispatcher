@@ -139,7 +139,7 @@ function MessageContent({ text }: { text: string }) {
         if (seg.type === 'mermaid') return <MermaidBlock key={i} content={seg.content} />
         if (seg.type === 'code') return <CodeBlock key={i} lang={seg.lang} content={seg.content} />
         return (
-          <span key={i} style={{ fontSize: 14, lineHeight: 1.55, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+          <span key={i} style={{ fontSize: 15, lineHeight: 1.62, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
             {seg.content}
           </span>
         )
@@ -150,6 +150,18 @@ function MessageContent({ text }: { text: string }) {
 
 interface ChatProps {
   accent: string
+}
+
+// ── Read/delivered tick (echoes reference CheckCheck / Check) ─────────────────
+
+function StatusTick({ color }: { color: string }) {
+  // Double-check "read" style tick, mirrors the reference's CheckCheck affordance.
+  return (
+    <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" style={{ flex: 'none' }}>
+      <path d="M1 13l4 4L13 7" />
+      <path d="M11 13l4 4L23 7" />
+    </svg>
+  )
 }
 
 const clone = <T,>(o: T): T => JSON.parse(JSON.stringify(o)) as T
@@ -198,7 +210,6 @@ export default function Chat({ accent }: ChatProps) {
   const ctxChars = thread.reduce((n, m) => n + m.text.length, 0)
   const ctxNum = Math.min(99, Math.round(ctxChars / 28))
   const ringDash = `${((Math.min(100, Math.round(ctxChars / 28)) / 100) * 56.55).toFixed(1)} 56.55`
-  const todayStr = new Date().toDateString()
 
   useEffect(() => {
     const el = listRef.current
@@ -511,7 +522,7 @@ export default function Chat({ accent }: ChatProps) {
 
 
       {/* Message list */}
-      <div ref={listRef} style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', padding: '22px 26px', display: 'flex', flexDirection: 'column', gap: 4, position: 'relative', zIndex: 1 }}>
+      <div ref={listRef} style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', padding: '14px 26px 22px', display: 'flex', flexDirection: 'column', gap: 0, position: 'relative', zIndex: 1 }}>
         {displayThread.length === 0 && !running ? (
           pastList.length === 0 ? (
             // WELCOME SCREEN — first time ever, no sessions
@@ -564,39 +575,72 @@ export default function Chat({ accent }: ChatProps) {
                     onToggleStep={(key) => setPlanStepOpen((s) => ({ ...s, [key]: !(s[key] ?? key.endsWith('/3')) }))}
                   />
                 ) : (
-                  <div style={{ display: 'flex', justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start', margin: '3px 0' }}>
-                    <div
-                      style={{
-                        maxWidth: '74%',
-                        padding: '10px 15px',
-                        borderRadius: 16,
-                        borderBottomRightRadius: m.role === 'user' ? 5 : 16,
-                        borderBottomLeftRadius: m.role === 'user' ? 16 : 5,
-                        background: m.role === 'user' ? `linear-gradient(135deg, color-mix(in oklab, ${accent} 76%, #c2410c), ${accent})` : '#11151f',
-                        border: m.role === 'user' ? 'none' : '1px solid rgba(255,255,255,0.08)',
-                        color: m.role === 'user' ? '#1c1404' : '#d8dbe6',
-                        boxShadow: '0 2px 12px rgba(0,0,0,0.25)',
-                      }}
-                    >
-                      <div style={{ fontSize: 14, lineHeight: 1.55, wordWrap: 'break-word' }}>
-                        <MessageContent text={m.text} />
-                      </div>
+                  (() => {
+                    const isUser = m.role === 'user'
+                    const senderName = isUser ? 'You' : agent.name
+                    const avColor = isUser ? accent : agent.color
+                    const rowAvBg = `color-mix(in oklab, ${avColor} 16%, transparent)`
+                    const rowAvBorder = `color-mix(in oklab, ${avColor} 42%, transparent)`
+                    return (
                       <div
-                        title={`${todayStr} ${m.at}`}
-                        style={{ fontSize: 9.5, marginTop: 5, textAlign: 'right', color: m.role === 'user' ? 'rgba(28,20,4,0.6)' : '#565d72', cursor: 'default' }}
+                        style={{
+                          padding: '14px 2px 16px',
+                          borderBottom: '1px solid rgba(255,255,255,0.05)',
+                        }}
                       >
-                        {m.at}
+                        {/* Sender header: avatar + name + timestamp */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+                          <span
+                            style={{
+                              width: 38, height: 38, flex: 'none', borderRadius: '50%',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              fontSize: 17, background: rowAvBg, border: `1px solid ${rowAvBorder}`,
+                              color: avColor, fontFamily: 'var(--font-display)', fontWeight: 600,
+                            }}
+                          >
+                            {isUser ? 'Y' : agent.icon}
+                          </span>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 0 }}>
+                            <span style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 14.5, color: '#f0f2f8' }}>
+                              {senderName}
+                            </span>
+                            <span style={{ fontSize: 11, color: '#6a7088' }}>{m.at}</span>
+                          </div>
+                        </div>
+
+                        {/* Body — larger, airier per reference */}
+                        <div style={{ color: '#d8dbe6', wordWrap: 'break-word', paddingLeft: 50 }}>
+                          <MessageContent text={m.text} />
+                        </div>
+
+                        {/* Status row — read tick on the user's own messages (decorative) */}
+                        {isUser && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 7, paddingLeft: 50, fontSize: 11.5, color: '#565d72' }}>
+                            <StatusTick color={running && !viewSession && i === displayThread.length - 1 ? '#6a7088' : 'var(--success)'} />
+                            <span>{m.at}</span>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  </div>
+                    )
+                  })()
                 )}
               </div>
             )
           })
         )}
         {running && !viewSession && (
-          <div style={{ display: 'flex', justifyContent: 'flex-start', margin: '3px 0' }}>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: '#11151f', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16, borderBottomLeftRadius: 5, padding: '14px 16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 2px 16px' }}>
+            <span
+              style={{
+                width: 38, height: 38, flex: 'none', borderRadius: '50%',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 17, background: avBg, border: `1px solid ${avBorder}`,
+                color: agent.color, fontFamily: 'var(--font-display)', fontWeight: 600,
+              }}
+            >
+              {agent.icon}
+            </span>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
               {[0, 0.18, 0.36].map((d) => (
                 <span key={d} style={{ width: 7, height: 7, borderRadius: '50%', background: '#9aa0b4', animation: `hbounce 1.3s ease-in-out ${d}s infinite` }} />
               ))}
