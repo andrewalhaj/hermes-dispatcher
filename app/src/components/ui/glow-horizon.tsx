@@ -17,13 +17,34 @@ const VARIANTS: Record<GlowHorizonVariant, {
   right:  { axis: "x", scaleAxis: "scaleX", enterPct: "-100%", restPct: "-50%" },
 };
 
+export interface GlowHorizonPalette {
+  /** Bright leading rim highlight. */
+  rim?: string;
+  /** Box shadow on the rim arc. */
+  rimShadow?: string;
+  /** Mid (upper) glow band. */
+  mid?: string;
+  /** Deep (lower) glow band. */
+  deep?: string;
+}
+
+const DEFAULT_PALETTE: Required<GlowHorizonPalette> = {
+  rim: "#FFFFFF",
+  rimShadow: "0px -4px 23px 0px #ffffffb5",
+  mid: "#A558FB",
+  deep: "#4922E5",
+};
+
 export interface GlowHorizonProps {
   className?: string;
   variant?: GlowHorizonVariant;
+  /** Override gradient colors. Defaults to the original cool/purple horizon. */
+  palette?: GlowHorizonPalette;
 }
 
-export default function GlowHorizon({ className, variant = "top" }: GlowHorizonProps) {
+export default function GlowHorizon({ className, variant = "top", palette }: GlowHorizonProps) {
   const { axis, scaleAxis, enterPct, restPct } = VARIANTS[variant];
+  const { rim, rimShadow, mid, deep } = { ...DEFAULT_PALETTE, ...palette };
 
   return (
     <motion.div
@@ -33,10 +54,10 @@ export default function GlowHorizon({ className, variant = "top" }: GlowHorizonP
       animate={{ [axis]: restPct,  [scaleAxis]: 1,   opacity: 1, filter: "blur(0px)"  }}
       transition={{ duration: DURATION, ease: EASE }}
     >
-      <Arc variant={variant} color="#FFFFFF" size="132%" boxShadow="0px -4px 23px 0px #ffffffb5" delay={1.2} />
-      <Arc variant={variant} color="#A558FB" size="120%" initialOffset="10%" blur={31} delay={0.6} />
-      <Arc variant={variant} color="#4922E5" size="124%" initialOffset="10%" blur={21} delay={0}   />
-      <Arc variant={variant} color="#000"    size="120%" initialOffset="10%" blur={51} delay={0}   />
+      <Arc variant={variant} color={rim}  size="132%" boxShadow={rimShadow} delay={1.2} />
+      <Arc variant={variant} color={mid}  size="120%" initialOffset="10%" blur={31} delay={0.6} />
+      <Arc variant={variant} color={deep} size="124%" initialOffset="10%" blur={21} delay={0}   />
+      <Arc variant={variant} color="#000" size="120%" initialOffset="10%" blur={51} delay={0}   />
     </motion.div>
   );
 }
