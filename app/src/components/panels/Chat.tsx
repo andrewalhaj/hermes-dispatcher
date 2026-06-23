@@ -276,17 +276,20 @@ export default function Chat({ accent }: ChatProps) {
   const ctxNum = Math.min(99, Math.round(ctxChars / 28))
   const ringDash = `${((Math.min(100, Math.round(ctxChars / 28)) / 100) * 56.55).toFixed(1)} 56.55`
 
-  // Scroll to bottom on new messages / session switch — smooth is fine here
+  // Pin to bottom whenever the displayed messages change.
+  // Uses rAF so the scroll always happens after the browser has
+  // committed and measured the new message layout — regardless of
+  // async fetch timing or panel entrance animation duration.
   useEffect(() => {
+    if (displayThread.length === 0) return
     const el = listRef.current
-    if (el) el.scrollTop = el.scrollHeight
-  }, [thread.length, running, viewSession])
-
-  // On mount (panel switch): jump instantly — no animation
-  useEffect(() => {
-    const el = listRef.current
-    if (el) el.scrollTo({ top: el.scrollHeight, behavior: 'instant' })
-  }, [])
+    if (!el) return
+    const id = requestAnimationFrame(() => {
+      el.style.scrollBehavior = 'auto'
+      el.scrollTop = el.scrollHeight
+    })
+    return () => cancelAnimationFrame(id)
+  }, [displayThread.length])
 
   useEffect(() => {
     ;(async () => {
@@ -643,7 +646,7 @@ export default function Chat({ accent }: ChatProps) {
           })}
         </div>
       )}
-      <div ref={listRef} style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', padding: '14px 26px 22px', display: 'flex', flexDirection: 'column', gap: 0, position: 'relative', zIndex: 1 }}>
+      <div ref={listRef} style={{ flex: 1, minHeight: 0, overflowY: 'auto', scrollBehavior: 'auto', overflowX: 'hidden', padding: '14px 26px 22px', display: 'flex', flexDirection: 'column', gap: 0, position: 'relative', zIndex: 1 }}>
         {displayThread.length === 0 && !running ? (
           pastList.length === 0 ? (
             // WELCOME SCREEN — first time ever, no sessions

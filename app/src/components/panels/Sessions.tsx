@@ -223,7 +223,7 @@ export default function Sessions({ accent = ACCENT, onOpenSession }: SessionsPro
             style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 200 }}
           />
           {/* Drawer panel */}
-          <div style={{ position: 'fixed', top: 0, right: 0, bottom: 0, width: 500, maxWidth: '92vw', background: 'var(--bg, #0d1017)', borderLeft: '1px solid rgba(255,255,255,0.09)', zIndex: 201, display: 'flex', flexDirection: 'column', boxShadow: '-12px 0 48px rgba(0,0,0,0.5)', animation: 'hpanelin 0.25s var(--ease-out)' }}>
+          <div style={{ position: 'fixed', top: 0, right: 0, bottom: 0, width: 500, maxWidth: '92vw', background: 'var(--bg, #0d1017)', borderLeft: '1px solid var(--tile-border)', zIndex: 201, display: 'flex', flexDirection: 'column', boxShadow: '-12px 0 48px rgba(0,0,0,0.5)', animation: 'hpanelin 0.25s var(--ease-out)' }}>
             {/* Drawer header */}
             <div style={{ padding: '18px 20px', borderBottom: '1px solid rgba(255,255,255,0.07)', display: 'flex', alignItems: 'flex-start', gap: 12, flexShrink: 0 }}>
               <span style={{ width: 32, height: 32, borderRadius: 9, fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', color: srcColor(drawerSession.source), background: `color-mix(in oklab, ${srcColor(drawerSession.source)} 14%, transparent)`, fontFamily: 'var(--font-mono)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>

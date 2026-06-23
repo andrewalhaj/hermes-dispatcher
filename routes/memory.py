@@ -140,13 +140,11 @@ def put_files(body: PutFilesBody):
 
 @router.get("/galaxy")
 def get_galaxy():
-    memory_text = _read_safe(MEMORY_FILE)
     user_text = _read_safe(USER_FILE)
     soul_text = _read_safe(SOUL_FILE)
     agents_text = _read_safe(AGENTS_FILE)
 
     nodes: list[dict] = []
-    nodes.extend(_parse_entries(memory_text, "hot", "mem"))
     nodes.extend(_parse_entries(user_text, "warm", "usr"))
     nodes.extend(_parse_entries(soul_text, "soul", "soul"))
     nodes.extend(_parse_entries(agents_text, "agents", "agents"))

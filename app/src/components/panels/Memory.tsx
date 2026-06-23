@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { ACCENT } from '../../data/agents'
 import { galaxyDecor } from '../../data/phase3'
 import type { GalaxyData, GalaxySelection, MemNode } from '../../data/phase3'
@@ -118,14 +118,22 @@ export default function Memory({ accent = ACCENT }: MemoryProps) {
   // Keep canvas always mounted (hidden behind editor) so the RAF loop persists
   const canvasRef = useGalaxy({ data: galaxyData, paused, selectedId: sel?.id ?? null, onSelect })
 
-  // Fetch galaxy data on mount
-  useEffect(() => {
+  const reloadGalaxy = useCallback(() => {
+    let cancelled = false
     setGalaxyLoading(true)
     fetchGalaxyData()
-      .then(setGalaxyData)
-      .catch(() => {/* silently show empty galaxy on network error */})
-      .finally(() => setGalaxyLoading(false))
+      .then((d) => { if (!cancelled) setGalaxyData(d) })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setGalaxyLoading(false) })
+    return () => { cancelled = true }
   }, [])
+
+  // Fetch galaxy data on mount and poll every 60s
+  useEffect(() => {
+    const cancel = reloadGalaxy()
+    const id = setInterval(reloadGalaxy, 60_000)
+    return () => { cancel(); clearInterval(id) }
+  }, [reloadGalaxy])
 
   // Fetch editor files when editor tab is first opened
   useEffect(() => {
@@ -179,6 +187,7 @@ export default function Memory({ accent = ACCENT }: MemoryProps) {
               : prev
           : prev
       )
+      reloadGalaxy()
     } catch {
       setStatus('Error ✗')
     } finally {
@@ -259,6 +268,17 @@ export default function Memory({ accent = ACCENT }: MemoryProps) {
           </div>
         )}
 
+        {/* Refresh button */}
+        <button
+          onClick={() => reloadGalaxy()}
+          title="Refresh galaxy"
+          style={{ position: 'absolute', right: 22, top: 18, zIndex: 5, background: 'rgba(12,17,25,0.78)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '7px 10px', fontFamily: 'inherit', fontSize: 14, lineHeight: 1, color: '#c6cad8', cursor: 'pointer', transition: 'border-color 0.15s' }}
+          onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.26)')}
+          onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)')}
+        >
+          ↻
+        </button>
+
         {/* Pause pill */}
         <button
           onClick={() => setPaused((p) => !p)}
@@ -274,7 +294,7 @@ export default function Memory({ accent = ACCENT }: MemoryProps) {
         {/* Selected node info card */}
         {sel && (
           <div
-            style={{ position: 'absolute', right: 22, bottom: 22, width: 300, background: 'rgba(13,18,28,0.92)', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.12)', borderLeft: `3px solid ${sel.color}`, borderRadius: 12, padding: 16, boxShadow: '0 16px 40px rgba(0,0,0,0.5)', zIndex: 6, animation: 'hdrawerin 0.24s var(--ease-out)' }}
+            style={{ position: 'absolute', right: 22, bottom: 22, width: 300, background: 'rgba(13,18,28,0.92)', backdropFilter: 'blur(10px)', border: '1px solid var(--tile-border)', borderLeft: `3px solid ${sel.color}`, borderRadius: 12, padding: 16, boxShadow: '0 16px 40px rgba(0,0,0,0.5)', zIndex: 6, animation: 'hdrawerin 0.24s var(--ease-out)' }}
           >
             <div className="flex items-center justify-between" style={{ gap: 10 }}>
               <span

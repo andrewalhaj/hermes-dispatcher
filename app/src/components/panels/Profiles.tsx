@@ -105,7 +105,7 @@ export default function Profiles({ accent }: ProfilesProps) {
                   className="relative overflow-hidden"
                   style={{
                     background: 'var(--s3)',
-                    border: '1px solid rgba(255,255,255,0.06)',
+                    border: '1px solid var(--tile-border)',
                     borderTop: `2px solid ${a.color}`,
                     borderRadius: 16,
                     padding: 16,
@@ -114,12 +114,12 @@ export default function Profiles({ accent }: ProfilesProps) {
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.transform = 'translateY(-4px)'
-                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.16)'
+                    e.currentTarget.style.borderColor = 'var(--tile-border-hover)'
                     e.currentTarget.style.boxShadow = '0 14px 34px rgba(0,0,0,0.45)'
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.transform = 'none'
-                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'
+                    e.currentTarget.style.borderColor = 'var(--tile-border)'
                     e.currentTarget.style.boxShadow = 'none'
                   }}
                 >
@@ -356,7 +356,7 @@ export default function Profiles({ accent }: ProfilesProps) {
               <div
                 style={{
                   background: 'rgba(255,255,255,0.03)',
-                  border: '1px solid rgba(255,255,255,0.07)',
+                  border: '1px solid var(--tile-border)',
                   borderRadius: 12,
                   overflow: 'hidden',
                 }}

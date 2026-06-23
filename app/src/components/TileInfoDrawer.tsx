@@ -75,7 +75,7 @@ export default function TileInfoDrawer() {
           width: 408,
           maxWidth: '92vw',
           background: '#0b0f17',
-          borderLeft: '1px solid rgba(255,255,255,0.1)',
+          borderLeft: '1px solid var(--tile-border)',
           boxShadow: '-22px 0 60px rgba(0,0,0,0.5)',
           display: 'flex',
           flexDirection: 'column',
@@ -169,7 +169,7 @@ export default function TileInfoDrawer() {
                 gap: 1,
                 marginTop: 20,
                 background: 'rgba(255,255,255,0.06)',
-                border: '1px solid rgba(255,255,255,0.06)',
+                border: '1px solid var(--tile-border)',
                 borderRadius: 11,
                 overflow: 'hidden',
               }}

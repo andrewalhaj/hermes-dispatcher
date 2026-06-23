@@ -351,7 +351,7 @@ export default function KanbanPanel({ accent }: KanbanPanelProps) {
                 minHeight: 0,
                 maxHeight: '100%',
                 background: forbidden ? 'rgba(251,111,111,0.06)' : over && !isLocked && !isVirtual ? `color-mix(in oklab, ${col.color} 9%, #0b0f18)` : '#0b0f18',
-                border: `1px solid ${forbidden ? '#fb6f6f' : over && !isLocked && !isVirtual ? col.color : 'rgba(255,255,255,0.07)'}`,
+                border: `1px solid ${forbidden ? '#fb6f6f' : over && !isLocked && !isVirtual ? col.color : 'var(--tile-border)'}`,
                 borderStyle: forbidden ? 'dashed' : 'solid',
                 borderRadius: 12,
                 overflow: 'hidden',
@@ -431,7 +431,7 @@ export default function KanbanPanel({ accent }: KanbanPanelProps) {
                       className="relative flex flex-none flex-col"
                       style={{
                         background: '#141a26',
-                        border: `1px solid ${stale === 'red' ? 'rgba(251,111,111,0.45)' : stale === 'amber' ? 'rgba(246,183,60,0.32)' : 'rgba(255,255,255,0.07)'}`,
+                        border: `1px solid ${stale === 'red' ? 'rgba(251,111,111,0.45)' : stale === 'amber' ? 'rgba(246,183,60,0.32)' : 'var(--tile-border)'}`,
                         borderRadius: 10,
                         padding: '12px 13px',
                         paddingLeft: 'calc(13px + 3px)',
@@ -444,12 +444,12 @@ export default function KanbanPanel({ accent }: KanbanPanelProps) {
                         animation: 'hdropswap 0.24s cubic-bezier(0.16,1,0.3,1)',
                       }}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)'
+                        e.currentTarget.style.borderColor = 'var(--tile-border-hover)'
                         e.currentTarget.style.boxShadow = '0 6px 20px rgba(0,0,0,0.4)'
                         e.currentTarget.style.transform = 'translateY(-2px)'
                       }}
                       onMouseLeave={(e) => {
-                        e.currentTarget.style.borderColor = stale === 'red' ? 'rgba(251,111,111,0.45)' : stale === 'amber' ? 'rgba(246,183,60,0.32)' : 'rgba(255,255,255,0.07)'
+                        e.currentTarget.style.borderColor = stale === 'red' ? 'rgba(251,111,111,0.45)' : stale === 'amber' ? 'rgba(246,183,60,0.32)' : 'var(--tile-border)'
                         e.currentTarget.style.boxShadow = stale === 'red' ? '0 0 0 1px rgba(251,111,111,0.4)' : 'none'
                         e.currentTarget.style.transform = 'none'
                       }}
@@ -551,7 +551,7 @@ export default function KanbanPanel({ accent }: KanbanPanelProps) {
             transform: 'translateX(-50%)',
             gap: 9,
             background: '#141a26',
-            border: '1px solid rgba(255,255,255,0.14)',
+            border: '1px solid var(--tile-border)',
             borderLeft: `3px solid ${accent}`,
             borderRadius: 10,
             padding: '12px 18px',

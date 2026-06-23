@@ -221,7 +221,7 @@ export default function Skills({ accent }: SkillsProps) {
             style={{
               position: 'absolute', top: 0, right: 0, bottom: 0, zIndex: 31,
               width: 452, maxWidth: '90%', background: '#0b0f17',
-              borderLeft: '1px solid rgba(255,255,255,0.1)',
+              borderLeft: '1px solid var(--tile-border)',
               boxShadow: '-22px 0 60px rgba(0,0,0,0.5)',
               minHeight: 0, animation: 'hdrawerin 0.3s cubic-bezier(0.16,1,0.3,1)',
             }}
