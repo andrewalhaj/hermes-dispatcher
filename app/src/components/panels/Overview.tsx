@@ -5,7 +5,7 @@ import { tileBlurb } from '../../data/info'
 import StatTile from '../overview/StatTile'
 import Sparkline from '../overview/Sparkline'
 import SwarmCanvas from '../overview/SwarmCanvas'
-import NeuroCanvas from '../overview/NeuroCanvas'
+import SparklesCore from '../overview/SparklesCore'
 import { useSystemMonitor } from '../overview/useSystemMonitor'
 import { useInfo } from '../TileInfoDrawer'
 import { useOverviewData } from '../overview/useOverviewData'
@@ -60,7 +60,14 @@ export default function Overview({ accent, navigateTo }: OverviewProps) {
               border: '1px solid rgba(255,255,255,0.08)',
             }}
           >
-            <NeuroCanvas />
+            <SparklesCore
+              particleColor="#ffffff"
+              particleDensity={90}
+              speed={0.6}
+              minSize={0.5}
+              maxSize={1.6}
+              className="absolute inset-0 w-full h-full"
+            />
             <div style={{ position: 'absolute', width: 280, height: 280, right: -60, top: -120, borderRadius: '50%', background: `radial-gradient(circle, color-mix(in oklab, ${accent} 30%, transparent), transparent 70%)`, pointerEvents: 'none', animation: 'hpulse 3s ease-in-out infinite' }} />
             <div style={{ position: 'absolute', width: 240, height: 240, left: -80, bottom: -140, borderRadius: '50%', background: 'radial-gradient(circle, rgba(155,140,255,0.22), transparent 70%)', pointerEvents: 'none', animation: 'hpulse 3s ease-in-out infinite 1.5s' }} />
             <div className="relative flex flex-wrap items-center justify-between" style={{ gap: 24 }}>

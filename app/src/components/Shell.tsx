@@ -101,7 +101,13 @@ function PanelView({ panel, accent, setAccent, setPanel }: { panel: PanelId; acc
 
 export default function Shell() {
   const [activePanel, setActivePanel] = useState<PanelId>('overview')
-  const [accent, setAccent] = useState<string>(ACCENT)
+  const [accent, setAccentRaw] = useState<string>(() => {
+    try { return localStorage.getItem('hermes-accent') || ACCENT } catch { return ACCENT }
+  })
+  const setAccent = (c: string) => {
+    setAccentRaw(c)
+    try { localStorage.setItem('hermes-accent', c) } catch { /* storage unavailable */ }
+  }
   const rows = useAgentRows(accent)
 
   return (

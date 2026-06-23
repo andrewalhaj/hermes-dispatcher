@@ -115,24 +115,22 @@ async def get_overview(
                 )
                 sparkline.append({"hour": i, "count": cur.fetchone()[0]})
 
-            cur.execute("SELECT COUNT(*) FROM tasks")
+            cur.execute(
+                "SELECT COUNT(*) FROM tasks WHERE started_at >= ?",
+                (today_epoch,),
+            )
             total_tasks: int = cur.fetchone()[0]
 
             cur.execute(
                 "SELECT assignee, COUNT(*) as cnt FROM tasks"
-                " WHERE assignee IS NOT NULL GROUP BY assignee ORDER BY cnt DESC"
+                " WHERE assignee IS NOT NULL AND started_at >= ?"
+                " GROUP BY assignee ORDER BY cnt DESC",
+                (today_epoch,),
             )
             rows = cur.fetchall()
-            existing_profiles = (
-                {p.name for p in PROFILES_DIR.iterdir() if p.is_dir()}
-                if PROFILES_DIR.exists()
-                else set()
-            )
 
             agent_breakdown: list = []
             for assignee, cnt in rows:
-                if existing_profiles and assignee not in existing_profiles:
-                    continue
                 agent_breakdown.append({'name': assignee, 'count': cnt})
 
             top_agents = [item['name'] for item in agent_breakdown[:5]]

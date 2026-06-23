@@ -14,9 +14,9 @@ import os
 import mimetypes
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, PlainTextResponse
+from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, RedirectResponse
 from fastapi.routing import APIRouter
 
 # ---------------------------------------------------------------------------
@@ -40,6 +40,35 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ---------------------------------------------------------------------------
+# Auth middleware
+# ---------------------------------------------------------------------------
+_AUTH_EXEMPT = {"/api/auth/login", "/api/auth/logout", "/api/auth/check", "/", "/index.html", "/favicon.ico"}
+
+@app.middleware("http")
+async def auth_gate(request: Request, call_next):
+    from routes.auth import SESSION_TOKEN  # imported late to avoid circular import
+    path = request.url.path
+
+    # Exempt paths
+    if path in _AUTH_EXEMPT or path.startswith("/assets/"):
+        return await call_next(request)
+
+    cookie = request.cookies.get("hd_session")
+    if cookie and cookie == SESSION_TOKEN:
+        return await call_next(request)
+
+    # Block: API paths get 401 JSON, SPA paths redirect to /
+    if path.startswith("/api/"):
+        return JSONResponse({"error": "Unauthorized"}, status_code=401)
+    return RedirectResponse("/", status_code=302)
+
+# ---------------------------------------------------------------------------
+# Auth router — registered BEFORE other routers
+# ---------------------------------------------------------------------------
+from routes.auth import router as auth_router
+app.include_router(auth_router, prefix="/api")
 
 # ---------------------------------------------------------------------------
 # /api router
