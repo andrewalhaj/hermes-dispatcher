@@ -65,10 +65,10 @@ export default function Overview({ accent, navigateTo }: OverviewProps) {
               variant="bottom"
               className="opacity-40"
               palette={{
-                rim: '#FFE8D2',
-                rimShadow: '0px -4px 23px 0px #ffd9b5b5',
-                mid: '#FF8A4C',
-                deep: '#E84880',
+                rim: '#B8FFE8',
+                rimShadow: '0px -4px 23px 0px #7fffd4b5',
+                mid: '#2DD4BF',
+                deep: '#7C3AED',
               }}
             />
 
