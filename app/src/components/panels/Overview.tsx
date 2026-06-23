@@ -9,6 +9,7 @@ import SparklesCore from '../overview/SparklesCore'
 import { useSystemMonitor } from '../overview/useSystemMonitor'
 import { useInfo } from '../TileInfoDrawer'
 import { useOverviewData } from '../overview/useOverviewData'
+import GlassTile from '../GlassTile'
 import type { PanelId } from '../../data/types'
 
 interface OverviewProps {
@@ -123,7 +124,8 @@ export default function Overview({ accent, navigateTo }: OverviewProps) {
 
           {/* Agent breakdown + activity heatmap */}
           <div style={{ display: 'grid', gridTemplateColumns: 'minmax(280px, 1fr) minmax(360px, 1.3fr)', gap: 16 }}>
-            <div
+            <GlassTile
+              padding="18px"
               onClick={() =>
                 openInfo({
                   category: 'Overview · Chart',
@@ -137,7 +139,6 @@ export default function Overview({ accent, navigateTo }: OverviewProps) {
                   ],
                 })
               }
-              style={{ background: 'var(--s3)', border: '1px solid var(--border)', borderRadius: 14, padding: 18, cursor: 'pointer' }}
             >
               <div style={{ ...cardLabelStyle, marginBottom: 14 }}>Agent Breakdown</div>
               <div className="flex flex-wrap items-center" style={{ gap: 18 }}>
@@ -164,11 +165,11 @@ export default function Overview({ accent, navigateTo }: OverviewProps) {
                   ))}
                 </div>
               </div>
-            </div>
+            </GlassTile>
 
             {ov.heatRows.length > 0 && (
-              <div
-                style={{ background: 'var(--s3)', border: '1px solid var(--border)', borderRadius: 14, padding: 18 }}
+              <GlassTile
+                padding="18px"
               >
                 <div className="flex items-center justify-between" style={{ marginBottom: 16 }}>
                   <div style={cardLabelStyle}>Agent Activity Heatmap</div>
@@ -214,14 +215,16 @@ export default function Overview({ accent, navigateTo }: OverviewProps) {
                     <span>More</span>
                   </div>
                 </div>
-              </div>
+              </GlassTile>
             )}
           </div>
 
           {/* System monitor + swarm */}
           <div style={{ display: 'grid', gridTemplateColumns: 'minmax(360px, 1.3fr) minmax(300px, 1fr)', gap: 16 }}>
             {/* System monitor */}
-            <div className="relative" style={{ background: 'var(--s3)', border: '1px solid var(--border)', borderRadius: 14, padding: 18 }}>
+            <GlassTile
+              padding="18px"
+            >
               <div className="flex items-center justify-between" style={{ marginBottom: 16 }}>
                 <div className="inline-flex items-center" style={{ gap: 8 }}>
                   <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#4ade80', boxShadow: '0 0 7px #4ade80', animation: 'blink 2s ease-in-out infinite' }} />
@@ -294,10 +297,11 @@ export default function Overview({ accent, navigateTo }: OverviewProps) {
                   </div>
                 </div>
               )}
-            </div>
+            </GlassTile>
 
             {/* Agent swarm */}
-            <div
+            <GlassTile
+              padding="18px"
               onClick={() =>
                 openInfo({
                   category: 'Overview · Live',
@@ -308,7 +312,6 @@ export default function Overview({ accent, navigateTo }: OverviewProps) {
                 })
               }
               className="relative overflow-hidden"
-              style={{ background: 'var(--s3)', border: '1px solid var(--border)', borderRadius: 14, minHeight: 286, cursor: 'pointer' }}
             >
               <SwarmCanvas accent={accent} />
               <div className="relative flex items-center justify-between" style={{ zIndex: 1, padding: 18 }}>
@@ -318,7 +321,7 @@ export default function Overview({ accent, navigateTo }: OverviewProps) {
                 </div>
                 <span style={{ fontSize: 10.5, color: '#9b8cff', background: 'rgba(155,140,255,0.1)', border: '1px solid rgba(155,140,255,0.28)', borderRadius: 6, padding: '2px 8px' }}>live coordination</span>
               </div>
-            </div>
+            </GlassTile>
           </div>
         </div>
       </div>

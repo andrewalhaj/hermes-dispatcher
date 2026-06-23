@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { ACCENT } from '../../data/agents'
 import type { InfoObject } from '../../data/info'
 import { useInfo } from '../TileInfoDrawer'
+import GlassTile from '../GlassTile'
 import '../../styles/phase3.css'
 
 interface InsightsAPI {
@@ -23,19 +24,13 @@ interface InsightsProps {
 }
 
 const cardLabel: React.CSSProperties = { fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#6a7088' }
-const cardBase: React.CSSProperties = {
-  background: 'var(--s3)', border: '1px solid var(--border)', borderRadius: 14, padding: 18,
-  transition: 'transform 0.28s cubic-bezier(0.16,1,0.3,1), border-color 0.28s, box-shadow 0.28s', cursor: 'pointer',
-}
 
 function hoverIn(e: React.MouseEvent<HTMLElement>) {
   e.currentTarget.style.transform = 'translateY(-4px)'
-  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.16)'
   e.currentTarget.style.boxShadow = '0 14px 34px rgba(0,0,0,0.45)'
 }
 function hoverOut(e: React.MouseEvent<HTMLElement>) {
   e.currentTarget.style.transform = 'none'
-  e.currentTarget.style.borderColor = 'var(--border)'
   e.currentTarget.style.boxShadow = 'none'
 }
 
@@ -159,7 +154,7 @@ export default function Insights({ accent = ACCENT }: InsightsProps) {
                 key={k.label}
                 onClick={() => open(k.info)}
                 className="relative overflow-hidden text-left"
-                style={{ background: 'var(--s3)', border: '1px solid var(--border)', borderRadius: 13, padding: '16px 17px', cursor: 'pointer', transition: 'transform 0.25s, border-color 0.25s, box-shadow 0.25s' }}
+                style={{ padding: '16px 17px', cursor: 'pointer', transition: 'transform 0.25s, border-color 0.25s, box-shadow 0.25s' }}
                 onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.16)'; e.currentTarget.style.boxShadow = '0 14px 34px rgba(0,0,0,0.45)' }}
                 onMouseLeave={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.boxShadow = 'none' }}
               >
@@ -172,7 +167,7 @@ export default function Insights({ accent = ACCENT }: InsightsProps) {
 
           {/* Activity by Day + Token Breakdown */}
           <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1.3fr) minmax(0,1fr)', gap: 16 }}>
-            <div style={cardBase} onClick={() => open(activityInfo)} onMouseEnter={hoverIn} onMouseLeave={hoverOut}>
+            <GlassTile style={{ cursor: 'pointer' }} onClick={() => open(activityInfo)} onMouseEnter={hoverIn} onMouseLeave={hoverOut}>
               <div className="flex items-center justify-between" style={{ marginBottom: 16 }}>
                 <div style={cardLabel}>Activity by Day</div>
                 <span style={{ fontSize: 10.5, color: '#2dd4bf', background: 'rgba(45,212,191,0.1)', border: '1px solid rgba(45,212,191,0.28)', borderRadius: 6, padding: '2px 8px' }}>Peak {peakEntry.date}</span>
@@ -182,9 +177,9 @@ export default function Insights({ accent = ACCENT }: InsightsProps) {
                   <div key={i} style={{ flex: 1, minWidth: 0, height: d.h, borderRadius: '3px 3px 0 0', background: d.bg }} />
                 ))}
               </div>
-            </div>
+            </GlassTile>
 
-            <div style={cardBase} onClick={() => open(tokenInfo)} onMouseEnter={hoverIn} onMouseLeave={hoverOut}>
+            <GlassTile style={{ cursor: 'pointer' }} onClick={() => open(tokenInfo)} onMouseEnter={hoverIn} onMouseLeave={hoverOut}>
               <div style={{ ...cardLabel, marginBottom: 16 }}>Token Breakdown</div>
               <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 26, color: 'var(--text-primary)', marginBottom: 16 }}>{fmtNum(tokensTotal)}</div>
               <div className="flex" style={{ height: 10, borderRadius: 99, overflow: 'hidden', background: 'rgba(255,255,255,0.05)', marginBottom: 14 }}>
@@ -201,11 +196,11 @@ export default function Insights({ accent = ACCENT }: InsightsProps) {
                   Output <b style={{ color: '#d4d8e4', fontWeight: 600 }}>{fmtNum(tokensOutput)}</b>
                 </span>
               </div>
-            </div>
+            </GlassTile>
           </div>
 
           {/* Skill usage */}
-          <div style={cardBase} onClick={() => open(skillsInfo)} onMouseEnter={hoverIn} onMouseLeave={hoverOut}>
+          <GlassTile style={{ cursor: 'pointer' }} onClick={() => open(skillsInfo)} onMouseEnter={hoverIn} onMouseLeave={hoverOut}>
             <div style={{ ...cardLabel, marginBottom: 14 }}>Skill Usage</div>
             <div className="flex flex-col" style={{ gap: 11 }}>
               {data.top_skills.map((sk) => (
@@ -222,7 +217,7 @@ export default function Insights({ accent = ACCENT }: InsightsProps) {
                 <div style={{ fontSize: 12, color: '#565d72' }}>No skill data yet</div>
               )}
             </div>
-          </div>
+          </GlassTile>
 
         </div>
       </div>
