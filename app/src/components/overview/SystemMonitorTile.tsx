@@ -46,13 +46,12 @@ const easeOutCubic = (t: number): number => 1 - Math.pow(1 - t, 3)
  */
 const KEYFRAMES = `
 @keyframes sysmon-glow-pulse {
-  0%, 100% { box-shadow: 0 0 0px 0px currentColor; opacity: 0.5; }
-  50%      { box-shadow: 0 0 8px 3px currentColor; opacity: 1;   }
+  0%, 100% { opacity: 0.5; transform: scale(0.9); }
+  50%      { opacity: 1;   transform: scale(1.1); }
 }
 @keyframes sysmon-dot-pulse {
-  0%   { box-shadow: 0 0 0 0 currentColor; opacity: 1;   }
-  70%  { box-shadow: 0 0 0 5px rgba(0,0,0,0); opacity: 0.6; }
-  100% { box-shadow: 0 0 0 0 rgba(0,0,0,0); opacity: 1;   }
+  0%, 100% { opacity: 1;    transform: scale(1);    }
+  50%      { opacity: 0.55; transform: scale(0.78); }
 }
 `
 
@@ -310,6 +309,7 @@ const IconGlow = ({ color, spike }: { color: string; spike: boolean }) => (
       color,
       background: `radial-gradient(circle, ${rgba(color, 0.28)} 0%, transparent 72%)`,
       animation: `sysmon-glow-pulse ${spike ? '0.6s' : '2s'} ease-in-out infinite`,
+      willChange: 'transform, opacity',
       pointerEvents: 'none',
     }}
   />
@@ -338,9 +338,15 @@ const ResourceCard = ({ metric }: { metric: SysMetric }) => {
     >
       <motion.div
         className="relative flex items-center justify-center rounded-md"
-        style={{ width: 28, height: 28, background: rgba(accent, 0.06) }}
+        style={{
+          width: 28,
+          height: 28,
+          // backgroundColor is a paint property — drive it via a CSS transition
+          // (not Framer's animate) so it never forces a compositor-incompatible tween.
+          background: hasSpike ? 'rgba(251,111,111,0.14)' : rgba(accent, 0.06),
+          transition: 'background 0.25s ease',
+        }}
         animate={{
-          backgroundColor: hasSpike ? 'rgba(251,111,111,0.14)' : rgba(accent, 0.06),
           scale: isHovered ? 1.1 : 1,
         }}
         transition={{ type: 'spring', stiffness: 400, damping: 25 }}
@@ -378,10 +384,15 @@ const AgentMemoryCard = ({ agent }: { agent: AgentMem }) => {
   return (
     <motion.div
       className="flex items-center gap-2 p-1.5 rounded-md"
+      style={{
+        // Hover tint via a CSS transition on background (paint property) instead
+        // of Framer's whileHover backgroundColor, which can't run on the compositor.
+        background: isHovered ? 'rgba(255,255,255,0.03)' : 'transparent',
+        transition: 'background 0.2s ease',
+      }}
       onHoverStart={() => setIsHovered(true)}
       onHoverEnd={() => setIsHovered(false)}
       transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-      whileHover={{ backgroundColor: 'rgba(255,255,255,0.03)' }}
     >
       <motion.div
         style={{ width: 8, height: 8, borderRadius: '50%', background: agent.color, flex: 'none' }}
@@ -423,6 +434,7 @@ const StatusDot = ({ state }: { state: 'healthy' | 'spike' | 'unreachable' }) =>
         color,
         display: 'inline-block',
         flex: 'none',
+        willChange: animated ? 'transform, opacity' : 'auto',
         animation: animated ? `sysmon-dot-pulse ${speed} ease-out infinite` : 'none',
       }}
     />

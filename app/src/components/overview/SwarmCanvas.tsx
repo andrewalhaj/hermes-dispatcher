@@ -177,10 +177,16 @@ export default function SwarmCanvas({ accent }: SwarmCanvasProps) {
       const w = canvas.clientWidth
       const h = canvas.clientHeight
       if (w >= 2 && h >= 2) {
-        if (canvas.width !== w || canvas.height !== h) {
-          canvas.width = w
-          canvas.height = h
+        // HiDPI/Retina: back the canvas with devicePixelRatio physical pixels,
+        // then scale the 2D context so all drawing coords stay in CSS pixels.
+        const dpr = window.devicePixelRatio || 1
+        const pw = Math.round(w * dpr)
+        const ph = Math.round(h * dpr)
+        if (canvas.width !== pw || canvas.height !== ph) {
+          canvas.width = pw
+          canvas.height = ph
         }
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
 
         reconcile(w, h)
 

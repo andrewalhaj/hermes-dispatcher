@@ -150,17 +150,19 @@ export default function NeuroCanvas() {
     // Seed initial canvas size from parent
     const parent = canvas.parentElement
     if (parent) {
-      canvas.width = parent.clientWidth || 800
-      canvas.height = parent.clientHeight || 400
+      const dpr = window.devicePixelRatio || 1
+      canvas.width = Math.round((parent.clientWidth || 800) * dpr)
+      canvas.height = Math.round((parent.clientHeight || 400) * dpr)
       dimsRef.current = { width: canvas.width, height: canvas.height }
     }
 
     // Keep canvas buffer in sync with container size
     const observer = new ResizeObserver((entries) => {
+      const dpr = window.devicePixelRatio || 1
       for (const entry of entries) {
         const { width, height } = entry.contentRect
-        const w = Math.round(width) || 1
-        const h = Math.round(height) || 1
+        const w = Math.round((width || 1) * dpr)
+        const h = Math.round((height || 1) * dpr)
         canvas.width = w
         canvas.height = h
         dimsRef.current = { width: w, height: h }
