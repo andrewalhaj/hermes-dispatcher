@@ -843,9 +843,13 @@ export default function Chat({ accent, isActive, onUnreadChange }: ChatProps) {
     try {
       const msgRes = await fetch(`/api/chat/sessions/${sid}/messages`)
       const msgs = await msgRes.json() as Message[]
-      setViewSession({ ...base, msgs })
+      const session = { ...base, msgs }
+      lastViewSessionRef.current = session
+      setViewSession(session)
     } catch {
-      setViewSession({ ...base, msgs: [] })
+      const session = { ...base, msgs: [] }
+      lastViewSessionRef.current = session
+      setViewSession(session)
     }
     localStorage.setItem('hermes-chat-last-session', sid)
   }
@@ -896,6 +900,9 @@ export default function Chat({ accent, isActive, onUnreadChange }: ChatProps) {
   const listRef = useRef<HTMLDivElement | null>(null)
   const bottomRef = useRef<HTMLDivElement | null>(null)
   const abortRef = useRef<AbortController | null>(null)
+  // Persists the last Hermes viewSession across agent switches so returning to
+  // 'default' doesn't show the empty "Pick up where you left off" screen.
+  const lastViewSessionRef = useRef<PastSession | null>(null)
 
   // ── Derive the active "agent" identity (header/avatar/colour) from live data.
   // `default` profile renders as "Hermes". The cron channel gets a synthetic
@@ -950,8 +957,43 @@ export default function Chat({ accent, isActive, onUnreadChange }: ChatProps) {
   // fire when isActive flips true so the first reveal lands at the bottom.
   useEffect(() => {
     if (displayThread.length === 0) return
-    bottomRef.current?.scrollIntoView({ behavior: 'instant' })
-  }, [displayThread.length, isActive])
+    // Don't auto-scroll while search overlay is open, or when exiting it
+    // (displayThread switches from search results → real thread, which would
+    // cause a jump-to-top before scrollIntoView fires).
+    if (searchMode) return
+    // Defer one frame: when display flips from none→flex, scrollIntoView in
+    // the same render cycle is a no-op because the element still has no layout.
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        bottomRef.current?.scrollIntoView({ behavior: 'instant' })
+      })
+    })
+  }, [displayThread.length, isActive, searchMode])
+
+  // Dedicated pin for when the panel becomes visible: force scroll regardless
+  // of whether displayThread.length changed (on fresh URL load the length may
+  // be identical between isActive=false and isActive=true so the combined
+  // effect above doesn't re-fire).
+  useEffect(() => {
+    if (!isActive) return
+    if (searchMode) return
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const el = listRef.current
+        if (el) el.scrollTop = el.scrollHeight
+      })
+    })
+  }, [isActive])
+
+  // When search closes, land back at the bottom of the real thread.
+  useEffect(() => {
+    if (searchMode) return
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        bottomRef.current?.scrollIntoView({ behavior: 'instant' })
+      })
+    })
+  }, [searchMode])
 
   useEffect(() => {
     ;(async () => {
@@ -992,9 +1034,13 @@ export default function Chat({ accent, isActive, onUnreadChange }: ChatProps) {
           try {
             const msgRes = await fetch(`/api/chat/sessions/${target.id}/messages`)
             const msgs = await msgRes.json() as Message[]
-            setViewSession({ ...target, msgs })
+            const session = { ...target, msgs }
+            lastViewSessionRef.current = session
+            setViewSession(session)
           } catch {
-            setViewSession({ ...target, msgs: [] })
+            const session = { ...target, msgs: [] }
+            lastViewSessionRef.current = session
+            setViewSession(session)
           }
           localStorage.setItem('hermes-chat-last-session', target.id)
         }
@@ -1058,7 +1104,13 @@ export default function Chat({ accent, isActive, onUnreadChange }: ChatProps) {
     setActiveAgent(key)
     setActiveCron(null)
     setCronOutput([])
-    setViewSession(null)
+    // When switching back to the Hermes channel, restore the last viewed session
+    // so the user doesn't land on "Pick up where you left off" after a tab switch.
+    if (key === 'default') {
+      setViewSession(lastViewSessionRef.current)
+    } else {
+      setViewSession(null)
+    }
     setUnreadCounts((prev) => (prev[key] ? { ...prev, [key]: 0 } : prev))
   }
 
@@ -1476,8 +1528,8 @@ export default function Chat({ accent, isActive, onUnreadChange }: ChatProps) {
         )
       })()}
 
-      {!searchMode && (
-      <div ref={listRef} style={{ flex: 1, minHeight: 0, overflowY: 'auto', scrollBehavior: 'auto', overflowX: 'hidden', padding: '14px 26px 22px', display: 'flex', flexDirection: 'column', gap: 0, position: 'relative', zIndex: 1 }}>
+      {/* Message list — always mounted to preserve scroll position; hidden behind search overlay */}
+      <div ref={listRef} style={{ flex: 1, minHeight: 0, overflowY: 'auto', scrollBehavior: 'auto', overflowX: 'hidden', padding: '14px 26px 22px', display: searchMode ? 'none' : 'flex', flexDirection: 'column', gap: 0, position: 'relative', zIndex: 1 }}>
         {displayThread.length === 0 && !running && !reportsLoading ? (
           // Show true "loading" spinner only while sessions are still being fetched (null = in-flight)
           activeAgent === 'default' && hermesSessions === null ? (
@@ -1674,7 +1726,6 @@ export default function Chat({ accent, isActive, onUnreadChange }: ChatProps) {
         )}
         <div ref={bottomRef} style={{ height: 0, flexShrink: 0 }} />
       </div>
-      )}
       {/* Composer — pinned to the bottom of the conversation column only */}
       {activeCron ? (
         <div style={{ flex: 'none', padding: '16px 22px 20px', position: 'relative', zIndex: 1 }}>
