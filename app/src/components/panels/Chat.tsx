@@ -963,13 +963,10 @@ export default function Chat({ accent, isActive, onUnreadChange }: ChatProps) {
   }
 
   // Pin on new messages arriving or panel becoming active/visible.
+  // Pin on new live SSE messages only (not bulk loads — those call pinToBottom directly).
   useEffect(() => {
-    if (displayThread.length === 0) return
-    if (searchMode) return
-    // Only auto-scroll on bulk async loads (reports, cron, session switch) when
-    // a live SSE message triggered the change — avoids the janky scroll-down
-    // animation when switching to executor/cron channels.
     if (!liveMessageRef.current) return
+    if (searchMode) return
     liveMessageRef.current = false
     requestAnimationFrame(() => requestAnimationFrame(pinToBottom))
   }, [displayThread.length, searchMode])
@@ -1086,6 +1083,7 @@ export default function Chat({ accent, isActive, onUnreadChange }: ChatProps) {
           at: m.created_at ? new Date(m.created_at * 1000).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : '',
         }))
         setAgentReports(prev => ({ ...prev, [activeAgent]: mapped }))
+        requestAnimationFrame(() => requestAnimationFrame(pinToBottom))
       })
       .catch(() => {})
       .finally(() => { if (!cancelled) setReportsLoading(false) })
@@ -1116,6 +1114,7 @@ export default function Chat({ accent, isActive, onUnreadChange }: ChatProps) {
       const res = await fetch('/api/cron/output')
       const data = await res.json() as CronOutputMsg[]
       setCronOutput(Array.isArray(data) ? data : [])
+      requestAnimationFrame(() => requestAnimationFrame(pinToBottom))
     } catch {
       setCronOutput([])
     } finally {
