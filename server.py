@@ -1,3 +1,11 @@
+import sentry_sdk
+
+sentry_sdk.init(
+    dsn="https://b8b278611e630a0baad50e7b7ce8c340@o4511599662399488.ingest.us.sentry.io/4511622655901696",
+    environment="production",
+    traces_sample_rate=0.1,
+)
+
 """
 Hermes Dispatcher — FastAPI backend
 ====================================
@@ -65,7 +73,24 @@ app.add_middleware(
 # ---------------------------------------------------------------------------
 # Auth middleware
 # ---------------------------------------------------------------------------
-_AUTH_EXEMPT={"/ap...n", "/api/auth/logout", "/api/auth/check", "/api/health", "/api/hooks/knowledge", "/api/hooks/honcho", "/", "/index.html", "/favicon.ico"}
+_AUTH_PREFIX = "/api/auth/"
+_AUTH_EXEMPT = {
+    _AUTH_PREFIX + "login",
+    _AUTH_PREFIX + "logout",
+    _AUTH_PREFIX + "check",
+    "/api/health",
+    "/api/hooks/knowledge",
+    "/api/hooks/honcho",
+    "/api/hooks/figma",
+    "/api/hooks/github",
+    "/api/hooks/sentry",
+    "/api/hooks/linear",
+    "/api/hooks/notify",
+    "/api/kanban/tasks",
+    "/",
+    "/index.html",
+    "/favicon.ico",
+}
 
 @app.middleware("http")
 async def auth_gate(request: Request, call_next):
@@ -157,8 +182,14 @@ app.include_router(media_router, prefix="/api")
 from routes.cron import router as cron_router
 app.include_router(cron_router, prefix="/api")
 
+from routes.sentry import router as sentry_router
+app.include_router(sentry_router, prefix="/api")
+
 from routes.hooks import router as hooks_router
 app.include_router(hooks_router, prefix="/api")
+
+from routes.notify import router as notify_router
+app.include_router(notify_router, prefix="/api")
 
 # ---------------------------------------------------------------------------
 # SPA static file fallback
@@ -184,6 +215,13 @@ async def spa_fallback(full_path: str) -> FileResponse | PlainTextResponse:
         status_code=503,
     )
 
+
+# ---------------------------------------------------------------------------
+# Sentry ASGI middleware — applied last so it wraps all other middleware
+# ---------------------------------------------------------------------------
+from sentry_sdk.integrations.asgi import SentryAsgiMiddleware
+
+app = SentryAsgiMiddleware(app)
 
 # ---------------------------------------------------------------------------
 # Entrypoint

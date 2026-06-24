@@ -38,3 +38,5 @@ _verify_*.py
 .vscode/
 .idea/
 .DS_Store
+data/
+*.bak-*

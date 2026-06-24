@@ -405,12 +405,33 @@ interface CronOutputMsg {
   file?: string
 }
 
+// One sentry alert message from /api/sentry/messages.
+interface SentryOutputMsg {
+  role: string
+  content: string
+  created_at: number
+  project: string
+  level: string
+  action: string
+  issue_url: string
+}
+
 // Clock icon for cron channels (inline SVG, our convention).
 function ClockIcon({ size = 15, color = 'currentColor' }: { size?: number; color?: string }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ flex: 'none' }}>
       <circle cx={12} cy={12} r={9} />
       <path d="M12 7v5l3 2" />
+    </svg>
+  )
+}
+
+// Bell icon for sentry alerts channel (inline SVG, same convention).
+function BellIcon({ size = 15, color = 'currentColor' }: { size?: number; color?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ flex: 'none' }}>
+      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+      <path d="M13.73 21a2 2 0 0 1-3.46 0" />
     </svg>
   )
 }
@@ -447,12 +468,14 @@ interface ChatSidebarProps {
   cronJobs: CronJob[]
   activeAgent: string
   activeCron: string | null
+  activeSentry: string | null
   swarmOpen: boolean
   unreadCounts: Record<string, number>
   collapsed: boolean
   onToggleSwarm: () => void
   onSelectAgent: (key: string) => void
   onSelectCron: () => void
+  onSelectSentry: () => void
   onToggleCollapsed: () => void
 }
 
@@ -495,7 +518,7 @@ function GroupHeader({ label }: { label: string }) {
   )
 }
 
-function ChatSidebar({ accent, liveAgents, cronJobs, activeAgent, activeCron, swarmOpen, unreadCounts, collapsed, onToggleSwarm, onSelectAgent, onSelectCron, onToggleCollapsed }: ChatSidebarProps) {
+function ChatSidebar({ accent, liveAgents, cronJobs, activeAgent, activeCron, activeSentry, swarmOpen, unreadCounts, collapsed, onToggleSwarm, onSelectAgent, onSelectCron, onSelectSentry, onToggleCollapsed }: ChatSidebarProps) {
   const [filter, setFilter] = useState('')
   const q = filter.trim().toLowerCase()
 
@@ -513,6 +536,7 @@ function ChatSidebar({ accent, liveAgents, cronJobs, activeAgent, activeCron, sw
   }
   const showHermes = !q || (hermes ? matchAgent(hermes, 'Hermes') : 'hermes'.includes(q))
   const showCron = !q || 'cron jobs'.includes(q) || 'cron'.includes(q)
+  const showSentry = !q || 'sentry'.includes(q)
   const visibleAgents = nonSwarm.filter((a) => matchAgent(a))
   const visibleSwarm = swarm.filter((a) => matchAgent(a))
 
@@ -648,7 +672,7 @@ function ChatSidebar({ accent, liveAgents, cronJobs, activeAgent, activeCron, sw
         : agentRow({ name: 'default', role: 'Coordinator', model: '', avatar: 'H', color: accent, status: 'online' }, 'Hermes'))}
 
       {/* CHANNELS */}
-      {!collapsed && showCron && <GroupHeader label="Channels" />}
+      {!collapsed && (showCron || showSentry) && <GroupHeader label="Channels" />}
       {showCron && (() => {
         const selected = activeCron === 'cron'
         const cronAvatar = (
@@ -693,6 +717,56 @@ function ChatSidebar({ accent, liveAgents, cronJobs, activeAgent, activeCron, sw
                     padding: '0 5px', flexShrink: 0,
                   }}>
                     {unreadCounts['cron']}
+                  </span>
+                )}
+              </span>
+            </span>
+          </div>
+        )
+      })()}
+      {showSentry && (() => {
+        const selected = activeSentry === 'sentry'
+        const sentryColor = '#f87171'
+        const sentryAvatar = (
+          <span style={{ position: 'relative', width: collapsed ? 40 : 44, height: collapsed ? 40 : 44, flex: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', background: `color-mix(in oklab, ${sentryColor} 16%, transparent)`, border: `1px solid color-mix(in oklab, ${sentryColor} 42%, transparent)`, color: sentryColor }}>
+            <BellIcon size={collapsed ? 20 : 22} color={sentryColor} />
+          </span>
+        )
+        if (collapsed) {
+          return railRow('sentry', selected, onSelectSentry, sentryAvatar, 'Sentry', unreadCounts['sentry'] || 0)
+        }
+        const now = new Date()
+        const timeStr = now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })
+        return (
+          <div
+            onClick={onSelectSentry}
+            title="Sentry error alerts from webhook"
+            style={{
+              display: 'flex', alignItems: 'center', gap: 12,
+              padding: '10px 12px 10px 13px', cursor: 'pointer',
+              background: selected ? 'rgba(246,183,60,0.12)' : 'transparent',
+              transition: 'background 0.14s',
+            }}
+            onMouseEnter={(e) => { if (!selected) e.currentTarget.style.background = 'rgba(255,255,255,0.05)' }}
+            onMouseLeave={(e) => { if (!selected) e.currentTarget.style.background = selected ? 'rgba(246,183,60,0.12)' : 'transparent' }}
+          >
+            {sentryAvatar}
+            <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+                <span style={{ fontSize: 14, fontWeight: 700, color: selected ? '#f7e9c6' : '#e4e6ee', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>Sentry</span>
+                <span style={{ fontSize: 11, color: '#565d72', flex: 'none' }}>{timeStr}</span>
+              </span>
+              <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+                <span style={{ fontSize: 12, color: '#9298ab', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>Error alerts</span>
+                {(unreadCounts['sentry'] || 0) > 0 && (
+                  <span style={{
+                    minWidth: 20, height: 20, borderRadius: 10,
+                    background: '#3b82f6', color: '#fff',
+                    fontSize: 11, fontWeight: 700,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    padding: '0 5px', flexShrink: 0,
+                  }}>
+                    {unreadCounts['sentry']}
                   </span>
                 )}
               </span>
@@ -759,6 +833,11 @@ export default function Chat({ accent, isActive, onUnreadChange }: ChatProps) {
   const [activeCron, setActiveCron] = useState<string | null>(null)
   const [cronOutput, setCronOutput] = useState<CronOutputMsg[]>([])
   const [cronLoading, setCronLoading] = useState(false)
+
+  // When the sentry channel is selected: 'sentry'; else null.
+  const [activeSentry, setActiveSentry] = useState<string | null>(null)
+  const [sentryOutput, setSentryOutput] = useState<SentryOutputMsg[]>([])
+  const [sentryLoading, setSentryLoading] = useState(false)
 
   // Per-agent Kanban task reports (rendered as a message feed in worker channels).
   const [agentReports, setAgentReports] = useState<Record<string, Message[]>>({})
@@ -840,7 +919,9 @@ export default function Chat({ accent, isActive, onUnreadChange }: ChatProps) {
     const base: PastSession = known ?? { id: sid, title: title || sid, when: '', msgs: [] }
     setActiveAgent('default')
     setActiveCron(null)
+    setActiveSentry(null)
     setCronOutput([])
+    setSentryOutput([])
     try {
       const msgRes = await fetch(`/api/chat/sessions/${sid}/messages`)
       const msgs = await msgRes.json() as Message[]
@@ -909,8 +990,10 @@ export default function Chat({ accent, isActive, onUnreadChange }: ChatProps) {
   // `default` profile renders as "Hermes". The cron channel gets a synthetic
   // identity so the header/message rendering still works in read-only mode.
   const liveActive = liveAgents.find((a) => a.name === activeAgent)
-  const agent = activeCron
-    ? { name: 'Cron Jobs', role: 'Read-only · all scheduled jobs', color: '#9b8cff', icon: '◷' }
+  const agent = activeSentry
+    ? { name: 'Sentry', role: 'Read-only · error alerts', color: '#f87171', icon: '🔔' }
+    : activeCron
+      ? { name: 'Cron Jobs', role: 'Read-only · all scheduled jobs', color: '#9b8cff', icon: '◷' }
     : liveActive
       ? {
           name: liveActive.name === 'default' ? 'Hermes' : liveActive.name,
@@ -924,18 +1007,29 @@ export default function Chat({ accent, isActive, onUnreadChange }: ChatProps) {
   const cronEpochWhen = (epoch: number) => {
     try { return new Date(epoch * 1000).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true }) } catch { return '' }
   }
-  const baseThread = activeCron
-    ? (cronLoading
-        ? [{ id: 'cron-loading', role: 'agent' as const, text: 'Loading cron output…', at: '' }]
-        : cronOutput.length === 0
-          ? [{ id: 'cron-empty', role: 'agent' as const, text: '(no recent cron output)', at: '' }]
-          : cronOutput.map((m, i) => ({
-              id: `cron-${m.job_id}-${i}`,
+  const baseThread = activeSentry
+    ? (sentryLoading
+        ? [{ id: 'sentry-loading', role: 'agent' as const, text: 'Loading Sentry alerts…', at: '' }]
+        : sentryOutput.length === 0
+          ? [{ id: 'sentry-empty', role: 'agent' as const, text: '(no recent Sentry alerts)', at: '' }]
+          : sentryOutput.map((m, i) => ({
+              id: `sentry-${i}`,
               role: 'agent' as const,
-              text: `**[${m.job_id}]**${m.file ? ` ${m.file}` : ''}\n\n${m.content}`,
+              text: m.content + (m.issue_url ? `\n\n${m.issue_url}` : ''),
               at: cronEpochWhen(m.created_at),
             })))
-    : viewSession
+    : activeCron
+      ? (cronLoading
+          ? [{ id: 'cron-loading', role: 'agent' as const, text: 'Loading cron output…', at: '' }]
+          : cronOutput.length === 0
+            ? [{ id: 'cron-empty', role: 'agent' as const, text: '(no recent cron output)', at: '' }]
+            : cronOutput.map((m, i) => ({
+                id: `cron-${m.job_id}-${i}`,
+                role: 'agent' as const,
+                text: `**[${m.job_id}]**${m.file ? ` ${m.file}` : ''}\n\n${m.content}`,
+                at: cronEpochWhen(m.created_at),
+              })))
+      : viewSession
       ? viewSession.msgs.map((m, i) => ({ id: `v${i}`, ...m }))
       : activeAgent === 'default'
         ? thread
@@ -1080,7 +1174,7 @@ export default function Chat({ accent, isActive, onUnreadChange }: ChatProps) {
 
   // Load a worker agent's Kanban task reports when its channel is selected.
   useEffect(() => {
-    if (activeAgent === 'default' || activeCron) return
+    if (activeAgent === 'default' || activeCron || activeSentry) return
     let cancelled = false
     setReportsLoading(true)
     fetch(`/api/kanban/agent-reports/${activeAgent}`)
@@ -1103,7 +1197,9 @@ export default function Chat({ accent, isActive, onUnreadChange }: ChatProps) {
   function selectAgent(key: string) {
     setActiveAgent(key)
     setActiveCron(null)
+    setActiveSentry(null)
     setCronOutput([])
+    setSentryOutput([])
     // When switching back to the Hermes channel, restore the last viewed session
     // so the user doesn't land on "Pick up where you left off" after a tab switch.
     if (key === 'default') {
@@ -1116,6 +1212,7 @@ export default function Chat({ accent, isActive, onUnreadChange }: ChatProps) {
 
   async function selectCron() {
     setActiveCron('cron')
+    setActiveSentry(null)
     setViewSession(null)
     setCronOutput([])
     setCronLoading(true)
@@ -1128,6 +1225,24 @@ export default function Chat({ accent, isActive, onUnreadChange }: ChatProps) {
       setCronOutput([])
     } finally {
       setCronLoading(false)
+    }
+  }
+
+  async function selectSentry() {
+    setActiveSentry('sentry')
+    setActiveCron(null)
+    setViewSession(null)
+    setSentryOutput([])
+    setSentryLoading(true)
+    setUnreadCounts((prev) => (prev['sentry'] ? { ...prev, sentry: 0 } : prev))
+    try {
+      const res = await fetch('/api/sentry/messages')
+      const data = await res.json() as SentryOutputMsg[]
+      setSentryOutput(Array.isArray(data) ? data : [])
+    } catch {
+      setSentryOutput([])
+    } finally {
+      setSentryLoading(false)
     }
   }
 
@@ -1180,7 +1295,7 @@ export default function Chat({ accent, isActive, onUnreadChange }: ChatProps) {
       setUnreadCounts((prev) => ({ ...prev, [k]: (prev[k] || 0) + 1 }))
     }
     if (document.hidden && 'Notification' in window && Notification.permission === 'granted') {
-      const agentLabel = k === 'default' ? 'Hermes' : k === 'cron' ? 'Cron Jobs' : k
+      const agentLabel = k === 'default' ? 'Hermes' : k === 'cron' ? 'Cron Jobs' : k === 'sentry' ? 'Sentry' : k
       const preview = (lastMsgTextRef.current || '').slice(0, 80)
       try {
         const notif = new Notification(agentLabel, {
@@ -1332,12 +1447,14 @@ export default function Chat({ accent, isActive, onUnreadChange }: ChatProps) {
         cronJobs={cronJobs}
         activeAgent={activeAgent}
         activeCron={activeCron}
+        activeSentry={activeSentry}
         swarmOpen={swarmOpen}
         unreadCounts={unreadCounts}
         collapsed={sidebarCollapsed}
         onToggleSwarm={() => setSwarmOpen((v) => !v)}
         onSelectAgent={selectAgent}
         onSelectCron={selectCron}
+        onSelectSentry={selectSentry}
         onToggleCollapsed={() => setSidebarCollapsed((v) => { const next = !v; lsSet('chat-sidebar-collapsed', next ? '1' : '0'); return next })}
       />
     <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', minHeight: 0, position: 'relative' }}>
@@ -1727,11 +1844,11 @@ export default function Chat({ accent, isActive, onUnreadChange }: ChatProps) {
         <div ref={bottomRef} style={{ height: 0, flexShrink: 0 }} />
       </div>
       {/* Composer — pinned to the bottom of the conversation column only */}
-      {activeCron ? (
+      {activeCron || activeSentry ? (
         <div style={{ flex: 'none', padding: '16px 22px 20px', position: 'relative', zIndex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 9, padding: '14px 16px', background: '#11151f', border: '1px solid var(--tile-border)', borderRadius: 16, color: '#6a7088', fontSize: 13 }}>
-            <ClockIcon size={15} color="#6a7088" />
-            Read-only · Cron output
+            {activeSentry ? <BellIcon size={15} color="#6a7088" /> : <ClockIcon size={15} color="#6a7088" />}
+            Read-only · {activeSentry ? 'Sentry alerts' : 'Cron output'}
           </div>
         </div>
       ) : (
