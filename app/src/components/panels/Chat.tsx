@@ -278,6 +278,8 @@ function MessageContent({ text, accent }: { text: string; accent: string }) {
 
 interface ChatProps {
   accent: string
+  isActive?: boolean
+  onUnreadChange?: (total: number) => void
 }
 
 // ── Read/delivered tick (echoes reference CheckCheck / Check) ─────────────────
@@ -302,16 +304,6 @@ function SmilePlusIcon({ size = 16, color = 'currentColor' }: { size?: number; c
       <line x1={9} y1={9} x2={9.01} y2={9} />
       <line x1={15} y1={9} x2={15.01} y2={9} />
       <path d="M16 5h6M19 2v6" />
-    </svg>
-  )
-}
-
-function UsersIcon({ size = 16, color = 'currentColor' }: { size?: number; color?: string }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ flex: 'none' }}>
-      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-      <circle cx={9} cy={7} r={4} />
-      <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
     </svg>
   )
 }
@@ -403,11 +395,13 @@ interface CronJob {
   lastRunAt?: string
 }
 
-// Status dot color/glow from a live agent status.
-function statusDot(status: string): { color: string; glow: string } {
-  if (status === 'busy') return { color: '#f6b73c', glow: '0 0 8px #f6b73c' }
-  if (status === 'online') return { color: '#4ade80', glow: '0 0 8px #4ade80' }
-  return { color: '#565d72', glow: 'none' }
+// One run's output in the combined cron feed (/api/cron/output).
+interface CronOutputMsg {
+  role: string
+  content: string
+  created_at: number
+  job_id: string
+  file?: string
 }
 
 // Clock icon for cron channels (inline SVG, our convention).
@@ -420,36 +414,31 @@ function ClockIcon({ size = 15, color = 'currentColor' }: { size?: number; color
   )
 }
 
-// Small avatar circle: colored disc with the participant's initial.
-function Avatar({ letter, color, size = 28, dot, dotGlow }: { letter: string; color: string; size?: number; dot?: string; dotGlow?: string }) {
-  return (
-    <span style={{ position: 'relative', width: size, height: size, flex: 'none' }}>
-      <span
-        style={{
-          width: size, height: size, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: size * 0.46, fontWeight: 700, fontFamily: 'var(--font-display)',
-          background: `color-mix(in oklab, ${color} 18%, transparent)`,
-          border: `1px solid color-mix(in oklab, ${color} 45%, transparent)`,
-          color,
-        }}
-      >
-        {letter}
-      </span>
-      {dot && (
-        <span
-          style={{
-            position: 'absolute', bottom: -1, right: -1, width: 8, height: 8, borderRadius: '50%',
-            background: dot, boxShadow: dotGlow ?? 'none', border: '1.5px solid #080b11',
-          }}
-        />
-      )}
-    </span>
-  )
-}
-
 const clone = <T,>(o: T): T => JSON.parse(JSON.stringify(o)) as T
 
 // ── Left sidebar: Hermes / Channels / Agents (+ collapsible Swarm) ───────────
+
+function statusDot(status: string): { color: string; glow: string } {
+  if (status === 'busy') return { color: '#f6b73c', glow: '0 0 8px #f6b73c' }
+  if (status === 'online') return { color: '#4ade80', glow: '0 0 8px #4ade80' }
+  return { color: '#565d72', glow: 'none' }
+}
+
+interface AvatarProps { letter: string; color: string; size: number; dot?: string; dotGlow?: string }
+function Avatar({ letter, color, size, dot, dotGlow }: AvatarProps) {
+  return (
+    <span style={{ position: 'relative', width: size, height: size, flex: 'none' }}>
+      <span style={{
+        width: size, height: size, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: size * 0.5, fontWeight: 700, fontFamily: 'var(--font-display)',
+        background: `color-mix(in oklab, ${color} 16%, transparent)`,
+        border: `1px solid color-mix(in oklab, ${color} 42%, transparent)`,
+        color,
+      }}>{letter}</span>
+      {dot && <span style={{ position: 'absolute', bottom: 0, right: 0, width: 10, height: 10, borderRadius: '50%', background: dot, boxShadow: dotGlow || 'none', border: '2px solid #080b11' }} />}
+    </span>
+  )
+}
 
 interface ChatSidebarProps {
   accent: string
@@ -458,9 +447,12 @@ interface ChatSidebarProps {
   activeAgent: string
   activeCron: string | null
   swarmOpen: boolean
+  unreadCounts: Record<string, number>
+  searchMode: boolean
   onToggleSwarm: () => void
   onSelectAgent: (key: string) => void
-  onSelectCron: (job: CronJob) => void
+  onSelectCron: () => void
+  onToggleSearch: () => void
 }
 
 function GroupHeader({ label }: { label: string }) {
@@ -471,34 +463,60 @@ function GroupHeader({ label }: { label: string }) {
   )
 }
 
-function ChatSidebar({ accent, liveAgents, cronJobs, activeAgent, activeCron, swarmOpen, onToggleSwarm, onSelectAgent, onSelectCron }: ChatSidebarProps) {
+function ChatSidebar({ accent, liveAgents, cronJobs, activeAgent, activeCron, swarmOpen, unreadCounts, searchMode, onToggleSwarm, onSelectAgent, onSelectCron, onToggleSearch }: ChatSidebarProps) {
   const hermes = liveAgents.find((a) => a.name === 'default')
   const others = liveAgents.filter((a) => a.name !== 'default')
   const nonSwarm = others.filter((a) => !a.name.startsWith('swarm-'))
   const swarm = others.filter((a) => a.name.startsWith('swarm-'))
 
-  // A selectable agent row.
+  // A selectable agent row — Telegram-style (large avatar, name + preview, timestamp, badge).
   const agentRow = (a: LiveAgent, label?: string) => {
     const selected = !activeCron && activeAgent === a.name
     const d = statusDot(a.status)
+    const now = new Date()
+    const timeStr = now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
     return (
       <div
         key={a.name}
         onClick={() => onSelectAgent(a.name)}
         style={{
-          position: 'relative', display: 'flex', alignItems: 'center', gap: 10,
-          padding: '7px 12px 7px 13px', cursor: 'pointer',
-          background: selected ? 'rgba(246,183,60,0.10)' : 'transparent',
+          display: 'flex', alignItems: 'center', gap: 12,
+          padding: '10px 12px 10px 13px', cursor: 'pointer',
+          background: selected ? 'rgba(246,183,60,0.12)' : 'transparent',
           transition: 'background 0.14s',
         }}
         onMouseEnter={(e) => { if (!selected) e.currentTarget.style.background = 'rgba(255,255,255,0.05)' }}
-        onMouseLeave={(e) => { if (!selected) e.currentTarget.style.background = 'transparent' }}
+        onMouseLeave={(e) => { if (!selected) e.currentTarget.style.background = selected ? 'rgba(246,183,60,0.12)' : 'transparent' }}
       >
-        {selected && <span style={{ position: 'absolute', left: 0, top: 6, bottom: 6, width: 3, borderRadius: 2, background: accent }} />}
-        <Avatar letter={a.avatar} color={a.color} size={28} dot={d.color} dotGlow={d.glow} />
-        <span style={{ flex: 1, minWidth: 0 }}>
-          <span style={{ display: 'block', fontSize: 13, fontWeight: 600, color: selected ? '#f7e9c6' : '#e4e6ee', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label ?? a.name}</span>
-          <span style={{ display: 'block', fontSize: 10.5, color: '#6a7088', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.role}</span>
+        {/* Avatar — 44px circle */}
+        <Avatar letter={a.avatar} color={a.color} size={44} dot={d.color} dotGlow={d.glow} />
+
+        {/* Middle: name + subtitle */}
+        <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+            <span style={{ fontSize: 14, fontWeight: 700, color: selected ? '#f7e9c6' : '#e4e6ee', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+              {label ?? a.name}
+            </span>
+            {/* Timestamp top-right */}
+            <span style={{ fontSize: 11, color: '#565d72', flex: 'none' }}>{timeStr}</span>
+          </span>
+          <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+            <span style={{ fontSize: 12, color: '#9298ab', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+              {a.role}
+            </span>
+            {/* Unread badge bottom-right */}
+            {(unreadCounts[a.name] || 0) > 0 && (
+              <span style={{
+                minWidth: 20, height: 20, borderRadius: 10,
+                background: '#3b82f6', color: '#fff',
+                fontSize: 11, fontWeight: 700,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                padding: '0 5px', flexShrink: 0,
+              }}>
+                {unreadCounts[a.name]}
+              </span>
+            )}
+          </span>
         </span>
       </div>
     )
@@ -507,53 +525,81 @@ function ChatSidebar({ accent, liveAgents, cronJobs, activeAgent, activeCron, sw
   return (
     <aside
       style={{
-        flex: 'none', width: 210, display: 'flex', flexDirection: 'column', minHeight: 0,
-        borderRight: '1px solid var(--tile-border)', background: 'rgba(12,17,25,0.5)',
+        flex: 'none', width: 252, display: 'flex', flexDirection: 'column', minHeight: 0,
+        borderRight: '1px solid var(--tile-border)', background: 'var(--s3)',
         overflowY: 'auto', overflowX: 'hidden',
       }}
     >
+      {/* Search button pinned to top of sidebar */}
+      <div style={{ flex: 'none', padding: '12px 12px 4px', display: 'flex', justifyContent: 'flex-end' }}>
+        <button
+          onClick={onToggleSearch}
+          title={searchMode ? 'Close search' : 'Search messages, references, and skills'}
+          style={{
+            width: 28, height: 28, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            background: searchMode ? 'color-mix(in oklab, var(--ac) 14%, transparent)' : 'transparent',
+            border: `1px solid ${searchMode ? 'color-mix(in oklab, var(--ac) 38%, transparent)' : 'rgba(255,255,255,0.08)'}`,
+            borderRadius: 7, cursor: 'pointer', color: searchMode ? 'var(--ac)' : '#565d72', transition: 'all 0.16s',
+          }}
+          onMouseEnter={(e) => { if (!searchMode) { e.currentTarget.style.color = '#e9ebf2'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.18)' } }}
+          onMouseLeave={(e) => { if (!searchMode) { e.currentTarget.style.color = '#565d72'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)' } }}
+        >
+          <SearchIcon size={13} />
+        </button>
+      </div>
       {/* HERMES */}
       <GroupHeader label="Hermes" />
       {hermes
         ? agentRow(hermes, 'Hermes')
         : agentRow({ name: 'default', role: 'Coordinator', model: '', avatar: 'H', color: accent, status: 'online' }, 'Hermes')}
 
-      {/* CHANNELS (cron jobs) */}
+      {/* CHANNELS — single aggregated "Cron Jobs" entry (Telegram-style row) */}
       <GroupHeader label="Channels" />
-      {cronJobs.length === 0 ? (
-        <div style={{ padding: '4px 14px 8px', fontSize: 11.5, color: '#565d72' }}>No cron jobs</div>
-      ) : (
-        cronJobs.map((c) => {
-          const selected = activeCron === c.id
-          const dot = c.enabled ? '#4ade80' : '#565d72'
-          const dotGlow = c.enabled ? '0 0 8px #4ade80' : 'none'
-          return (
-            <div
-              key={c.id}
-              onClick={() => onSelectCron(c)}
-              title={c.schedule ? `Schedule: ${c.schedule}` : c.name}
-              style={{
-                position: 'relative', display: 'flex', alignItems: 'center', gap: 10,
-                padding: '7px 12px 7px 13px', cursor: 'pointer',
-                background: selected ? 'rgba(246,183,60,0.10)' : 'transparent',
-                transition: 'background 0.14s',
-              }}
-              onMouseEnter={(e) => { if (!selected) e.currentTarget.style.background = 'rgba(255,255,255,0.05)' }}
-              onMouseLeave={(e) => { if (!selected) e.currentTarget.style.background = 'transparent' }}
-            >
-              {selected && <span style={{ position: 'absolute', left: 0, top: 6, bottom: 6, width: 3, borderRadius: 2, background: accent }} />}
-              <span style={{ position: 'relative', width: 28, height: 28, flex: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', background: 'color-mix(in oklab, #9b8cff 16%, transparent)', border: '1px solid color-mix(in oklab, #9b8cff 42%, transparent)', color: '#9b8cff' }}>
-                <ClockIcon size={14} color="#9b8cff" />
-                <span style={{ position: 'absolute', bottom: -1, right: -1, width: 8, height: 8, borderRadius: '50%', background: dot, boxShadow: dotGlow, border: '1.5px solid #080b11' }} />
+      {(() => {
+        const selected = activeCron === 'cron'
+        const now = new Date()
+        const timeStr = now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+        return (
+          <div
+            onClick={onSelectCron}
+            title="Combined output feed from all scheduled cron jobs"
+            style={{
+              display: 'flex', alignItems: 'center', gap: 12,
+              padding: '10px 12px 10px 13px', cursor: 'pointer',
+              background: selected ? 'rgba(246,183,60,0.12)' : 'transparent',
+              transition: 'background 0.14s',
+            }}
+            onMouseEnter={(e) => { if (!selected) e.currentTarget.style.background = 'rgba(255,255,255,0.05)' }}
+            onMouseLeave={(e) => { if (!selected) e.currentTarget.style.background = selected ? 'rgba(246,183,60,0.12)' : 'transparent' }}
+          >
+            {/* Clock-icon avatar — 44px */}
+            <span style={{ position: 'relative', width: 44, height: 44, flex: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', background: 'color-mix(in oklab, #9b8cff 16%, transparent)', border: '1px solid color-mix(in oklab, #9b8cff 42%, transparent)', color: '#9b8cff' }}>
+              <ClockIcon size={22} color="#9b8cff" />
+            </span>
+            {/* Middle: name + subtitle */}
+            <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+                <span style={{ fontSize: 14, fontWeight: 700, color: selected ? '#f7e9c6' : '#e4e6ee', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>Cron Jobs</span>
+                <span style={{ fontSize: 11, color: '#565d72', flex: 'none' }}>{timeStr}</span>
               </span>
-              <span style={{ flex: 1, minWidth: 0 }}>
-                <span style={{ display: 'block', fontSize: 13, fontWeight: 600, color: selected ? '#f7e9c6' : '#e4e6ee', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</span>
-                <span style={{ display: 'block', fontSize: 10.5, color: '#6a7088', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: 'IBM Plex Mono, monospace' }}>{c.schedule || 'cron'}</span>
+              <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+                <span style={{ fontSize: 12, color: '#9298ab', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{cronJobs.length} scheduled</span>
+                {(unreadCounts['cron'] || 0) > 0 && (
+                  <span style={{
+                    minWidth: 20, height: 20, borderRadius: 10,
+                    background: '#3b82f6', color: '#fff',
+                    fontSize: 11, fontWeight: 700,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    padding: '0 5px', flexShrink: 0,
+                  }}>
+                    {unreadCounts['cron']}
+                  </span>
+                )}
               </span>
-            </div>
-          )
-        })
-      )}
+            </span>
+          </div>
+        )
+      })()}
 
       {/* AGENTS */}
       <GroupHeader label="Agents" />
@@ -585,7 +631,7 @@ function ChatSidebar({ accent, liveAgents, cronJobs, activeAgent, activeCron, sw
   )
 }
 
-export default function Chat({ accent }: ChatProps) {
+export default function Chat({ accent, isActive, onUnreadChange }: ChatProps) {
   const [activeAgent, setActiveAgent] = useState('default')
   const [threads, setThreads] = useState<Record<string, Message[]>>(() => clone(INITIAL_THREADS))
   const [draft, setDraft] = useState('')
@@ -598,18 +644,24 @@ export default function Chat({ accent }: ChatProps) {
   const [planMainOpen, setPlanMainOpen] = useState<Record<string, boolean>>({})
   const [planStepOpen, setPlanStepOpen] = useState<Record<string, boolean>>({})
 
+  // Per-agent/channel unread message counts (badge state).
+  const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({})
+  // Accumulated SSE text for the in-flight agent message — available at `done`
+  // time for the browser-notification preview (thread state updates are async).
+  const lastMsgTextRef = useRef('')
+
   // ── Sidebar live data ─────────────────────────────────────────────────────
   const [liveAgents, setLiveAgents] = useState<LiveAgent[]>([])
   const [cronJobs, setCronJobs] = useState<CronJob[]>([])
   const [swarmOpen, setSwarmOpen] = useState(false)
-  // When a cron channel is selected: its id; else null (agent/Hermes mode).
+  // When a cron channel is selected: 'cron'; else null (agent/Hermes mode).
   const [activeCron, setActiveCron] = useState<string | null>(null)
-  const [cronOutput, setCronOutput] = useState<string>('')
+  const [cronOutput, setCronOutput] = useState<CronOutputMsg[]>([])
   const [cronLoading, setCronLoading] = useState(false)
 
-  // Participant filter (ruixen-mono-chat selectedSender pattern, adapted to a
-  // single-agent chat: the two "senders" are You and the active agent).
-  const [selectedSender, setSelectedSender] = useState<'user' | 'agent' | null>(null)
+  // Per-agent Kanban task reports (rendered as a message feed in worker channels).
+  const [agentReports, setAgentReports] = useState<Record<string, Message[]>>({})
+  const [reportsLoading, setReportsLoading] = useState(false)
 
   // Per-message emoji reactions (local UX state — not persisted to the backend).
   const [reactions, setReactions] = useState<Record<string, Reaction[]>>({})
@@ -687,7 +739,7 @@ export default function Chat({ accent }: ChatProps) {
     const base: PastSession = known ?? { id: sid, title: title || sid, when: '', msgs: [] }
     setActiveAgent('default')
     setActiveCron(null)
-    setCronOutput('')
+    setCronOutput([])
     try {
       const msgRes = await fetch(`/api/chat/sessions/${sid}/messages`)
       const msgs = await msgRes.json() as Message[]
@@ -746,12 +798,11 @@ export default function Chat({ accent }: ChatProps) {
   const abortRef = useRef<AbortController | null>(null)
 
   // ── Derive the active "agent" identity (header/avatar/colour) from live data.
-  // `default` profile renders as "Hermes". Cron channels get a synthetic
+  // `default` profile renders as "Hermes". The cron channel gets a synthetic
   // identity so the header/message rendering still works in read-only mode.
-  const activeCronJob = activeCron ? cronJobs.find((c) => c.id === activeCron) : undefined
   const liveActive = liveAgents.find((a) => a.name === activeAgent)
-  const agent = activeCronJob
-    ? { name: activeCronJob.name, role: 'Cron channel', color: '#9b8cff', icon: '◷' }
+  const agent = activeCron
+    ? { name: 'Cron Jobs', role: 'Read-only · all scheduled jobs', color: '#9b8cff', icon: '◷' }
     : liveActive
       ? {
           name: liveActive.name === 'default' ? 'Hermes' : liveActive.name,
@@ -762,29 +813,45 @@ export default function Chat({ accent }: ChatProps) {
       : { name: activeAgent === 'default' ? 'Hermes' : activeAgent, role: 'Coordinator', color: accent, icon: '⚕' }
 
   const thread = threads[activeAgent] || []
+  const cronEpochWhen = (epoch: number) => {
+    try { return new Date(epoch * 1000).toLocaleString() } catch { return '' }
+  }
   const baseThread = activeCron
-    ? ((cronLoading || cronOutput) ? [{ id: 'cron-out', role: 'agent' as const, text: cronLoading ? 'Loading cron output…' : cronOutput, at: activeCronJob?.schedule || '' }] : [])
-    : viewSession ? viewSession.msgs.map((m, i) => ({ id: `v${i}`, ...m })) : thread
-  // Participant filter: narrow to one sender (user/agent). Plan blocks are
-  // attributed to the agent so they stay visible when filtering by agent.
-  const displayThread = selectedSender
-    ? baseThread.filter((m) => (m.role === 'user' ? 'user' : 'agent') === selectedSender)
-    : baseThread
-  // Show the participant strip only once the thread actually has both sides.
-  const hasUserMsg = baseThread.some((m) => m.role === 'user')
-  const hasAgentMsg = baseThread.some((m) => m.role !== 'user')
-  const showParticipants = hasUserMsg && hasAgentMsg && !activeCron
+    ? (cronLoading
+        ? [{ id: 'cron-loading', role: 'agent' as const, text: 'Loading cron output…', at: '' }]
+        : cronOutput.length === 0
+          ? [{ id: 'cron-empty', role: 'agent' as const, text: '(no recent cron output)', at: '' }]
+          : cronOutput.map((m, i) => ({
+              id: `cron-${m.job_id}-${i}`,
+              role: 'agent' as const,
+              text: `**[${m.job_id}]**${m.file ? ` ${m.file}` : ''}\n\n${m.content}`,
+              at: cronEpochWhen(m.created_at),
+            })))
+    : viewSession
+      ? viewSession.msgs.map((m, i) => ({ id: `v${i}`, ...m }))
+      : activeAgent === 'default'
+        ? thread
+        : (() => {
+            // Worker channel: Kanban task reports first, then any live chat.
+            const reports = agentReports[activeAgent] || []
+            if (reportsLoading && reports.length === 0) {
+              return [{ id: 'reports-loading', role: 'agent' as const, text: 'Loading reports…', at: '' }]
+            }
+            return [...reports, ...thread]
+          })()
+  const displayThread = baseThread
   const pastList = activeAgent === 'default' && hermesSessions ? hermesSessions : (PAST_SESSIONS[activeAgent] || [])
   const ctxChars = thread.reduce((n, m) => n + m.text.length, 0)
   const ctxNum = Math.min(99, Math.round(ctxChars / 28))
   const ringDash = `${((Math.min(100, Math.round(ctxChars / 28)) / 100) * 56.55).toFixed(1)} 56.55`
 
-  // Scroll to bottom: use a sentinel div at the end of the list.
-  // scrollIntoView is immune to scrollHeight measurement timing issues.
+  // Scroll to bottom whenever new messages arrive OR the panel becomes active.
+  // When panel is hidden (display:none) scrollIntoView is a no-op, so we also
+  // fire when isActive flips true so the first reveal lands at the bottom.
   useEffect(() => {
     if (displayThread.length === 0) return
     bottomRef.current?.scrollIntoView({ behavior: 'instant' })
-  }, [displayThread.length])
+  }, [displayThread.length, isActive])
 
   useEffect(() => {
     ;(async () => {
@@ -844,26 +911,69 @@ export default function Chat({ accent }: ChatProps) {
     if (silenceRef.current) clearTimeout(silenceRef.current)
   }, [])
 
+  // Bubble the total unread count up to Shell (drives the nav-rail badge).
+  useEffect(() => {
+    const total = Object.values(unreadCounts).reduce((a, b) => a + b, 0)
+    onUnreadChange?.(total)
+  }, [unreadCounts])
+
+  // Request browser-notification permission once on mount (non-blocking).
+  useEffect(() => {
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission().catch(() => {})
+    }
+  }, [])
+
+  // When the Chat panel becomes active, clear all unread badges.
+  useEffect(() => {
+    if (isActive) setUnreadCounts((prev) => {
+      if (Object.values(prev).every((v) => v === 0)) return prev
+      return {}
+    })
+  }, [isActive])
+
+  // Load a worker agent's Kanban task reports when its channel is selected.
+  useEffect(() => {
+    if (activeAgent === 'default' || activeCron) return
+    let cancelled = false
+    setReportsLoading(true)
+    fetch(`/api/kanban/agent-reports/${activeAgent}`)
+      .then(r => r.json())
+      .then((msgs: any[]) => {
+        if (cancelled) return
+        const mapped: Message[] = (Array.isArray(msgs) ? msgs : []).map((m, i) => ({
+          id: `report-${activeAgent}-${i}`,
+          role: 'agent' as const,
+          text: m.content,
+          at: m.created_at ? new Date(m.created_at * 1000).toLocaleString() : '',
+        }))
+        setAgentReports(prev => ({ ...prev, [activeAgent]: mapped }))
+      })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setReportsLoading(false) })
+    return () => { cancelled = true }
+  }, [activeAgent, activeCron])
+
   function selectAgent(key: string) {
     setActiveAgent(key)
     setActiveCron(null)
-    setCronOutput('')
+    setCronOutput([])
     setViewSession(null)
+    setUnreadCounts((prev) => (prev[key] ? { ...prev, [key]: 0 } : prev))
   }
 
-  async function selectCron(job: CronJob) {
-    setActiveCron(job.id)
+  async function selectCron() {
+    setActiveCron('cron')
     setViewSession(null)
-    setSelectedSender(null)
-    setCronOutput('')
+    setCronOutput([])
     setCronLoading(true)
+    setUnreadCounts((prev) => (prev['cron'] ? { ...prev, cron: 0 } : prev))
     try {
-      const res = await fetch(`/api/cron/${encodeURIComponent(job.id)}/output`)
-      const data = await res.json() as { role: string; content: string; created_at: string }[]
-      const text = Array.isArray(data) && data.length > 0 ? data.map((m) => m.content).join('\n\n') : '(no recent output for this cron job)'
-      setCronOutput(text)
+      const res = await fetch('/api/cron/output')
+      const data = await res.json() as CronOutputMsg[]
+      setCronOutput(Array.isArray(data) ? data : [])
     } catch {
-      setCronOutput('Error: could not load cron output.')
+      setCronOutput([])
     } finally {
       setCronLoading(false)
     }
@@ -908,6 +1018,28 @@ export default function Chat({ accent }: ChatProps) {
     recognitionRef.current = rec
     rec.start()
     setListening(true)
+  }
+
+  // Called when an agent message completes. Increments the unread badge for
+  // agents that aren't the active view, and fires a browser notification when
+  // the window/tab is not focused. Resets the accumulated-text ref afterward.
+  function notifyAgentMessage(k: string) {
+    if (k !== activeAgent) {
+      setUnreadCounts((prev) => ({ ...prev, [k]: (prev[k] || 0) + 1 }))
+    }
+    if (document.hidden && 'Notification' in window && Notification.permission === 'granted') {
+      const agentLabel = k === 'default' ? 'Hermes' : k === 'cron' ? 'Cron Jobs' : k
+      const preview = (lastMsgTextRef.current || '').slice(0, 80)
+      try {
+        const notif = new Notification(agentLabel, {
+          body: preview || 'New message',
+          icon: '/favicon.ico',
+          tag: k,
+        })
+        notif.onclick = () => { window.focus() }
+      } catch { /* notification construction can throw on some platforms */ }
+    }
+    lastMsgTextRef.current = ''
   }
 
   async function send() {
@@ -975,6 +1107,7 @@ export default function Chat({ accent }: ChatProps) {
             if (!chunk.startsWith('data:')) continue
             const ev = JSON.parse(chunk.slice(5).trim()) as { type: string; text: string }
             if (ev.type === 'delta') {
+              lastMsgTextRef.current += ev.text
               if (agentMsgId === null) {
                 const id = 'a' + Date.now()
                 agentMsgId = id
@@ -985,6 +1118,7 @@ export default function Chat({ accent }: ChatProps) {
               }
             } else if (ev.type === 'done') {
               setRunning(false)
+              notifyAgentMessage(k)
               break outer
             } else if (ev.type === 'error') {
               if (agentMsgId === null) {
@@ -1035,15 +1169,11 @@ export default function Chat({ accent }: ChatProps) {
     setRunning(false)
   }
 
-  const live = running
-    ? { label: 'Running', color: '#f6b73c', bg: 'rgba(246,183,60,0.1)', border: 'rgba(246,183,60,0.26)' }
-    : { label: 'Live', color: '#4ade80', bg: 'rgba(74,222,128,0.1)', border: 'rgba(74,222,128,0.26)' }
-
   const avBg = `color-mix(in oklab, ${agent.color} 16%, transparent)`
   const avBorder = `color-mix(in oklab, ${agent.color} 42%, transparent)`
 
   return (
-    <div style={{ flex: 1, minWidth: 0, display: 'flex', minHeight: 0, animation: 'hpanelin 0.4s var(--ease-out)' }}>
+    <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'row', minHeight: 0, animation: 'hpanelin 0.4s var(--ease-out)', overflow: 'hidden' }}>
       <ChatSidebar
         accent={accent}
         liveAgents={liveAgents}
@@ -1051,115 +1181,15 @@ export default function Chat({ accent }: ChatProps) {
         activeAgent={activeAgent}
         activeCron={activeCron}
         swarmOpen={swarmOpen}
+        unreadCounts={unreadCounts}
+        searchMode={searchMode}
         onToggleSwarm={() => setSwarmOpen((v) => !v)}
         onSelectAgent={selectAgent}
         onSelectCron={selectCron}
+        onToggleSearch={() => (searchMode ? exitSearch() : setSearchMode(true))}
       />
-    <section style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', minHeight: 0, position: 'relative' }}>
-      {/* Header */}
-      <div
-        style={{
-          flex: 'none',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 12,
-          padding: '13px 22px',
-          borderBottom: '1px solid rgba(255,255,255,0.06)',
-          position: 'relative',
-          zIndex: 20,
-        }}
-      >
-        {/* Active participant header — selection now lives in the left sidebar.
-            Keeps the avatar + name + context-ring affordance; no dropdown. */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
-          <span style={{ width: 34, height: 34, flex: 'none', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, background: avBg, border: `1px solid ${avBorder}`, color: agent.color }}>
-            {agent.icon}
-          </span>
-          <span style={{ minWidth: 0, textAlign: 'left' }}>
-            <span style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 15, color: '#f0f2f8' }}>{agent.name}</span>
-            <span style={{ display: 'block', fontSize: 11, color: '#6a7088' }}>{agent.role || 'Agent'}{activeCron ? ` · ${activeCronJob?.schedule || 'cron'}` : ''}</span>
-          </span>
-        </div>
+    <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', minHeight: 0, position: 'relative' }}>
 
-        {/* Right cluster: live pill + search + history + reset */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14, flex: 'none' }}>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 600, color: live.color, background: live.bg, border: `1px solid ${live.border}`, borderRadius: 99, padding: '4px 11px' }}>
-            <span style={{ width: 7, height: 7, borderRadius: '50%', background: live.color, boxShadow: `0 0 7px ${live.color}` }} />
-            {live.label}
-          </span>
-
-          <button
-            onClick={() => (searchMode ? exitSearch() : setSearchMode(true))}
-            title={searchMode ? 'Close search' : 'Search messages, references, and skills'}
-            style={{
-              width: 32, height: 32, flex: 'none', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              background: searchMode ? 'color-mix(in oklab, var(--ac) 14%, transparent)' : 'none',
-              border: `1px solid ${searchMode ? 'color-mix(in oklab, var(--ac) 38%, transparent)' : 'rgba(255,255,255,0.1)'}`,
-              borderRadius: 9, cursor: 'pointer', color: searchMode ? 'var(--ac)' : '#9298ab', transition: 'all 0.16s',
-            }}
-            onMouseEnter={(e) => { if (!searchMode) { e.currentTarget.style.color = '#e9ebf2'; e.currentTarget.style.background = 'rgba(255,255,255,0.05)' } }}
-            onMouseLeave={(e) => { if (!searchMode) { e.currentTarget.style.color = '#9298ab'; e.currentTarget.style.background = 'none' } }}
-          >
-            <SearchIcon size={18} />
-          </button>
-
-        </div>
-      </div>
-
-      {/* Participant filter strip — horizontal avatars (sidebar doesn't fit a
-          narrow vertical chat). Translates ruixen's selectedSender pattern to
-          our single-agent chat: filter by You vs the active agent. */}
-      {showParticipants && !viewSession && !searchMode && (
-        <div
-          style={{
-            flex: 'none',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            padding: '9px 22px',
-            borderBottom: '1px solid rgba(255,255,255,0.05)',
-          }}
-        >
-          <UsersIcon size={14} color="#6a7088" />
-          <span style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#565d72', marginRight: 2 }}>Filter</span>
-          {([
-            { key: 'user' as const, name: 'You', avatar: 'https://github.com/shadcn.png', color: accent, online: true },
-            { key: 'agent' as const, name: agent.name, avatar: 'https://github.com/evilrabbit.png', color: agent.color, online: !running },
-          ]).map((p) => {
-            const on = selectedSender === p.key
-            return (
-              <button
-                key={p.key}
-                onClick={() => setSelectedSender(on ? null : p.key)}
-                title={on ? `Showing ${p.name} — click to clear` : `Show only ${p.name}`}
-                style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 7,
-                  padding: '4px 11px 4px 4px', borderRadius: 99, cursor: 'pointer',
-                  fontFamily: 'inherit', fontSize: 12.5, fontWeight: 600,
-                  color: on ? p.color : '#9298ab',
-                  background: on ? `color-mix(in oklab, ${p.color} 15%, transparent)` : 'rgba(255,255,255,0.04)',
-                  border: `1px solid ${on ? `color-mix(in oklab, ${p.color} 42%, transparent)` : 'rgba(255,255,255,0.08)'}`,
-                  transition: 'all 0.16s',
-                }}
-              >
-                <span style={{ position: 'relative', width: 24, height: 24, flex: 'none' }}>
-                  <img src={p.avatar} alt={p.name} width={24} height={24} style={{ width: 24, height: 24, borderRadius: '50%', objectFit: 'cover', display: 'block' }} />
-                  <span
-                    style={{
-                      position: 'absolute', bottom: -1, right: -1, width: 8, height: 8, borderRadius: '50%',
-                      background: p.online ? '#4ade80' : '#565d72',
-                      boxShadow: p.online ? '0 0 6px #4ade80' : 'none',
-                      border: '1.5px solid #080b11',
-                    }}
-                  />
-                </span>
-                {p.name}
-              </button>
-            )
-          })}
-        </div>
-      )}
       {/* ── Search overlay — replaces the message thread in search mode ──── */}
       {searchMode && (() => {
         const q = searchQuery.trim()
@@ -1301,8 +1331,13 @@ export default function Chat({ accent }: ChatProps) {
 
       {!searchMode && (
       <div ref={listRef} style={{ flex: 1, minHeight: 0, overflowY: 'auto', scrollBehavior: 'auto', overflowX: 'hidden', padding: '14px 26px 22px', display: 'flex', flexDirection: 'column', gap: 0, position: 'relative', zIndex: 1 }}>
-        {displayThread.length === 0 && !running ? (
-          pastList.length === 0 ? (
+        {displayThread.length === 0 && !running && !reportsLoading ? (
+          // Show true "loading" spinner only while sessions are still being fetched (null = in-flight)
+          activeAgent === 'default' && hermesSessions === null ? (
+            <div style={{ margin: 'auto', textAlign: 'center', padding: '40px 20px' }}>
+              <span style={{ width: 18, height: 18, borderRadius: '50%', border: '2px solid rgba(246,183,60,0.25)', borderTopColor: 'var(--ac)', animation: 'hspin 0.7s linear infinite', display: 'inline-block' }} />
+            </div>
+          ) : pastList.length === 0 ? (
             // WELCOME SCREEN — first time ever, no sessions
             <div style={{
               margin: 'auto',
@@ -1327,9 +1362,11 @@ export default function Chat({ accent }: ChatProps) {
               </div>
             </div>
           ) : (
-            // Sessions exist but none selected / loading — minimal state
-            <div style={{ margin: 'auto', textAlign: 'center', padding: '40px 20px' }}>
-              <div style={{ fontSize: 13, color: '#6a7088' }}>Loading conversation…</div>
+            // Sessions loaded, none selected — prompt user to pick one or start new
+            <div style={{ margin: 'auto', textAlign: 'center', padding: '40px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+              <div style={{ fontSize: 32, color: agent.color, filter: 'drop-shadow(0 0 12px color-mix(in oklab, currentColor 45%, transparent))' }}>{agent.icon}</div>
+              <div style={{ fontSize: 15, fontWeight: 600, color: '#e4e6ee' }}>Pick up where you left off</div>
+              <div style={{ fontSize: 12, color: '#6a7088' }}>Select a past session from the list, or send a message to start a new one.</div>
             </div>
           )
         ) : (
@@ -1469,7 +1506,7 @@ export default function Chat({ accent }: ChatProps) {
             )
           })
         )}
-        {running && !viewSession && selectedSender !== 'user' && (
+        {running && !viewSession && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 2px 16px' }}>
             <span
               style={{
@@ -1491,13 +1528,12 @@ export default function Chat({ accent }: ChatProps) {
         <div ref={bottomRef} style={{ height: 0, flexShrink: 0 }} />
       </div>
       )}
-
-      {/* Composer — replaced by a read-only note for cron channels */}
+      {/* Composer — pinned to the bottom of the conversation column only */}
       {activeCron ? (
         <div style={{ flex: 'none', padding: '16px 22px 20px', position: 'relative', zIndex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 9, padding: '14px 16px', background: '#11151f', border: '1px solid var(--tile-border)', borderRadius: 16, color: '#6a7088', fontSize: 13 }}>
             <ClockIcon size={15} color="#6a7088" />
-            Read-only cron output
+            Read-only · Cron output
           </div>
         </div>
       ) : (
@@ -1784,8 +1820,8 @@ export default function Chat({ accent }: ChatProps) {
         </div>
       </div>
       )}
-    </section>
-    </div>
+    </div>{/* end right content col */}
+  </div>
   )
 }
 

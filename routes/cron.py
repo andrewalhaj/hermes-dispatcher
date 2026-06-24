@@ -77,6 +77,38 @@ def _latest_output_file(job_id: str) -> Path | None:
     return max(candidates, key=lambda p: p.stat().st_mtime)
 
 
+@router.get("/output")
+def all_cron_output():
+    """Return recent output from ALL cron jobs, merged and sorted newest-first."""
+    if not OUTPUT_DIR.exists():
+        return []
+
+    messages = []
+    for job_dir in OUTPUT_DIR.iterdir():
+        if not job_dir.is_dir():
+            continue
+        job_id = job_dir.name
+        outputs = sorted(job_dir.glob("*.md"), key=lambda f: f.stat().st_mtime, reverse=True)
+        if not outputs:
+            continue
+        latest = outputs[0]
+        try:
+            text = latest.read_text(errors="ignore")[:4000]
+        except Exception:
+            continue
+        mtime = latest.stat().st_mtime
+        messages.append({
+            "role": "assistant",
+            "content": text,
+            "created_at": mtime,
+            "job_id": job_id,
+            "file": latest.name,
+        })
+
+    messages.sort(key=lambda m: m["created_at"], reverse=True)
+    return messages[:20]
+
+
 @router.get("/{job_id}/output")
 def cron_output(job_id: str):
     """Return the most recent run output for a cron job as read-only messages."""

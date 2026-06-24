@@ -185,3 +185,40 @@ async def stream_tasks():
             "X-Accel-Buffering": "no",
         },
     )
+
+
+@router.get("/agent-reports/{profile}")
+def agent_reports(profile: str):
+    """Return an agent's recent Kanban task reports as chat messages."""
+    conn = _conn()
+    try:
+        rows = conn.execute(
+            """
+            SELECT tr.summary, tr.outcome, tr.ended_at, t.title, tr.task_id
+            FROM task_runs tr
+            LEFT JOIN tasks t ON tr.task_id = t.id
+            WHERE tr.profile = ?
+              AND tr.summary IS NOT NULL
+              AND tr.summary != ''
+            ORDER BY tr.ended_at DESC
+            LIMIT 40
+            """,
+            (profile,),
+        ).fetchall()
+    finally:
+        conn.close()
+
+    messages = []
+    for r in reversed(rows):  # oldest-first so the feed reads top-to-bottom
+        outcome = r["outcome"] or "done"
+        icon = "✅" if outcome == "completed" else "⚠️" if outcome == "blocked" else "•"
+        title = r["title"] or r["task_id"] or "task"
+        body = f"{icon} **{title}**\n\n{r['summary']}"
+        messages.append({
+            "role": "agent",
+            "content": body,
+            "created_at": r["ended_at"],
+            "task_id": r["task_id"],
+            "outcome": outcome,
+        })
+    return messages

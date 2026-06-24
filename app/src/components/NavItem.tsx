@@ -9,9 +9,11 @@ interface NavItemProps {
   onSelect: (panel: PanelId) => void
   /** Icon-only rail mode (md tablet): hide the label, center the icon. */
   collapsed?: boolean
+  /** Unread count badge rendered on the icon when > 0. */
+  badge?: number
 }
 
-export default function NavItem({ panel, label, active, accent, onSelect, collapsed = false }: NavItemProps) {
+export default function NavItem({ panel, label, active, accent, onSelect, collapsed = false, badge = 0 }: NavItemProps) {
   return (
     <button
       onClick={() => onSelect(panel)}
@@ -55,8 +57,28 @@ export default function NavItem({ panel, label, active, accent, onSelect, collap
           transition: 'opacity 0.15s',
         }}
       />
-      <span className="flex w-5 flex-none items-center justify-center">
+      <span className="relative flex w-5 flex-none items-center justify-center">
         <NavIcon panel={panel} />
+        {(badge ?? 0) > 0 && (
+          <span style={{
+            position: 'absolute',
+            top: -5,
+            right: collapsed ? -5 : -7,
+            minWidth: 16, height: 16,
+            borderRadius: 8,
+            background: '#3b82f6',
+            color: '#fff',
+            fontSize: 10,
+            fontWeight: 700,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: '0 3px',
+            lineHeight: 1,
+            pointerEvents: 'none',
+            zIndex: 10,
+          }}>
+            {badge > 99 ? '99+' : badge}
+          </span>
+        )}
       </span>
       {!collapsed && <span>{label}</span>}
     </button>

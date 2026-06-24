@@ -131,6 +131,7 @@ function MenuIcon({ open }: { open: boolean }) {
 
 export default function Shell() {
   const [activePanel, setActivePanel] = useState<PanelId>('overview')
+  const [chatUnread, setChatUnread] = useState(0)
   const [bp, setBp] = useState<Bp>(() => bpFor(typeof window !== 'undefined' ? window.innerWidth : 1280))
   // Sidebar drawer open state — only meaningful at the mobile breakpoint.
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(() => (typeof window !== 'undefined' ? window.innerWidth >= 768 : true))
@@ -166,6 +167,7 @@ export default function Shell() {
 
   function selectPanel(p: PanelId) {
     setActivePanel(p)
+    if (p === 'chat') setChatUnread(0)
     if (isMobile) setSidebarOpen(false)
   }
 
@@ -231,6 +233,7 @@ export default function Shell() {
                       accent={accent}
                       collapsed={isRail}
                       onSelect={selectPanel}
+                      badge={item.panel === 'chat' ? chatUnread : undefined}
                     />
                   ))}
                 </div>
@@ -310,7 +313,7 @@ export default function Shell() {
           )}
           {/* Chat always mounted — never unmounted so scroll position + loaded messages survive tab switches */}
           <div style={{ flex: 1, display: activePanel === 'chat' ? 'flex' : 'none', flexDirection: 'column', minHeight: 0, minWidth: 0 }}>
-            <Chat accent={accent} />
+            <Chat accent={accent} isActive={activePanel === 'chat'} onUnreadChange={setChatUnread} />
           </div>
           {/* All other panels — keyed so they remount on switch (fine, they don't need scroll persistence) */}
           {activePanel !== 'chat' && (
