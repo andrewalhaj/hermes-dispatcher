@@ -1030,8 +1030,7 @@ export default function Chat({ accent, isActive, onUnreadChange }: ChatProps) {
         const sessions = sorted.map((s) => ({ id: s.id, title: s.title, when: epochToWhen(s.created_at), msgs: [] }))
         setHermesSessions(sessions)
         if (sessions.length > 0) {
-          const savedId = lsGet('hermes-chat-last-session', '')
-          const target = (savedId ? sessions.find(s => s.id === savedId) : null) ?? sessions[0]
+          const target = sessions[0]
           try {
             const msgRes = await fetch(`/api/chat/sessions/${target.id}/messages`)
             const msgs = await msgRes.json() as Message[]
