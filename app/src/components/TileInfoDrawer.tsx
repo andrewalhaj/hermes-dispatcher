@@ -1,5 +1,6 @@
-import { createContext, useCallback, useContext, useMemo, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import type { InfoObject } from '../data/info'
+import Markdown from './Markdown'
 
 export type { InfoObject, InfoStat } from '../data/info'
 
@@ -43,6 +44,17 @@ export function useInfo(): InfoContextValue {
  */
 export default function TileInfoDrawer() {
   const { tileInfo, closeInfo } = useInfo()
+
+  // Close the drawer on Escape while it's open.
+  useEffect(() => {
+    if (!tileInfo) return
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeInfo()
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [tileInfo, closeInfo])
+
   if (!tileInfo) return null
 
   const accent = tileInfo.accent
@@ -159,9 +171,17 @@ export default function TileInfoDrawer() {
               {tileInfo.value}
             </div>
           )}
-          <p style={{ fontSize: 13.5, lineHeight: 1.62, color: 'var(--text-body)', textWrap: 'pretty', margin: 0 }}>
-            {tileInfo.desc}
-          </p>
+          <Markdown
+            text={tileInfo.desc}
+            style={
+              {
+                fontSize: 13.5,
+                color: 'var(--text-body)',
+                textWrap: 'pretty',
+                ['--accent' as string]: accent,
+              } as React.CSSProperties
+            }
+          />
           {hasStats && (
             <div
               className="flex flex-col"
