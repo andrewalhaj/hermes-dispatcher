@@ -281,16 +281,29 @@ async def _handle_honcho_session(data: dict) -> dict:
     if not summary:
         return {"status": "skipped", "reason": "empty_summary"}
 
-    # Try to import and use the local knowledge store
+    # Call knowledge.py via subprocess (it lives in Hermes home, not dispatcher venv)
     try:
-        from knowledge import store
-        store_id = store(text=summary, tags=["honcho", "session"], source="honcho-webhook",
-                         priority="normal", context_prefix=session_id)
-        logger.info("honcho session: stored to knowledge store id=%s", store_id)
-        return {"status": "stored", "knowledge_id": store_id, "session_id": session_id}
-    except ImportError:
-        logger.warning("honcho session: knowledge store unavailable — skipping")
-        return {"status": "skipped", "reason": "knowledge_store_unavailable"}
+        import subprocess, json as _json
+        result = subprocess.run(
+            [
+                "/root/.hermes/.venv/bin/python3", "-m", "knowledge",
+                "store",
+                "--text", summary,
+                "--tags", "honcho,session",
+                "--source", "honcho-webhook",
+                "--priority", "normal",
+                "--context-prefix", session_id,
+            ],
+            capture_output=True, text=True, timeout=10,
+            env={**__import__("os").environ, "HERMES_HOME": str(HERMES_HOME)},
+        )
+        if result.returncode == 0:
+            store_id = result.stdout.strip()
+            logger.info("honcho session: stored to knowledge store id=%s", store_id)
+            return {"status": "stored", "knowledge_id": store_id, "session_id": session_id}
+        else:
+            logger.error("honcho session: knowledge store error: %s", result.stderr[:200])
+            return {"status": "error", "reason": result.stderr[:200]}
     except Exception as e:
         logger.error("honcho session: knowledge store error: %s", e)
         return {"status": "error", "reason": str(e)[:200]}
