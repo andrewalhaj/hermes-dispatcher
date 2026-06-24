@@ -22,6 +22,19 @@ export function InfoProvider({ children }: { children: React.ReactNode }) {
   const openInfo = useCallback((o: InfoObject) => setTileInfo(o), [])
   const closeInfo = useCallback(() => setTileInfo(null), [])
 
+  // Close the drawer on Escape. Registered here at the always-mounted provider
+  // level so the listener is never tied to the conditionally-rendered drawer.
+  // setTileInfo is stable, so a no-deps effect registers the listener exactly
+  // once for the lifetime of the app. Firing setTileInfo(null) when already
+  // null is a harmless no-op.
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setTileInfo(null)
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [])
+
   const value = useMemo<InfoContextValue>(
     () => ({ tileInfo, openInfo, closeInfo }),
     [tileInfo, openInfo, closeInfo],
@@ -44,16 +57,6 @@ export function useInfo(): InfoContextValue {
  */
 export default function TileInfoDrawer() {
   const { tileInfo, closeInfo } = useInfo()
-
-  // Close the drawer on Escape while it's open.
-  useEffect(() => {
-    if (!tileInfo) return
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') closeInfo()
-    }
-    window.addEventListener('keydown', handler)
-    return () => window.removeEventListener('keydown', handler)
-  }, [tileInfo, closeInfo])
 
   if (!tileInfo) return null
 
