@@ -903,6 +903,9 @@ export default function Chat({ accent, isActive, onUnreadChange }: ChatProps) {
   // Persists the last Hermes viewSession across agent switches so returning to
   // 'default' doesn't show the empty "Pick up where you left off" screen.
   const lastViewSessionRef = useRef<PastSession | null>(null)
+  // Set to true only when a live SSE message arrives — gates the length-change
+  // auto-scroll so bulk async loads (reports, cron) don't animate a scroll.
+  const liveMessageRef = useRef(false)
 
   // ── Derive the active "agent" identity (header/avatar/colour) from live data.
   // `default` profile renders as "Hermes". The cron channel gets a synthetic
@@ -963,8 +966,13 @@ export default function Chat({ accent, isActive, onUnreadChange }: ChatProps) {
   useEffect(() => {
     if (displayThread.length === 0) return
     if (searchMode) return
+    // Only auto-scroll on bulk async loads (reports, cron, session switch) when
+    // a live SSE message triggered the change — avoids the janky scroll-down
+    // animation when switching to executor/cron channels.
+    if (!liveMessageRef.current) return
+    liveMessageRef.current = false
     requestAnimationFrame(() => requestAnimationFrame(pinToBottom))
-  }, [displayThread.length, isActive, searchMode])
+  }, [displayThread.length, searchMode])
 
   // Dedicated pin when panel flips visible (isActive true): fires even when
   // displayThread.length didn't change (fresh URL load case).
@@ -1217,6 +1225,7 @@ export default function Chat({ accent, isActive, onUnreadChange }: ChatProps) {
     const k = activeAgent
     const at = nowTime()
     if (k === 'default') {
+      liveMessageRef.current = true
       setThreads((s) => ({ ...s, [k]: [...(s[k] || []), { id: 'u' + Date.now(), role: 'user', text: displayText, at }] }))
       setDraft('')
       setRunning(true)
@@ -1244,6 +1253,7 @@ export default function Chat({ accent, isActive, onUnreadChange }: ChatProps) {
             const ev = JSON.parse(chunk.slice(5).trim()) as { type: string; text: string }
             if (ev.type === 'delta') {
               lastMsgTextRef.current += ev.text
+              liveMessageRef.current = true
               if (agentMsgId === null) {
                 const id = 'a' + Date.now()
                 agentMsgId = id
