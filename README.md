@@ -96,9 +96,9 @@ Persist dashboard preferences: theme, accent color, agent name, workspace path, 
 | Frontend | React 18, TypeScript, Vite, Tailwind CSS, Framer Motion |
 | Backend | FastAPI (Python 3.11), uvicorn |
 | Data | SQLite (kanban + sessions via Hermes), `psutil`, SSH probes |
-| Auth | Session cookie (`hd_session`), SHA-256 (unsalted) password hash |
+| Auth | Session cookie (`hd_session`), bcrypt password hash (rounds=12) |
 | Fonts | Space Grotesk |
-| Hosting | Self-hosted on Linux x86_64 (kernel 7.0.12-1-t2-noble), via systemd, accessible over Tailscale or Cloudflare Tunnel |
+| Hosting | Self-hosted on Linux x86_64 (kernel 7.0.12-1-t2-noble), via systemd. Reachable over Tailscale (`andrew-macmini.tailb371d3.ts.net:8787`) and the public Cloudflare Tunnel (`https://hermes.andrewskingdom.com`). The CORS allowlist (see `server.py`) covers both — override with the `DASHBOARD_CORS_ORIGINS` env var. |
 
 ---
 
@@ -151,9 +151,11 @@ npm run build
 # served automatically by uvicorn from app/dist/
 ```
 
-Password hash is stored at `.dashboard_passwd_hash` (SHA-256, unsalted). Set via:
+Password hash is stored at `.dashboard_passwd_hash` (bcrypt, rounds=12). This file
+is git-ignored — a fresh clone has no hash and the server will refuse to start with
+a setup hint until you create it. Set via:
 ```bash
-python3 -c "import hashlib; print(hashlib.sha256(b'yourpassword').hexdigest())" > .dashboard_passwd_hash
+python3 -c "import bcrypt; open('.dashboard_passwd_hash','wb').write(bcrypt.hashpw(b'yourpassword', bcrypt.gensalt(rounds=12)))"
 ```
 
 ---

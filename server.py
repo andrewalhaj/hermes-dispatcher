@@ -35,14 +35,29 @@ DIST_DIR: Path = APP_DIR / "app" / "dist"
 # ---------------------------------------------------------------------------
 app = FastAPI(title="Hermes Dispatcher", version="0.1.0")
 
+# CORS allowlist. Defaults cover the known deployment origins (Cloudflare Tunnel
+# public URL + Tailscale MagicDNS/IP + localhost). Override at deploy time via the
+# DASHBOARD_CORS_ORIGINS env var (comma-separated). allow_credentials=True is
+# required for the cookie-authed API and is INVALID with a "*" wildcard — so the
+# allowlist must be explicit (this also fixes the prior wildcard+credentials bug,
+# where cross-origin cookies silently failed and only same-origin requests worked).
+_DEFAULT_CORS_ORIGINS = ",".join([
+    "https://hermes.andrewskingdom.com",
+    "http://andrew-macmini.tailb371d3.ts.net:8787",
+    "http://100.113.100.81:8787",
+    "http://localhost:8787",
+    "http://127.0.0.1:8787",
+])
+_cors_origins = [
+    o.strip()
+    for o in os.environ.get("DASHBOARD_CORS_ORIGINS", _DEFAULT_CORS_ORIGINS).split(",")
+    if o.strip()
+]
+
 app.add_middleware(
     CORSMiddleware,
-    # allow_origins=["*"]: intentional for a single-user, locally-deployed dashboard
-    # served over Tailscale/localhost. Cookie is samesite="strict" + httponly=True,
-    # which limits CSRF risk in a trusted-network context. To tighten for a
-    # publicly-exposed instance, replace "*" with an explicit origin allowlist
-    # (greenlight-gated — requires knowing the deployment origin at config time).
-    allow_origins=["*"],
+    allow_origins=_cors_origins,
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -54,15 +69,14 @@ _AUTH_EXEMPT = {"/api/auth/login", "/api/auth/logout", "/api/auth/check", "/", "
 
 @app.middleware("http")
 async def auth_gate(request: Request, call_next):
-    from routes.auth import SESSION_TOKEN  # imported late to avoid circular import
+    from routes.auth import session_valid  # imported late to avoid circular import
     path = request.url.path
 
     # Exempt paths
     if path in _AUTH_EXEMPT or path.startswith("/assets/"):
         return await call_next(request)
 
-    cookie = request.cookies.get("hd_session")
-    if cookie and cookie == SESSION_TOKEN:
+    if session_valid(request.cookies.get("hd_session")):
         return await call_next(request)
 
     # Block: API paths get 401 JSON, SPA paths redirect to /
