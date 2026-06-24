@@ -177,10 +177,24 @@ export default function Insights({ accent = ACCENT }: InsightsProps) {
                 <div style={cardLabel}>Activity by Day</div>
                 <span style={{ fontSize: 10.5, color: '#2dd4bf', background: 'rgba(45,212,191,0.1)', border: '1px solid rgba(45,212,191,0.28)', borderRadius: 6, padding: '2px 8px' }}>Peak {peakEntry.date}</span>
               </div>
-              <div className="flex items-end" style={{ gap: 5, height: 96 }}>
-                {bars.map((d, i) => (
-                  <div key={i} style={{ flex: 1, minWidth: 0, height: d.h, borderRadius: '3px 3px 0 0', background: d.bg }} />
-                ))}
+              <div className="flex" style={{ gap: 8 }}>
+                {/* Y-axis scale */}
+                <div className="flex flex-col flex-none" style={{ justifyContent: 'space-between', height: 96, fontSize: 9, color: '#565d72', textAlign: 'right', width: 18, fontVariantNumeric: 'tabular-nums' }}>
+                  <span>{maxCompleted}</span>
+                  <span>{Math.round(maxCompleted / 2)}</span>
+                  <span>0</span>
+                </div>
+                {/* Bars + X-axis labels */}
+                <div className="flex flex-1" style={{ gap: 5, minWidth: 0 }}>
+                  {bars.map((d, i) => (
+                    <div key={i} className="flex flex-col items-center" style={{ flex: 1, minWidth: 0 }}>
+                      <div className="flex items-end justify-center" style={{ width: '100%', height: 96 }}>
+                        <div style={{ width: '100%', height: d.h, borderRadius: '3px 3px 0 0', background: d.bg }} />
+                      </div>
+                      <span style={{ marginTop: 6, fontSize: 9.5, color: '#6a7088', letterSpacing: '0.02em' }}>{d.date}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
 

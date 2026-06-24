@@ -555,13 +555,40 @@ export default function Logs({ accent = ACCENT }: LogsProps) {
               style={{
                 flex: 1,
                 display: 'flex',
+                flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
+                gap: 14,
                 color: '#565d72',
                 fontSize: 13,
               }}
             >
-              No logs match your filters.
+              <div>
+                {lines.length === 0
+                  ? 'No log lines available. Try enabling Live mode or switching sources.'
+                  : 'No entries match your current search/filter.'}
+              </div>
+              {lines.length === 0 && !live && (
+                <button
+                  onClick={toggleLive}
+                  className="inline-flex items-center"
+                  style={{
+                    gap: 7,
+                    fontSize: 12,
+                    fontFamily: 'inherit',
+                    cursor: 'pointer',
+                    padding: '7px 14px',
+                    borderRadius: 8,
+                    background: `color-mix(in oklab, ${accent} 14%, transparent)`,
+                    border: `1px solid color-mix(in oklab, ${accent} 40%, transparent)`,
+                    color: accent,
+                    transition: 'all 0.15s',
+                  }}
+                >
+                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: accent, boxShadow: `0 0 6px ${accent}` }} />
+                  Enable live streaming
+                </button>
+              )}
             </div>
           ) : (
             filteredEntries.map((entry) => (

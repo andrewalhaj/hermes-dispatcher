@@ -86,6 +86,8 @@ export default function Agents({ accent }: AgentsProps) {
             {ops.map((a, i) => {
               const st = AG_STATUS[a.status]
               const progW = `${Math.min(100, a.today * 12 + 4)}%`
+              const hasRuns = a.lastActive !== 'never'
+              const ringColor = hasRuns ? a.color : 'rgba(255,255,255,0.18)'
               return (
                 <div
                   key={a.name}
@@ -134,9 +136,14 @@ export default function Agents({ accent }: AgentsProps) {
                     <span className="relative flex-none" style={{ width: 44, height: 44 }}>
                       <svg width="44" height="44" viewBox="0 0 36 36">
                         <circle cx="18" cy="18" r="15.9" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="3" />
-                        <circle cx="18" cy="18" r="15.9" fill="none" stroke={a.color} strokeWidth="3" strokeLinecap="round" pathLength={100} strokeDasharray={`${a.success} ${100 - a.success}`} transform="rotate(-90 18 18)" />
+                        {hasRuns && (
+                          <circle cx="18" cy="18" r="15.9" fill="none" stroke={ringColor} strokeWidth="3" strokeLinecap="round" pathLength={100} strokeDasharray={`${a.success} ${100 - a.success}`} transform="rotate(-90 18 18)" />
+                        )}
                       </svg>
-                      <span className="mono absolute inset-0 flex items-center justify-center" style={{ fontSize: 10, fontWeight: 700, color: '#e4e6ee' }}>{a.success}%</span>
+                      <span className="absolute inset-0 flex flex-col items-center justify-center" style={{ lineHeight: 1 }}>
+                        <span className="mono" style={{ fontSize: 10, fontWeight: 700, color: hasRuns ? '#e4e6ee' : 'rgba(255,255,255,0.4)' }}>{hasRuns ? `${a.success}%` : '—'}</span>
+                        <span style={{ fontSize: 6.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'rgba(255,255,255,0.5)', marginTop: 1 }}>success</span>
+                      </span>
                     </span>
                   </div>
                   <div className="relative flex items-center justify-between" style={{ gap: 10, marginTop: 14 }}>

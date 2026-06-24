@@ -271,14 +271,18 @@ export default function Settings({ accent = ACCENT, onAccentChange }: SettingsPr
                 <div style={rowDesc}>Drives glow, active states, and the dispatcher pulse.</div>
               </div>
               <div className="flex" style={{ gap: 9 }}>
-                {ACCENT_SWATCHES.map((c) => (
-                  <button
-                    key={c}
-                    onClick={() => pickAccent(c)}
-                    aria-label={`Accent ${c}`}
-                    style={{ width: 24, height: 24, borderRadius: '50%', background: c, border: 'none', boxShadow: `0 0 0 2px ${c === accent ? c : 'transparent'}`, cursor: 'pointer', transition: 'box-shadow 0.15s' }}
-                  />
-                ))}
+                {ACCENT_SWATCHES.map((c) => {
+                  const isSelected = c === accent
+                  return (
+                    <button
+                      key={c}
+                      onClick={() => pickAccent(c)}
+                      aria-label={`Accent ${c}`}
+                      aria-pressed={isSelected}
+                      style={{ width: 24, height: 24, borderRadius: '50%', background: c, border: 'none', boxShadow: isSelected ? '0 0 0 2px var(--s3), 0 0 0 4px #fff' : 'none', cursor: 'pointer', transition: 'box-shadow 0.15s' }}
+                    />
+                  )
+                })}
               </div>
             </div>
             <div style={rowTopBorder}>
@@ -320,7 +324,7 @@ export default function Settings({ accent = ACCENT, onAccentChange }: SettingsPr
                 <div style={rowTitle}>Default workspace</div>
                 <div style={rowDesc}>Working directory for new runs.</div>
               </div>
-              <input value={ws} className="mono" style={{ width: 200, background: 'var(--s4)', color: '#e9ebf2', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '8px 11px', fontSize: 12, outline: 'none' }} onChange={(e) => { setWs(e.target.value); persistDebounced({ ws: e.target.value }) }} onFocus={(e) => (e.currentTarget.style.borderColor = accent)} onBlur={(e) => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)')} />
+              <input value={ws} title={ws} className="mono" style={{ width: 200, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', background: 'var(--s4)', color: '#e9ebf2', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '8px 11px', fontSize: 12, outline: 'none' }} onChange={(e) => { setWs(e.target.value); persistDebounced({ ws: e.target.value }) }} onFocus={(e) => (e.currentTarget.style.borderColor = accent)} onBlur={(e) => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)')} />
             </div>
             <div style={rowTopBorder}>
               <div>
