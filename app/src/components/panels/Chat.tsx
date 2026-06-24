@@ -952,47 +952,31 @@ export default function Chat({ accent, isActive, onUnreadChange }: ChatProps) {
   const ctxNum = Math.min(99, Math.round(ctxChars / 28))
   const ringDash = `${((Math.min(100, Math.round(ctxChars / 28)) / 100) * 56.55).toFixed(1)} 56.55`
 
-  // Scroll to bottom whenever new messages arrive OR the panel becomes active.
-  // When panel is hidden (display:none) scrollIntoView is a no-op, so we also
-  // fire when isActive flips true so the first reveal lands at the bottom.
+  // Single scroll-to-bottom helper — always instant, always via scrollTop so
+  // there's no competing scrollIntoView animation.
+  const pinToBottom = () => {
+    const el = listRef.current
+    if (el) el.scrollTop = el.scrollHeight
+  }
+
+  // Pin on new messages arriving or panel becoming active/visible.
   useEffect(() => {
     if (displayThread.length === 0) return
-    // Don't auto-scroll while search overlay is open, or when exiting it
-    // (displayThread switches from search results → real thread, which would
-    // cause a jump-to-top before scrollIntoView fires).
     if (searchMode) return
-    // Defer one frame: when display flips from none→flex, scrollIntoView in
-    // the same render cycle is a no-op because the element still has no layout.
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        bottomRef.current?.scrollIntoView({ behavior: 'instant' })
-      })
-    })
+    requestAnimationFrame(() => requestAnimationFrame(pinToBottom))
   }, [displayThread.length, isActive, searchMode])
 
-  // Dedicated pin for when the panel becomes visible: force scroll regardless
-  // of whether displayThread.length changed (on fresh URL load the length may
-  // be identical between isActive=false and isActive=true so the combined
-  // effect above doesn't re-fire).
+  // Dedicated pin when panel flips visible (isActive true): fires even when
+  // displayThread.length didn't change (fresh URL load case).
   useEffect(() => {
     if (!isActive) return
-    if (searchMode) return
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        const el = listRef.current
-        if (el) el.scrollTop = el.scrollHeight
-      })
-    })
+    requestAnimationFrame(() => requestAnimationFrame(pinToBottom))
   }, [isActive])
 
-  // When search closes, land back at the bottom of the real thread.
+  // Re-pin when search overlay closes.
   useEffect(() => {
     if (searchMode) return
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        bottomRef.current?.scrollIntoView({ behavior: 'instant' })
-      })
-    })
+    requestAnimationFrame(() => requestAnimationFrame(pinToBottom))
   }, [searchMode])
 
   useEffect(() => {
