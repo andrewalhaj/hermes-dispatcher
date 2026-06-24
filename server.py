@@ -157,6 +157,9 @@ app.include_router(media_router, prefix="/api")
 from routes.cron import router as cron_router
 app.include_router(cron_router, prefix="/api")
 
+from routes.hooks import router as hooks_router
+app.include_router(hooks_router, prefix="/api")
+
 # ---------------------------------------------------------------------------
 # SPA static file fallback
 # Must be registered AFTER all /api routes.
