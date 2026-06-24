@@ -65,7 +65,7 @@ app.add_middleware(
 # ---------------------------------------------------------------------------
 # Auth middleware
 # ---------------------------------------------------------------------------
-_AUTH_EXEMPT = {"/api/auth/login", "/api/auth/logout", "/api/auth/check", "/", "/index.html", "/favicon.ico"}
+_AUTH_EXEMPT = {"/api/auth/login", "/api/auth/logout", "/api/auth/check", "/api/health", "/api/hooks/knowledge", "/", "/index.html", "/favicon.ico"}
 
 @app.middleware("http")
 async def auth_gate(request: Request, call_next):
