@@ -3,7 +3,7 @@ import { ACCENT } from './agents'
 
 /** Current time as a short clock string, e.g. "2:14 PM". */
 export function nowTime(): string {
-  return new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+  return new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })
 }
 
 /** Canned worker replies (non-Hermes agents answer after a 1.5s delay). */
@@ -24,7 +24,7 @@ export function epochToWhen(epochSecs: number): string {
   const d = new Date(epochSecs * 1000)
   const now = new Date()
   const diffDays = Math.floor((now.getTime() - d.getTime()) / 86_400_000)
-  const timeStr = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+  const timeStr = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })
   if (diffDays === 0) return `Today · ${timeStr}`
   if (diffDays === 1) return `Yesterday · ${timeStr}`
   return d.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' · ' + timeStr

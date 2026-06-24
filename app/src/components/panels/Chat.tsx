@@ -349,7 +349,7 @@ function isoToWhen(iso: string): string {
   if (isNaN(d.getTime())) return ''
   const now = new Date()
   const diffDays = Math.floor((now.getTime() - d.getTime()) / 86_400_000)
-  const timeStr = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+  const timeStr = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })
   if (diffDays === 0) return `Today · ${timeStr}`
   if (diffDays === 1) return `Yesterday · ${timeStr}`
   return d.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' · ' + timeStr
@@ -448,11 +448,42 @@ interface ChatSidebarProps {
   activeCron: string | null
   swarmOpen: boolean
   unreadCounts: Record<string, number>
-  searchMode: boolean
+  collapsed: boolean
   onToggleSwarm: () => void
   onSelectAgent: (key: string) => void
   onSelectCron: () => void
-  onToggleSearch: () => void
+  onToggleCollapsed: () => void
+}
+
+// Double-chevron toggle icon — points left when expanded, rotates 180° when collapsed.
+function CollapseChevron({ collapsed, size = 16, color = 'currentColor' }: { collapsed: boolean; size?: number; color?: string }) {
+  return (
+    <svg
+      width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color}
+      strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round"
+      style={{ flex: 'none', transform: collapsed ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s cubic-bezier(0.16,1,0.3,1)' }}
+    >
+      <path d="M11 17l-5-5 5-5" />
+      <path d="M18 17l-5-5 5-5" />
+    </svg>
+  )
+}
+
+// Small unread-count badge anchored to the bottom-right of a rail-mode avatar.
+function RailBadge({ count }: { count: number }) {
+  if (count <= 0) return null
+  return (
+    <span style={{
+      position: 'absolute', bottom: -2, right: -2,
+      minWidth: 17, height: 17, borderRadius: '50%',
+      background: '#3b82f6', color: '#fff',
+      fontSize: 10, fontWeight: 700,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      padding: '0 4px', border: '2px solid #1a2035', boxSizing: 'border-box',
+    }}>
+      {count}
+    </span>
+  )
 }
 
 function GroupHeader({ label }: { label: string }) {
@@ -463,18 +494,63 @@ function GroupHeader({ label }: { label: string }) {
   )
 }
 
-function ChatSidebar({ accent, liveAgents, cronJobs, activeAgent, activeCron, swarmOpen, unreadCounts, searchMode, onToggleSwarm, onSelectAgent, onSelectCron, onToggleSearch }: ChatSidebarProps) {
+function ChatSidebar({ accent, liveAgents, cronJobs, activeAgent, activeCron, swarmOpen, unreadCounts, collapsed, onToggleSwarm, onSelectAgent, onSelectCron, onToggleCollapsed }: ChatSidebarProps) {
+  const [filter, setFilter] = useState('')
+  const q = filter.trim().toLowerCase()
+
   const hermes = liveAgents.find((a) => a.name === 'default')
   const others = liveAgents.filter((a) => a.name !== 'default')
   const nonSwarm = others.filter((a) => !a.name.startsWith('swarm-'))
   const swarm = others.filter((a) => a.name.startsWith('swarm-'))
 
+  // Apply filter — match on name or role
+  const matchAgent = (a: LiveAgent, label?: string) => {
+    if (!q) return true
+    const name = (label ?? a.name).toLowerCase()
+    const role = (a.role ?? '').toLowerCase()
+    return name.includes(q) || role.includes(q)
+  }
+  const showHermes = !q || (hermes ? matchAgent(hermes, 'Hermes') : 'hermes'.includes(q))
+  const showCron = !q || 'cron jobs'.includes(q) || 'cron'.includes(q)
+  const visibleAgents = nonSwarm.filter((a) => matchAgent(a))
+  const visibleSwarm = swarm.filter((a) => matchAgent(a))
+
+  // A rail-mode row — centred avatar only, accent bar on the left when active.
+  const railRow = (key: string, selected: boolean, onClick: () => void, avatar: ReactNode, title: string, badge: number) => (
+    <div
+      key={key}
+      onClick={onClick}
+      title={title}
+      style={{
+        position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: '7px 0', cursor: 'pointer',
+        background: selected ? 'rgba(246,183,60,0.12)' : 'transparent',
+        transition: 'background 0.14s',
+      }}
+      onMouseEnter={(e) => { if (!selected) e.currentTarget.style.background = 'rgba(255,255,255,0.05)' }}
+      onMouseLeave={(e) => { e.currentTarget.style.background = selected ? 'rgba(246,183,60,0.12)' : 'transparent' }}
+    >
+      {selected && <span style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, background: accent }} />}
+      <span style={{ position: 'relative', width: 40, height: 40, flex: 'none' }}>
+        {avatar}
+        <RailBadge count={badge} />
+      </span>
+    </div>
+  )
+
   // A selectable agent row — Telegram-style (large avatar, name + preview, timestamp, badge).
   const agentRow = (a: LiveAgent, label?: string) => {
     const selected = !activeCron && activeAgent === a.name
     const d = statusDot(a.status)
+    if (collapsed) {
+      return railRow(
+        a.name, selected, () => onSelectAgent(a.name),
+        <Avatar letter={a.avatar} color={a.color} size={40} dot={d.color} dotGlow={d.glow} />,
+        label ?? a.name, unreadCounts[a.name] || 0,
+      )
+    }
     const now = new Date()
-    const timeStr = now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+    const timeStr = now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })
     return (
       <div
         key={a.name}
@@ -525,40 +601,65 @@ function ChatSidebar({ accent, liveAgents, cronJobs, activeAgent, activeCron, sw
   return (
     <aside
       style={{
-        flex: 'none', width: 252, display: 'flex', flexDirection: 'column', minHeight: 0,
+        flex: 'none', width: collapsed ? 64 : 252, display: 'flex', flexDirection: 'column', minHeight: 0,
         borderRight: '1px solid var(--tile-border)', background: 'var(--s3)',
         overflowY: 'auto', overflowX: 'hidden',
+        position: 'relative', zIndex: 1,
+        transition: 'width 0.2s cubic-bezier(0.16,1,0.3,1)',
       }}
     >
-      {/* Search button pinned to top of sidebar */}
-      <div style={{ flex: 'none', padding: '12px 12px 4px', display: 'flex', justifyContent: 'flex-end' }}>
+      {/* Top bar: collapse toggle (left) + search button (right, hidden in rail mode) */}
+      <div style={{ flex: 'none', height: 52, display: 'flex', alignItems: 'center', gap: 6, padding: collapsed ? '0' : '0 8px 0 6px', justifyContent: collapsed ? 'center' : 'flex-start', borderBottom: '1px solid var(--tile-border)' }}>
+        {/* Collapse toggle — always visible */}
         <button
-          onClick={onToggleSearch}
-          title={searchMode ? 'Close search' : 'Search messages, references, and skills'}
+          onClick={onToggleCollapsed}
+          title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           style={{
-            width: 28, height: 28, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            background: searchMode ? 'color-mix(in oklab, var(--ac) 14%, transparent)' : 'transparent',
-            border: `1px solid ${searchMode ? 'color-mix(in oklab, var(--ac) 38%, transparent)' : 'rgba(255,255,255,0.08)'}`,
-            borderRadius: 7, cursor: 'pointer', color: searchMode ? 'var(--ac)' : '#565d72', transition: 'all 0.16s',
+            flexShrink: 0, width: 24, height: 24, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            background: 'transparent', border: 'none',
+            borderRadius: 6, cursor: 'pointer', color: '#565d72', transition: 'color 0.16s',
           }}
-          onMouseEnter={(e) => { if (!searchMode) { e.currentTarget.style.color = '#e9ebf2'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.18)' } }}
-          onMouseLeave={(e) => { if (!searchMode) { e.currentTarget.style.color = '#565d72'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)' } }}
+          onMouseEnter={(e) => { e.currentTarget.style.color = '#e9ebf2' }}
+          onMouseLeave={(e) => { e.currentTarget.style.color = '#565d72' }}
         >
-          <SearchIcon size={13} />
+          <CollapseChevron collapsed={collapsed} size={15} />
         </button>
+        {/* Pill search input — expanded mode only */}
+        {!collapsed && (
+          <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 6, height: 30, padding: '0 8px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 999, color: '#565d72' }}>
+            <span style={{ flexShrink: 0, display: 'flex' }}><SearchIcon size={12} /></span>
+            <input
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              placeholder="Search"
+              style={{ flex: 1, minWidth: 0, background: 'none', border: 'none', outline: 'none', color: '#e9ebf2', fontFamily: 'inherit', fontSize: 13 }}
+            />
+            {filter && (
+              <button onClick={() => setFilter('')} style={{ flexShrink: 0, background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: '#565d72', display: 'flex', lineHeight: 1 }}>✕</button>
+            )}
+          </div>
+        )}
       </div>
       {/* HERMES */}
-      <GroupHeader label="Hermes" />
-      {hermes
+      {!collapsed && showHermes && <GroupHeader label="Hermes" />}
+      {showHermes && (hermes
         ? agentRow(hermes, 'Hermes')
-        : agentRow({ name: 'default', role: 'Coordinator', model: '', avatar: 'H', color: accent, status: 'online' }, 'Hermes')}
+        : agentRow({ name: 'default', role: 'Coordinator', model: '', avatar: 'H', color: accent, status: 'online' }, 'Hermes'))}
 
-      {/* CHANNELS — single aggregated "Cron Jobs" entry (Telegram-style row) */}
-      <GroupHeader label="Channels" />
-      {(() => {
+      {/* CHANNELS */}
+      {!collapsed && showCron && <GroupHeader label="Channels" />}
+      {showCron && (() => {
         const selected = activeCron === 'cron'
+        const cronAvatar = (
+          <span style={{ position: 'relative', width: collapsed ? 40 : 44, height: collapsed ? 40 : 44, flex: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', background: 'color-mix(in oklab, #9b8cff 16%, transparent)', border: '1px solid color-mix(in oklab, #9b8cff 42%, transparent)', color: '#9b8cff' }}>
+            <ClockIcon size={collapsed ? 20 : 22} color="#9b8cff" />
+          </span>
+        )
+        if (collapsed) {
+          return railRow('cron', selected, onSelectCron, cronAvatar, 'Cron Jobs', unreadCounts['cron'] || 0)
+        }
         const now = new Date()
-        const timeStr = now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+        const timeStr = now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })
         return (
           <div
             onClick={onSelectCron}
@@ -573,9 +674,7 @@ function ChatSidebar({ accent, liveAgents, cronJobs, activeAgent, activeCron, sw
             onMouseLeave={(e) => { if (!selected) e.currentTarget.style.background = selected ? 'rgba(246,183,60,0.12)' : 'transparent' }}
           >
             {/* Clock-icon avatar — 44px */}
-            <span style={{ position: 'relative', width: 44, height: 44, flex: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', background: 'color-mix(in oklab, #9b8cff 16%, transparent)', border: '1px solid color-mix(in oklab, #9b8cff 42%, transparent)', color: '#9b8cff' }}>
-              <ClockIcon size={22} color="#9b8cff" />
-            </span>
+            {cronAvatar}
             {/* Middle: name + subtitle */}
             <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
               <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
@@ -602,15 +701,15 @@ function ChatSidebar({ accent, liveAgents, cronJobs, activeAgent, activeCron, sw
       })()}
 
       {/* AGENTS */}
-      <GroupHeader label="Agents" />
-      {nonSwarm.length === 0 ? (
-        <div style={{ padding: '4px 14px 8px', fontSize: 11.5, color: '#565d72' }}>No agents</div>
+      {!collapsed && visibleAgents.length > 0 && <GroupHeader label="Agents" />}
+      {visibleAgents.length === 0 && q && !collapsed ? (
+        <div style={{ padding: '4px 14px 8px', fontSize: 11.5, color: '#565d72' }}>No results</div>
       ) : (
-        nonSwarm.map((a) => agentRow(a))
+        visibleAgents.map((a) => agentRow(a))
       )}
 
-      {/* SWARM (collapsible) */}
-      {swarm.length > 0 && (
+      {/* SWARM (collapsible in expanded mode; hidden in rail mode) */}
+      {visibleSwarm.length > 0 && !collapsed && (
         <>
           <div
             onClick={onToggleSwarm}
@@ -622,7 +721,7 @@ function ChatSidebar({ accent, liveAgents, cronJobs, activeAgent, activeCron, sw
             <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#565d72' }}>Swarm</span>
             <span style={{ fontSize: 10, color: '#454b5e', fontFamily: 'IBM Plex Mono, monospace' }}>{swarm.length}</span>
           </div>
-          {swarmOpen && swarm.map((a) => agentRow(a))}
+          {swarmOpen && visibleSwarm.map((a) => agentRow(a))}
         </>
       )}
 
@@ -654,6 +753,7 @@ export default function Chat({ accent, isActive, onUnreadChange }: ChatProps) {
   const [liveAgents, setLiveAgents] = useState<LiveAgent[]>([])
   const [cronJobs, setCronJobs] = useState<CronJob[]>([])
   const [swarmOpen, setSwarmOpen] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem('chat-sidebar-collapsed') === '1')
   // When a cron channel is selected: 'cron'; else null (agent/Hermes mode).
   const [activeCron, setActiveCron] = useState<string | null>(null)
   const [cronOutput, setCronOutput] = useState<CronOutputMsg[]>([])
@@ -814,7 +914,7 @@ export default function Chat({ accent, isActive, onUnreadChange }: ChatProps) {
 
   const thread = threads[activeAgent] || []
   const cronEpochWhen = (epoch: number) => {
-    try { return new Date(epoch * 1000).toLocaleString() } catch { return '' }
+    try { return new Date(epoch * 1000).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true }) } catch { return '' }
   }
   const baseThread = activeCron
     ? (cronLoading
@@ -945,7 +1045,7 @@ export default function Chat({ accent, isActive, onUnreadChange }: ChatProps) {
           id: `report-${activeAgent}-${i}`,
           role: 'agent' as const,
           text: m.content,
-          at: m.created_at ? new Date(m.created_at * 1000).toLocaleString() : '',
+          at: m.created_at ? new Date(m.created_at * 1000).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : '',
         }))
         setAgentReports(prev => ({ ...prev, [activeAgent]: mapped }))
       })
@@ -1173,7 +1273,7 @@ export default function Chat({ accent, isActive, onUnreadChange }: ChatProps) {
   const avBorder = `color-mix(in oklab, ${agent.color} 42%, transparent)`
 
   return (
-    <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'row', minHeight: 0, animation: 'hpanelin 0.4s var(--ease-out)', overflow: 'hidden' }}>
+    <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'row', minHeight: 0, animation: 'hpanelin 0.4s var(--ease-out)', overflow: 'hidden', position: 'relative', zIndex: 1 }}>
       <ChatSidebar
         accent={accent}
         liveAgents={liveAgents}
@@ -1182,15 +1282,62 @@ export default function Chat({ accent, isActive, onUnreadChange }: ChatProps) {
         activeCron={activeCron}
         swarmOpen={swarmOpen}
         unreadCounts={unreadCounts}
-        searchMode={searchMode}
+        collapsed={sidebarCollapsed}
         onToggleSwarm={() => setSwarmOpen((v) => !v)}
         onSelectAgent={selectAgent}
         onSelectCron={selectCron}
-        onToggleSearch={() => (searchMode ? exitSearch() : setSearchMode(true))}
+        onToggleCollapsed={() => setSidebarCollapsed((v) => { const next = !v; localStorage.setItem('chat-sidebar-collapsed', next ? '1' : '0'); return next })}
       />
     <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', minHeight: 0, position: 'relative' }}>
 
-      {/* ── Search overlay — replaces the message thread in search mode ──── */}
+      {/* ── Header — flush top, forms 90° corner with sidebar ──────────── */}
+      {!searchMode && (
+        <div style={{
+          flex: 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '0 16px', height: 52,
+          borderBottom: '1px solid var(--tile-border)',
+          background: 'var(--s3)',
+          position: 'relative', zIndex: 2,
+        }}>
+          {/* Left: avatar + name + typing */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+            <span style={{
+              width: 32, height: 32, flex: 'none', borderRadius: 9, display: 'flex',
+              alignItems: 'center', justifyContent: 'center', fontSize: 15,
+              background: `color-mix(in oklab, ${agent.color} 16%, transparent)`,
+              border: `1px solid color-mix(in oklab, ${agent.color} 42%, transparent)`,
+              color: agent.color,
+            }}>{agent.icon}</span>
+            <span style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
+              <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 14, color: '#f0f2f8', whiteSpace: 'nowrap' }}>
+                {agent.name}
+              </span>
+              {running ? (
+                <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#3b82f6' }}>
+                  <span style={{ display: 'flex', gap: 2 }}>
+                    {[0, 0.18, 0.36].map((d) => (
+                      <span key={d} style={{ width: 4, height: 4, borderRadius: '50%', background: '#3b82f6', animation: `hbounce 1.3s ease-in-out ${d}s infinite` }} />
+                    ))}
+                  </span>
+                  typing
+                </span>
+              ) : (
+                <span style={{ fontSize: 11, color: '#565d72' }}>{agent.role || 'Agent'}</span>
+              )}
+            </span>
+          </div>
+          {/* Right: search + more */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 'none' }}>
+            <button
+              onClick={() => (searchMode ? exitSearch() : setSearchMode(true))}
+              title="Search"
+              style={{ width: 30, height: 30, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', borderRadius: 8, cursor: 'pointer', color: '#565d72', transition: 'color 0.15s' }}
+              onMouseEnter={(e) => { e.currentTarget.style.color = '#e9ebf2' }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = '#565d72' }}
+            ><SearchIcon size={16} /></button>
+          </div>
+        </div>
+      )}
       {searchMode && (() => {
         const q = searchQuery.trim()
         const total = searchResults.sessions.length + searchResults.references.length + searchResults.skills.length

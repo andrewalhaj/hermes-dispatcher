@@ -98,13 +98,17 @@ async def chat_sessions():
         conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True, check_same_thread=False)
         cur = conn.cursor()
         cur.execute(
-            "SELECT id, title, started_at FROM sessions"
-            " WHERE archived = 0 AND source = 'telegram' ORDER BY started_at DESC LIMIT 20"
+            "SELECT s.id, s.title, s.started_at, MAX(m.timestamp) as last_msg"
+            " FROM sessions s"
+            " LEFT JOIN messages m ON m.session_id = s.id"
+            " WHERE s.archived = 0 AND s.source = 'telegram'"
+            " GROUP BY s.id"
+            " ORDER BY COALESCE(MAX(m.timestamp), s.started_at) DESC LIMIT 20"
         )
         rows = cur.fetchall()
         conn.close()
         return [
-            {"id": r[0], "title": r[1] or "Untitled session", "created_at": r[2]}
+            {"id": r[0], "title": r[1] or "Untitled session", "created_at": r[3] or r[2]}
             for r in rows
         ]
     except Exception:
