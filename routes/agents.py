@@ -6,7 +6,7 @@ from pathlib import Path
 
 from fastapi import APIRouter
 
-router = APIRouter(prefix="/api/agents")
+router = APIRouter(prefix="/agents")
 
 # Note: HERMES_HOME may point at a single profile subdir in worker contexts,
 # so resolve the profiles root explicitly rather than deriving from it.

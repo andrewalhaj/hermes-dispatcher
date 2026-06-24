@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { ACCENT } from '../../data/agents'
 import { ACCENT_SWATCHES, API_KEYS, LANG_OPTS, MODEL_OPTS, SETTINGS_TOGGLES } from '../../data/phase3'
+import { lsGet, lsGetJson, lsSet } from '../../utils/localStorage'
 import '../../styles/phase3.css'
 
 interface SettingsProps {
@@ -18,21 +19,6 @@ const LS_REASON = 'hermes-settings-reason'
 const LS_BOTNAME = 'hermes-settings-botName'
 const LS_WS = 'hermes-settings-ws'
 const LS_TOGGLES = 'hermes-settings-toggles'
-
-function lsGet(key: string, fallback: string): string {
-  try { return localStorage.getItem(key) ?? fallback } catch { return fallback }
-}
-
-function lsGetJson<T>(key: string, fallback: T): T {
-  try {
-    const v = localStorage.getItem(key)
-    return v ? (JSON.parse(v) as T) : fallback
-  } catch { return fallback }
-}
-
-function lsSet(key: string, value: string): void {
-  try { localStorage.setItem(key, value) } catch { /* storage unavailable */ }
-}
 
 const sectionStyle: React.CSSProperties = { background: 'var(--s3)', border: '1px solid var(--tile-border)', borderRadius: 12, padding: '4px 18px' }
 const sectionLabel: React.CSSProperties = { fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#6a7088', margin: '16px 0 4px' }

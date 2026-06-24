@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useSystemStats, type SysMetric, type SysDataPoint, type AgentMem } from './useSystemStats'
+import { lsGet, lsSet } from '../../utils/localStorage'
 
 const cardLabelStyle: React.CSSProperties = {
   fontSize: 10,
@@ -545,14 +546,14 @@ function MachineSelector({
  */
 export default function SystemMonitorTile() {
   const [machine, setMachine] = useState<'mini' | 'studio'>(
-    () => (localStorage.getItem('sysmon_machine') as 'mini' | 'studio') ?? 'mini',
+    () => lsGet('sysmon_machine', 'mini') as 'mini' | 'studio',
   )
   const [menuOpen, setMenuOpen] = useState(false)
   const sys = useSystemStats(machine)
 
   const selectMachine = (m: 'mini' | 'studio') => {
     setMachine(m)
-    localStorage.setItem('sysmon_machine', m)
+    lsSet('sysmon_machine', m)
     setMenuOpen(false)
   }
 

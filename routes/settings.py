@@ -147,11 +147,3 @@ async def get_models():
             pass
     return {"models": defaults}
 
-
-@router.get("/profiles")
-async def get_profiles():
-    profiles_dir = Path(HERMES_HOME) / "profiles"
-    if not profiles_dir.exists():
-        return {"profiles": ["default"]}
-    dirs = sorted(p.name for p in profiles_dir.iterdir() if p.is_dir())
-    return {"profiles": dirs or ["default"]}

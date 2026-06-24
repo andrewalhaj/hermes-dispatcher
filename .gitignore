@@ -20,6 +20,7 @@ dist-ssr/
 !.env.example
 *.pem
 *.key
+.dashboard_passwd_hash
 
 # ── Worker / task scratch artifacts ─────────────────────────
 .task_*

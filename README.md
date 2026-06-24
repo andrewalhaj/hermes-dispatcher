@@ -28,14 +28,14 @@ Top-level operational summary:
 - **Stat grid** — key metrics with sparkline history
 - **Agent breakdown** — per-agent task counts and status with color coding
 - **Activity heatmap** — session volume over time with time-frame selector (Day / Week / Month)
-- **System Monitor** — live CPU, GPU, VRAM, and network for both Mac Mini (Intel UHD 630) and Mac Studio (Apple Silicon M-series), polled every 3s with 60fps animated arc gauges and per-metric accent colors
+- **System Monitor** — live CPU, GPU, VRAM, and network for the host machine (Linux x86_64), polled every 3s with 60fps animated arc gauges and per-metric accent colors
 - **Agent Swarm canvas** — particle simulation showing live agent activity, color-coded per worker
 
 ### 🖥 System Monitor
-Dual-machine monitoring (Mac Mini + Mac Studio over Tailscale SSH):
+Dual-machine monitoring (Linux host + remote over Tailscale SSH):
 
-| Metric | Mac Mini | Mac Studio |
-|--------|----------|------------|
+| Metric | Host (local) | Remote (SSH) |
+|--------|-------------|---------------|
 | CPU % | `psutil` | `psutil` (SSH) |
 | RAM | `psutil` | `psutil` (SSH) |
 | GPU % | `/proc/*/fdinfo` drm-engine-render delta | `ioreg IOAccelerator` |
@@ -60,7 +60,7 @@ Browse all installed Hermes skills. Toggle skills on/off per platform. Skills sh
 Live agent roster — which profiles are active, their task history, memory footprint (RSS MB), and color-coded status. Capitalized display names. No stale/deleted profiles.
 
 ### 📁 Workspace
-Browse the active kanban task workspace — file tree and contents for the current worker's scratch directory.
+⚠ **Not wired** — nav entry exists but panel component is not rendered. Intended to browse the active kanban task workspace — file tree and contents for the current worker's scratch directory.
 
 ### 📝 Logs
 Tail live logs from the Hermes gateway, dashboard server, and system journal. Auto-scroll with pause-on-hover.
@@ -70,16 +70,35 @@ Persist dashboard preferences: theme, accent color, agent name, workspace path, 
 
 ---
 
+## Panel data sources
+
+| Panel | Data source |
+|-------|-------------|
+| Overview | `/api/overview` |
+| Chat | `/api/chat/*` |
+| Kanban | `/api/kanban` |
+| Agents | mock (`src/data/agents.ts`) + `/api/agents` live fallback |
+| Skills | `/api/skills` |
+| Insights | `/api/insights` |
+| Sessions | `/api/sessions` |
+| Memory | `/api/memory` (editor mode) + mock (`src/data/memoryGalaxy.ts`) galaxy view with live honcho refresh |
+| Logs | `/api/logs` |
+| Settings | `/api/settings` |
+| Workspace | ⚠ not wired (nav entry exists, component not rendered) |
+| Profiles | ⚠ not wired (component exists, never imported or rendered) |
+
+---
+
 ## Stack
 
 | Layer | Technology |
-|-------|-----------|
+|-------|-----------:|
 | Frontend | React 18, TypeScript, Vite, Tailwind CSS, Framer Motion |
 | Backend | FastAPI (Python 3.11), uvicorn |
 | Data | SQLite (kanban + sessions via Hermes), `psutil`, SSH probes |
-| Auth | Session cookie (`hd_session`), bcrypt password hash |
+| Auth | Session cookie (`hd_session`), SHA-256 (unsalted) password hash |
 | Fonts | Space Grotesk |
-| Hosting | Self-hosted on Mac Mini, accessible over Tailscale or Cloudflare Tunnel |
+| Hosting | Self-hosted on Linux x86_64 (kernel 7.0.12-1-t2-noble), via systemd, accessible over Tailscale or Cloudflare Tunnel |
 
 ---
 
@@ -88,7 +107,7 @@ Persist dashboard preferences: theme, accent color, agent name, workspace path, 
 ```
 Browser (any Tailscale client)
     │
-    └─ Mac Mini :8787
+    └─ Linux host :8787
            │
            ▼
     ┌─────────────────────┐
@@ -107,11 +126,11 @@ Browser (any Tailscale client)
     │  Reads: kanban.db    │
     │         ~/.hermes/   │
     │                      │
-    │  SSH probe ──────────┼──► Mac Studio (Tailscale)
+    │  SSH probe ──────────┼──► Remote host (Tailscale)
     └─────────────────────┘    GPU/CPU/RAM metrics
 ```
 
-The kanban board (`~/.hermes/kanban.db`) is a shared SQLite DB written by the Hermes dispatcher process and read by the dashboard. Workers run on the Mac Mini and SSH into remote hosts for tasks — they do not run Claude on remote machines.
+The kanban board (`~/.hermes/kanban.db`) is a shared SQLite DB written by the Hermes dispatcher process and read by the dashboard. Workers run on the Linux host and SSH into remote hosts for tasks — they do not run Claude on remote machines.
 
 ---
 
@@ -132,7 +151,7 @@ npm run build
 # served automatically by uvicorn from app/dist/
 ```
 
-Password hash is stored at `.dashboard_passwd_hash` (bcrypt). Set via:
+Password hash is stored at `.dashboard_passwd_hash` (SHA-256, unsalted). Set via:
 ```bash
 python3 -c "import hashlib; print(hashlib.sha256(b'yourpassword').hexdigest())" > .dashboard_passwd_hash
 ```
@@ -141,7 +160,7 @@ python3 -c "import hashlib; print(hashlib.sha256(b'yourpassword').hexdigest())" 
 
 ## Deployment
 
-Runs as a systemd service on Mac Mini:
+Runs as a systemd service on Linux x86_64:
 
 ```ini
 # /etc/systemd/system/hermes-dashboard.service.d/dispatcher-override.conf

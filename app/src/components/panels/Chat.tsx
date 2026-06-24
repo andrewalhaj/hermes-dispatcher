@@ -14,6 +14,7 @@ import type { Message, PastSession } from '../../data/types'
 import ComposerDropdown from '../chat/ComposerDropdown'
 import PlanBlock from '../chat/PlanBlock'
 import { COMMANDS } from '../../data/commands'
+import { lsGet, lsSet } from '../../utils/localStorage'
 
 declare global {
   interface Window {
@@ -738,8 +739,8 @@ export default function Chat({ accent, isActive, onUnreadChange }: ChatProps) {
   const [viewSession, setViewSession] = useState<PastSession | null>(null)
   const [composerMenu, setComposerMenu] = useState<string | null>(null)
   const [profile] = useState('default')
-  const [model, setModel] = useState(() => localStorage.getItem('hermes-chat-model') || 'Claude Sonnet 4.6')
-  const [reason, setReason] = useState(() => localStorage.getItem('hermes-chat-reason') || 'xhigh')
+  const [model, setModel] = useState(() => lsGet('hermes-chat-model', 'Claude Sonnet 4.6'))
+  const [reason, setReason] = useState(() => lsGet('hermes-chat-reason', 'xhigh'))
   const [planMainOpen, setPlanMainOpen] = useState<Record<string, boolean>>({})
   const [planStepOpen, setPlanStepOpen] = useState<Record<string, boolean>>({})
 
@@ -753,7 +754,7 @@ export default function Chat({ accent, isActive, onUnreadChange }: ChatProps) {
   const [liveAgents, setLiveAgents] = useState<LiveAgent[]>([])
   const [cronJobs, setCronJobs] = useState<CronJob[]>([])
   const [swarmOpen, setSwarmOpen] = useState(false)
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem('chat-sidebar-collapsed') === '1')
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => lsGet('chat-sidebar-collapsed', '') === '1')
   // When a cron channel is selected: 'cron'; else null (agent/Hermes mode).
   const [activeCron, setActiveCron] = useState<string | null>(null)
   const [cronOutput, setCronOutput] = useState<CronOutputMsg[]>([])
@@ -851,7 +852,7 @@ export default function Chat({ accent, isActive, onUnreadChange }: ChatProps) {
       lastViewSessionRef.current = session
       setViewSession(session)
     }
-    localStorage.setItem('hermes-chat-last-session', sid)
+    lsSet('hermes-chat-last-session', sid)
   }
 
   function handleSearchSessionClick(hit: SessionHit) {
@@ -1029,7 +1030,7 @@ export default function Chat({ accent, isActive, onUnreadChange }: ChatProps) {
         const sessions = sorted.map((s) => ({ id: s.id, title: s.title, when: epochToWhen(s.created_at), msgs: [] }))
         setHermesSessions(sessions)
         if (sessions.length > 0) {
-          const savedId = localStorage.getItem('hermes-chat-last-session')
+          const savedId = lsGet('hermes-chat-last-session', '')
           const target = (savedId ? sessions.find(s => s.id === savedId) : null) ?? sessions[0]
           try {
             const msgRes = await fetch(`/api/chat/sessions/${target.id}/messages`)
@@ -1042,7 +1043,7 @@ export default function Chat({ accent, isActive, onUnreadChange }: ChatProps) {
             lastViewSessionRef.current = session
             setViewSession(session)
           }
-          localStorage.setItem('hermes-chat-last-session', target.id)
+          lsSet('hermes-chat-last-session', target.id)
         }
       } catch {
         setHermesSessions([])
@@ -1338,7 +1339,7 @@ export default function Chat({ accent, isActive, onUnreadChange }: ChatProps) {
         onToggleSwarm={() => setSwarmOpen((v) => !v)}
         onSelectAgent={selectAgent}
         onSelectCron={selectCron}
-        onToggleCollapsed={() => setSidebarCollapsed((v) => { const next = !v; localStorage.setItem('chat-sidebar-collapsed', next ? '1' : '0'); return next })}
+        onToggleCollapsed={() => setSidebarCollapsed((v) => { const next = !v; lsSet('chat-sidebar-collapsed', next ? '1' : '0'); return next })}
       />
     <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', minHeight: 0, position: 'relative' }}>
 
@@ -1984,13 +1985,13 @@ export default function Chat({ accent, isActive, onUnreadChange }: ChatProps) {
               <ComposerDropdown
                 menuKey="model" value={model} options={modelOpts} open={composerMenu === 'model'} variant="pill" minWidth={190}
                 onToggle={() => setComposerMenu((m) => (m === 'model' ? null : 'model'))}
-                onPick={(v) => { setModel(v); localStorage.setItem('hermes-chat-model', v); setComposerMenu(null) }}
+                onPick={(v) => { setModel(v); lsSet('hermes-chat-model', v); setComposerMenu(null) }}
                 icon={<svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="#9298ab" strokeWidth={2}><circle cx={12} cy={12} r={3} /><path d="M12 2v3M12 19v3M2 12h3M19 12h3" /></svg>}
               />
               <ComposerDropdown
                 menuKey="reasoning" value={reason} options={REASON_OPTIONS} open={composerMenu === 'reasoning'} variant="pill" minWidth={160}
                 onToggle={() => setComposerMenu((m) => (m === 'reasoning' ? null : 'reasoning'))}
-                onPick={(v) => { setReason(v); localStorage.setItem('hermes-chat-reason', v); setComposerMenu(null) }}
+                onPick={(v) => { setReason(v); lsSet('hermes-chat-reason', v); setComposerMenu(null) }}
                 icon={<svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="#9298ab" strokeWidth={2}><circle cx={12} cy={12} r={9} /><path d="M12 3v18" /></svg>}
               />
             </div>

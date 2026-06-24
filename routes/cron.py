@@ -15,7 +15,7 @@ from pathlib import Path
 
 from fastapi import APIRouter
 
-router = APIRouter(prefix="/api/cron")
+router = APIRouter(prefix="/cron")
 
 _HERMES_HOME = Path(os.environ.get("HERMES_HOME", "/root/.hermes"))
 # HERMES_HOME may point at a profile subdir in worker contexts; cron lives at

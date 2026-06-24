@@ -6,7 +6,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, File, UploadFile
 
-router = APIRouter(prefix="/api/chat")
+router = APIRouter(prefix="/chat")
 
 HERMES_HOME = Path(os.environ.get("HERMES_HOME", "/root/.hermes"))
 IMAGE_CACHE = HERMES_HOME / "image_cache"

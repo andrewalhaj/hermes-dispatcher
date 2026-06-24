@@ -4,10 +4,11 @@ Hermes Dispatcher — FastAPI backend
 Serves the built React/Vite SPA from app/dist/ and exposes a JSON API
 under /api/*.
 
-Other /api/* routes are filled in by parallel worker cards — add routers via:
-    from <module> import router as <name>_router
-    app.include_router(<name>_router, prefix="/api")
-Keep the include_router structure intact so cards can append routers here.
+Routing convention: every router in routes/ declares bare paths (e.g.
+"/tasks", "/stream"). The single /api prefix is applied here in server.py
+via include_router(..., prefix="/api"). Never bake the /api prefix into a
+router file — keeping it here is what makes any route URL predictable from
+this file alone.
 """
 
 import os
@@ -36,6 +37,11 @@ app = FastAPI(title="Hermes Dispatcher", version="0.1.0")
 
 app.add_middleware(
     CORSMiddleware,
+    # allow_origins=["*"]: intentional for a single-user, locally-deployed dashboard
+    # served over Tailscale/localhost. Cookie is samesite="strict" + httponly=True,
+    # which limits CSRF risk in a trusted-network context. To tighten for a
+    # publicly-exposed instance, replace "*" with an explicit origin allowlist
+    # (greenlight-gated — requires knowing the deployment origin at config time).
     allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
@@ -103,7 +109,7 @@ from routes.search import router as search_router
 app.include_router(search_router, prefix="/api")
 
 from routes.agents import router as agents_router
-app.include_router(agents_router)
+app.include_router(agents_router, prefix="/api")
 
 from routes.overview import router as overview_router
 app.include_router(overview_router, prefix="/api")
@@ -115,27 +121,27 @@ from routes.workspace import router as workspace_router
 app.include_router(workspace_router, prefix="/api")
 
 from routes.memory import router as memory_router
-app.include_router(memory_router)
+app.include_router(memory_router, prefix="/api")
 
-from routes.chat import chat_router
-app.include_router(chat_router)
+from routes.chat import router as chat_router
+app.include_router(chat_router, prefix="/api")
 
 # upload route requires python-multipart; guard so a missing optional dep
 # (peer task still in flight) can't crash app import for every other route.
 try:
     from routes.upload import router as upload_router
-    app.include_router(upload_router)
+    app.include_router(upload_router, prefix="/api")
 except (ImportError, RuntimeError) as _upload_err:
     print(f"[server] upload route disabled: {_upload_err}")
 
 from routes.kanban import router as kanban_router
-app.include_router(kanban_router)
+app.include_router(kanban_router, prefix="/api")
 
 from routes.media import router as media_router
 app.include_router(media_router, prefix="/api")
 
-from routes import cron
-app.include_router(cron.router)
+from routes.cron import router as cron_router
+app.include_router(cron_router, prefix="/api")
 
 # ---------------------------------------------------------------------------
 # SPA static file fallback
@@ -168,4 +174,4 @@ async def spa_fallback(full_path: str) -> FileResponse | PlainTextResponse:
 if __name__ == "__main__":
     import uvicorn  # imported locally so it doesn't execute on import
 
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8787)

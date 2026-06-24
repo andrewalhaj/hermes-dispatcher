@@ -1,4 +1,4 @@
-# Mount with: app.include_router(chat_router)
+# Mount with: app.include_router(router, prefix="/api")
 import asyncio
 import json
 import os
@@ -11,7 +11,7 @@ from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
-chat_router = APIRouter()
+router = APIRouter()
 
 _ACTIVE: dict[str, asyncio.subprocess.Process] = {}
 
@@ -34,7 +34,7 @@ class CancelRequest(BaseModel):
     session_id: str
 
 
-@chat_router.post("/api/chat/send")
+@router.post("/chat/send")
 async def chat_send(req: SendRequest):
     async def generate():
         cmd = [HERMES_BIN, "-z", req.message]
@@ -78,7 +78,7 @@ async def chat_send(req: SendRequest):
     )
 
 
-@chat_router.post("/api/chat/cancel")
+@router.post("/chat/cancel")
 async def chat_cancel(req: CancelRequest):
     proc = _ACTIVE.get(req.session_id)
     if proc:
@@ -91,7 +91,7 @@ async def chat_cancel(req: CancelRequest):
     return {"ok": True, "cancelled": False}
 
 
-@chat_router.get("/api/chat/sessions")
+@router.get("/chat/sessions")
 async def chat_sessions():
     db_path = Path(_hermes_home()) / "state.db"
     try:
@@ -115,7 +115,7 @@ async def chat_sessions():
         return []
 
 
-@chat_router.get("/api/chat/sessions/{session_id}/messages")
+@router.get("/chat/sessions/{session_id}/messages")
 async def chat_session_messages(session_id: str):
     db_path = Path(_hermes_home()) / "state.db"
     try:
@@ -146,7 +146,7 @@ async def chat_session_messages(session_id: str):
         return []
 
 
-@chat_router.get("/api/profiles")
+@router.get("/profiles")
 async def list_profiles():
     profiles_dir = Path(_hermes_home()) / "profiles"
     try:
@@ -158,7 +158,7 @@ async def list_profiles():
         return ["default"]
 
 
-@chat_router.get("/api/models")
+@router.get("/models")
 async def list_models():
     config_path = Path(_hermes_home()) / "config.yaml"
     static_catalog = ["claude-sonnet-4-6", "claude-opus-4-8", "claude-haiku-4"]

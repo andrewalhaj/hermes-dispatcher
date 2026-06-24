@@ -1,6 +1,14 @@
 """
 Authentication routes for the Hermes Dashboard.
-SESSION_TOKEN is generated once at startup — ephemeral by design.
+
+SESSION_TOKEN model (single-process, trusted-network deployment):
+  - One token is generated per process lifetime via secrets.token_hex(32).
+  - All authenticated clients share this token — there are no per-session tokens.
+  - logout() deletes the client-side cookie only; the token remains valid server-side
+    until the process restarts. A second client retaining the token can still authenticate.
+  - This is intentional for a single-user, locally-trusted-network dashboard. If
+    multi-user isolation or token expiry is needed, replace with per-session tokens
+    stored in a server-side map with TTLs (greenlight-gated).
 """
 
 import asyncio

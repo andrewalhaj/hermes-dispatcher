@@ -14,7 +14,7 @@ DB_PATH = os.environ.get("KANBAN_DB", "/root/.hermes/kanban.db")
 
 VALID_STATUSES = {"triage", "todo", "ready", "running", "blocked", "done"}
 
-router = APIRouter(prefix="/api/kanban")
+router = APIRouter(prefix="/kanban")
 
 
 def _conn() -> sqlite3.Connection:
