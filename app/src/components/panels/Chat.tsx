@@ -903,9 +903,6 @@ export default function Chat({ accent, isActive, onUnreadChange }: ChatProps) {
   // Persists the last Hermes viewSession across agent switches so returning to
   // 'default' doesn't show the empty "Pick up where you left off" screen.
   const lastViewSessionRef = useRef<PastSession | null>(null)
-  // Set to true only when a live SSE message arrives — gates the length-change
-  // auto-scroll so bulk async loads (reports, cron) don't animate a scroll.
-  const liveMessageRef = useRef(false)
 
   // ── Derive the active "agent" identity (header/avatar/colour) from live data.
   // `default` profile renders as "Hermes". The cron channel gets a synthetic
@@ -955,33 +952,47 @@ export default function Chat({ accent, isActive, onUnreadChange }: ChatProps) {
   const ctxNum = Math.min(99, Math.round(ctxChars / 28))
   const ringDash = `${((Math.min(100, Math.round(ctxChars / 28)) / 100) * 56.55).toFixed(1)} 56.55`
 
-  // Single scroll-to-bottom helper — always instant, always via scrollTop so
-  // there's no competing scrollIntoView animation.
-  const pinToBottom = () => {
-    const el = listRef.current
-    if (el) el.scrollTop = el.scrollHeight
-  }
-
-  // Pin on new messages arriving or panel becoming active/visible.
-  // Pin on new live SSE messages only (not bulk loads — those call pinToBottom directly).
+  // Scroll to bottom whenever new messages arrive OR the panel becomes active.
+  // When panel is hidden (display:none) scrollIntoView is a no-op, so we also
+  // fire when isActive flips true so the first reveal lands at the bottom.
   useEffect(() => {
-    if (!liveMessageRef.current) return
+    if (displayThread.length === 0) return
+    // Don't auto-scroll while search overlay is open, or when exiting it
+    // (displayThread switches from search results → real thread, which would
+    // cause a jump-to-top before scrollIntoView fires).
     if (searchMode) return
-    liveMessageRef.current = false
-    requestAnimationFrame(() => requestAnimationFrame(pinToBottom))
-  }, [displayThread.length, searchMode])
+    // Defer one frame: when display flips from none→flex, scrollIntoView in
+    // the same render cycle is a no-op because the element still has no layout.
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        bottomRef.current?.scrollIntoView({ behavior: 'instant' })
+      })
+    })
+  }, [displayThread.length, isActive, searchMode])
 
-  // Dedicated pin when panel flips visible (isActive true): fires even when
-  // displayThread.length didn't change (fresh URL load case).
+  // Dedicated pin for when the panel becomes visible: force scroll regardless
+  // of whether displayThread.length changed (on fresh URL load the length may
+  // be identical between isActive=false and isActive=true so the combined
+  // effect above doesn't re-fire).
   useEffect(() => {
     if (!isActive) return
-    requestAnimationFrame(() => requestAnimationFrame(pinToBottom))
+    if (searchMode) return
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const el = listRef.current
+        if (el) el.scrollTop = el.scrollHeight
+      })
+    })
   }, [isActive])
 
-  // Re-pin when search overlay closes.
+  // When search closes, land back at the bottom of the real thread.
   useEffect(() => {
     if (searchMode) return
-    requestAnimationFrame(() => requestAnimationFrame(pinToBottom))
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        bottomRef.current?.scrollIntoView({ behavior: 'instant' })
+      })
+    })
   }, [searchMode])
 
   useEffect(() => {
@@ -1083,7 +1094,6 @@ export default function Chat({ accent, isActive, onUnreadChange }: ChatProps) {
           at: m.created_at ? new Date(m.created_at * 1000).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : '',
         }))
         setAgentReports(prev => ({ ...prev, [activeAgent]: mapped }))
-        requestAnimationFrame(() => requestAnimationFrame(pinToBottom))
       })
       .catch(() => {})
       .finally(() => { if (!cancelled) setReportsLoading(false) })
@@ -1114,7 +1124,6 @@ export default function Chat({ accent, isActive, onUnreadChange }: ChatProps) {
       const res = await fetch('/api/cron/output')
       const data = await res.json() as CronOutputMsg[]
       setCronOutput(Array.isArray(data) ? data : [])
-      requestAnimationFrame(() => requestAnimationFrame(pinToBottom))
     } catch {
       setCronOutput([])
     } finally {
@@ -1224,7 +1233,6 @@ export default function Chat({ accent, isActive, onUnreadChange }: ChatProps) {
     const k = activeAgent
     const at = nowTime()
     if (k === 'default') {
-      liveMessageRef.current = true
       setThreads((s) => ({ ...s, [k]: [...(s[k] || []), { id: 'u' + Date.now(), role: 'user', text: displayText, at }] }))
       setDraft('')
       setRunning(true)
@@ -1252,7 +1260,6 @@ export default function Chat({ accent, isActive, onUnreadChange }: ChatProps) {
             const ev = JSON.parse(chunk.slice(5).trim()) as { type: string; text: string }
             if (ev.type === 'delta') {
               lastMsgTextRef.current += ev.text
-              liveMessageRef.current = true
               if (agentMsgId === null) {
                 const id = 'a' + Date.now()
                 agentMsgId = id
