@@ -1176,8 +1176,8 @@ async def linear_webhook(request: Request):
             try:
                 _conn.execute(
                     "INSERT INTO tasks (id, title, body, status, priority, created_by, created_at, tenant, assignee) "
-                    "VALUES (?, ?, ?, 'triage', 4, 'dashboard', ?, ?, NULL)",
-                    (_task_id, entity_title, kanban_body, _now, "internal"),
+                    "VALUES (?, ?, ?, 'triage', ?, 'linear-webhook', ?, ?, ?)",
+                    (_task_id, entity_title, kanban_body, kanban_priority, _now, "internal", assignee),
                 )
                 _conn.commit()
                 logger.info("linear webhook: dispatched '%s' (id=%s priority %d)",

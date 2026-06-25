@@ -1,0 +1,62 @@
+[
+  {
+    "id": "db58d4d5",
+    "text": "Changed hot memory from 6 entries at 94% to 3 entries at 20%.",
+    "tags": "[\"change\", \"auto-captured\"]",
+    "priority": "normal",
+    "source": "",
+    "stored_at": 1780431749.831931,
+    "context_prefix": "NaN",
+    "body_hash": "NaN"
+  },
+  {
+    "id": "fa08f74e",
+    "text": "Built session auto-capture script.",
+    "tags": "[\"change\", \"auto-captured\"]",
+    "priority": "normal",
+    "source": "",
+    "stored_at": 1780431749.893739,
+    "context_prefix": "NaN",
+    "body_hash": "NaN"
+  },
+  {
+    "id": "12556122",
+    "text": "Connected Govee smart home with 9 devices via API key.",
+    "tags": "[\"change\", \"auto-captured\"]",
+    "priority": "normal",
+    "source": "",
+    "stored_at": 1780431749.9950974,
+    "context_prefix": "NaN",
+    "body_hash": "NaN"
+  },
+  {
+    "id": "97624f66",
+    "text": "Fixed Govee script ambiguity \u2014 exact name match now takes priority over partial.",
+    "tags": "[\"change\", \"auto-captured\"]",
+    "priority": "normal",
+    "source": "",
+    "stored_at": 1780431750.0296943,
+    "context_prefix": "NaN",
+    "body_hash": "NaN"
+  },
+  {
+    "id": "ebd52466",
+    "text": "Bootstrapped LanceDB from Obsidian vault index.",
+    "tags": "[\"change\", \"auto-captured\"]",
+    "priority": "normal",
+    "source": "",
+    "stored_at": 1780431750.061358,
+    "context_prefix": "NaN",
+    "body_hash": "NaN"
+  },
+  {
+    "id": "6ad7469a",
+    "text": "Shrunk hot memory to 447 chars at 20% capacity.",
+    "tags": "[\"change\", \"auto-captured\"]",
+    "priority": "normal",
+    "source": "",
+    "stored_at": 1780431750.1393757,
+    "context_prefix": "NaN",
+    "body_hash": "NaN"
+  }
+]

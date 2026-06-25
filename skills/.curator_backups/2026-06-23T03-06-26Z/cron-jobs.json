@@ -1,0 +1,1131 @@
+{
+  "jobs": [
+    {
+      "id": "840045b799b8",
+      "name": "Daily Delegation Audit",
+      "prompt": "SELF-AUDIT: Scan your session database for the last 24 hours and identify token-waste patterns. Specifically flag:\n1. Sessions with >100K input tokens and zero delegate_task calls\n2. Sessions with >8 web_search calls and zero delegation\n3. Sessions with >15 terminal calls without delegation\n\nFor each violation found, analyze what should have been delegated and write a short corrective action to /root/.hermes/pending-fixes.md in this format:\n```\n## [DATE] - [Session title]\n- Violation: [type]\n- Root cause: [brief analysis]\n- Fix: [specific corrective action]\n- Estimated savings: [token/cost estimate]\n```\nThe pending-fixes.md file is a fresh daily snapshot \u2014 overwrite it each run (write_file is fine here). If no violations found, write a single line: \"No violations detected on [DATE].\"\n\nIMPORTANT \u2014 audit-log.md is a PERMANENT ROLLUP and must NEVER be clobbered. Do NOT use write_file or patch on it. Append your one-line summary with a shell redirect via the terminal tool only:\n  printf '%s\\n' '[YYYY-MM-DD] | SELF-AUDIT | <one-line summary of findings>' >> /root/.hermes/audit-log.md\nThen verify the append worked and history is intact:\n  tail -5 /root/.hermes/audit-log.md\n\nDO NOT modify any config or session files. This is read-only analysis + write proposed fixes only.",
+      "skills": [
+        "hermes-agent"
+      ],
+      "skill": "hermes-agent",
+      "model": "deepseek-v4-flash",
+      "provider": "deepseek",
+      "base_url": null,
+      "script": null,
+      "no_agent": false,
+      "context_from": null,
+      "schedule": {
+        "kind": "cron",
+        "expr": "0 9 * * *",
+        "display": "0 9 * * *"
+      },
+      "schedule_display": "0 9 * * *",
+      "repeat": {
+        "times": null,
+        "completed": 21
+      },
+      "enabled": true,
+      "state": "scheduled",
+      "paused_at": null,
+      "paused_reason": null,
+      "created_at": "2026-06-01T21:35:34.065984+00:00",
+      "next_run_at": "2026-06-23T09:00:00-04:00",
+      "last_run_at": "2026-06-22T09:12:56.199482-04:00",
+      "last_status": "ok",
+      "last_error": null,
+      "last_delivery_error": null,
+      "deliver": "telegram:-1003947663220,discord:#cron-jobs",
+      "origin": null,
+      "enabled_toolsets": [
+        "terminal",
+        "file",
+        "session_search"
+      ],
+      "workdir": null,
+      "profile": "executor",
+      "fire_claim": null
+    },
+    {
+      "id": "56384e341bfd",
+      "name": "Honcho-to-Obsidian Bridge",
+      "prompt": "",
+      "skills": [],
+      "skill": null,
+      "model": null,
+      "provider": null,
+      "base_url": null,
+      "script": "honcho-bridge.sh",
+      "no_agent": true,
+      "context_from": null,
+      "schedule": {
+        "kind": "cron",
+        "expr": "0 8 * * *",
+        "display": "0 8 * * *"
+      },
+      "schedule_display": "0 8 * * *",
+      "repeat": {
+        "times": null,
+        "completed": 19
+      },
+      "enabled": true,
+      "state": "scheduled",
+      "paused_at": null,
+      "paused_reason": null,
+      "created_at": "2026-06-02T18:39:54.910072+00:00",
+      "next_run_at": "2026-06-23T08:00:00-04:00",
+      "last_run_at": "2026-06-22T08:00:56.509762-04:00",
+      "last_status": "ok",
+      "last_error": null,
+      "last_delivery_error": null,
+      "deliver": "local",
+      "origin": {
+        "platform": "telegram",
+        "chat_id": "8878729385",
+        "chat_name": "Andrew Alhaj",
+        "thread_id": null
+      },
+      "enabled_toolsets": null,
+      "workdir": null,
+      "profile": null,
+      "fire_claim": null
+    },
+    {
+      "id": "d0bc81b9640b",
+      "name": "Daily Hermes Backup",
+      "prompt": "",
+      "skills": [],
+      "skill": null,
+      "model": null,
+      "provider": null,
+      "base_url": null,
+      "script": "backup.sh",
+      "no_agent": true,
+      "context_from": null,
+      "schedule": {
+        "kind": "cron",
+        "expr": "0 3 * * *",
+        "display": "0 3 * * *"
+      },
+      "schedule_display": "0 3 * * *",
+      "repeat": {
+        "times": null,
+        "completed": 20
+      },
+      "enabled": true,
+      "state": "scheduled",
+      "paused_at": null,
+      "paused_reason": null,
+      "created_at": "2026-06-02T20:49:08.718851+00:00",
+      "next_run_at": "2026-06-23T03:00:00-04:00",
+      "last_run_at": "2026-06-22T03:00:52.152859-04:00",
+      "last_status": "ok",
+      "last_error": null,
+      "last_delivery_error": null,
+      "deliver": "local",
+      "origin": {
+        "platform": "telegram",
+        "chat_id": "8878729385",
+        "chat_name": "Andrew Alhaj",
+        "thread_id": null
+      },
+      "enabled_toolsets": null,
+      "workdir": null,
+      "profile": null,
+      "fire_claim": null
+    },
+    {
+      "id": "cdd1800159eb",
+      "name": "Weekly KB Audit (dedup + pointer coverage)",
+      "prompt": "",
+      "skills": [],
+      "skill": null,
+      "model": null,
+      "provider": null,
+      "base_url": null,
+      "script": "kb_weekly_audit.sh",
+      "no_agent": true,
+      "context_from": null,
+      "schedule": {
+        "kind": "cron",
+        "expr": "0 4 * * 0",
+        "display": "0 4 * * 0"
+      },
+      "schedule_display": "0 4 * * 0",
+      "repeat": {
+        "times": null,
+        "completed": 5
+      },
+      "enabled": true,
+      "state": "scheduled",
+      "paused_at": null,
+      "paused_reason": null,
+      "created_at": "2026-06-02T20:52:05.064363+00:00",
+      "next_run_at": "2026-06-28T04:00:00-04:00",
+      "last_run_at": "2026-06-21T04:00:26.157103-04:00",
+      "last_status": "ok",
+      "last_error": null,
+      "last_delivery_error": null,
+      "deliver": "telegram:-1003947663220,discord:#cron-jobs",
+      "origin": {
+        "platform": "telegram",
+        "chat_id": "8878729385",
+        "chat_name": "Andrew Alhaj",
+        "thread_id": null
+      },
+      "enabled_toolsets": null,
+      "workdir": null,
+      "profile": null,
+      "fire_claim": null
+    },
+    {
+      "id": "e6c2661c7972",
+      "name": "Daily Knowledge Capture",
+      "prompt": "You are the daily knowledge-capture curator. The script output above (session_digest.py) contains the last 24 hours of real user/assistant conversation from this Hermes system.\n\nYour job: extract DURABLE, factual knowledge worth remembering across sessions, and store it to Supabase (pgvector via knowledge.py) so the agent never has to be re-taught. This directly prevents the user from repeating himself.\n\nSTEP 1 \u2014 Read the digest above. Identify facts that are:\n  \u2022 Infrastructure/config truths (server roles, IPs, ports, DB locations, credentials locations, file paths)\n  \u2022 Tool/system quirks and their workarounds\n  \u2022 Bug root-causes and fixes discovered\n  \u2022 User corrections (\"it's actually X, not Y\") and naming conventions he insists on\n  \u2022 Verified state that contradicts older beliefs (these are HIGH priority \u2014 they supersede stale facts)\n\nDO NOT capture: task progress, \"I did X then Y\" logs, transient session state, anything stale in 7 days, PR/commit/issue numbers.\n\nSTEP 2 \u2014 Collect ALL candidate fact-topics first, then dedup-check them in ONE batched call (do NOT run a separate search per fact \u2014 that cold-loads the embedding model N times):\n  python3 ~/.hermes/scripts/knowledge.py search-batch \"topic1|||topic2|||topic3|||...\"\nThe output groups results under '=== QUERY: <topic> ===' headers. A query that prints '(no existing facts \u2014 safe to store)' or only low-score (<0.75) hits is NEW \u2014 store it. If a near-identical fact exists, skip it. If an existing fact is now WRONG (contradicted by today's verified state), store the corrected version with tag CORRECTION and priority critical \u2014 the search layer will surface both, and the newer one wins.\n\nSTEP 3 \u2014 Store each new fact:\n  KNOWLEDGE_TAGS=\"<comma,tags>\" KNOWLEDGE_PRIORITY=\"<normal|high|critical>\" python3 ~/.hermes/scripts/knowledge.py store \"<concise declarative fact>\"\n\nWrite facts as declarative truths, not narrative. \"Manifest reads Railway DB, not local postgres\" \u2713 \u2014 \"Today I discovered Manifest reads Railway\" \u2717.\n\nSTEP 4 \u2014 Keep a one-line audit trail: append \"YYYY-MM-DD: captured N facts (topics: ...)\" to ~/.hermes/audit-log.md.\n\nBe conservative \u2014 0-5 high-quality facts per day is the target, not volume. If nothing durable happened, store nothing and note \"no durable facts\" in the audit log. This job runs silently (deliver=local); only your audit-log line records the run.",
+      "skills": [],
+      "skill": null,
+      "model": "qwen2.5-32b-64k",
+      "provider": "custom:mac-studio",
+      "base_url": null,
+      "script": "session_digest.py",
+      "no_agent": false,
+      "context_from": null,
+      "schedule": {
+        "kind": "cron",
+        "expr": "30 2 * * *",
+        "display": "30 2 * * *"
+      },
+      "schedule_display": "30 2 * * *",
+      "repeat": {
+        "times": null,
+        "completed": 20
+      },
+      "enabled": true,
+      "state": "scheduled",
+      "paused_at": null,
+      "paused_reason": null,
+      "created_at": "2026-06-03T17:37:23.342080+00:00",
+      "next_run_at": "2026-06-23T02:30:00-04:00",
+      "last_run_at": "2026-06-22T02:36:48.974889-04:00",
+      "last_status": "ok",
+      "last_error": null,
+      "last_delivery_error": null,
+      "deliver": "local",
+      "origin": {
+        "platform": "telegram",
+        "chat_id": "8878729385",
+        "chat_name": "Andrew Alhaj",
+        "thread_id": null
+      },
+      "enabled_toolsets": [
+        "terminal",
+        "file"
+      ],
+      "workdir": null,
+      "profile": null,
+      "fire_claim": null
+    },
+    {
+      "id": "6537cacf1cd6",
+      "name": "Infra Watchdog (15-min)",
+      "prompt": "Silent infra watchdog \u2014 script delivers alerts verbatim on P0/P1 only. See ~/.hermes/scripts/infra_watchdog.py",
+      "skills": [],
+      "skill": null,
+      "model": null,
+      "provider": null,
+      "base_url": null,
+      "script": "infra_watchdog.py",
+      "no_agent": true,
+      "context_from": null,
+      "schedule": {
+        "kind": "cron",
+        "expr": "*/15 * * * *",
+        "display": "*/15 * * * *"
+      },
+      "schedule_display": "*/15 * * * *",
+      "repeat": {
+        "times": null,
+        "completed": 1688
+      },
+      "enabled": true,
+      "state": "scheduled",
+      "paused_at": null,
+      "paused_reason": null,
+      "created_at": "2026-06-03T21:00:13.756542+00:00",
+      "next_run_at": "2026-06-22T23:15:00-04:00",
+      "last_run_at": "2026-06-22T23:00:22.132901-04:00",
+      "last_status": "ok",
+      "last_error": null,
+      "last_delivery_error": null,
+      "deliver": "telegram:-1003947663220,discord:#cron-jobs",
+      "origin": {
+        "platform": "telegram",
+        "chat_id": "8878729385",
+        "chat_name": "Andrew Alhaj",
+        "thread_id": null
+      },
+      "enabled_toolsets": null,
+      "workdir": null,
+      "profile": null,
+      "fire_claim": null
+    },
+    {
+      "id": "16004ed5f085",
+      "name": "Infrastructure Change Watchdog",
+      "prompt": "",
+      "skills": [],
+      "skill": null,
+      "model": null,
+      "provider": null,
+      "base_url": null,
+      "script": "infra-watchdog.py",
+      "no_agent": true,
+      "context_from": null,
+      "schedule": {
+        "kind": "interval",
+        "minutes": 5,
+        "display": "every 5m"
+      },
+      "schedule_display": "every 5m",
+      "repeat": {
+        "times": null,
+        "completed": 4000
+      },
+      "enabled": true,
+      "state": "scheduled",
+      "paused_at": null,
+      "paused_reason": null,
+      "created_at": "2026-06-05T05:58:53.318224+00:00",
+      "next_run_at": "2026-06-22T23:11:16.208738-04:00",
+      "last_run_at": "2026-06-22T23:06:16.208738-04:00",
+      "last_status": "ok",
+      "last_error": null,
+      "last_delivery_error": null,
+      "deliver": "telegram:-1003947663220,discord:#cron-jobs",
+      "origin": {
+        "platform": "telegram",
+        "chat_id": "8878729385",
+        "chat_name": "Andrew Alhaj",
+        "thread_id": null
+      },
+      "enabled_toolsets": null,
+      "workdir": null,
+      "profile": null,
+      "fire_claim": null
+    },
+    {
+      "id": "23d4c20ae12d",
+      "name": "Patch Guard Self-Heal",
+      "prompt": "Self-heal watchdog for OAuth-bypass + delegation-guard patch files. Silent when healthy; restores from golden copies in ~/.hermes/references/patch-guard/ and reports when drift is detected.",
+      "skills": [],
+      "skill": null,
+      "model": null,
+      "provider": null,
+      "base_url": null,
+      "script": "patch_guard.py",
+      "no_agent": true,
+      "context_from": null,
+      "schedule": {
+        "kind": "cron",
+        "expr": "0 5 * * *",
+        "display": "0 5 * * *"
+      },
+      "schedule_display": "0 5 * * *",
+      "repeat": {
+        "times": null,
+        "completed": 17
+      },
+      "enabled": true,
+      "state": "scheduled",
+      "paused_at": null,
+      "paused_reason": null,
+      "created_at": "2026-06-06T22:48:06.144277+00:00",
+      "next_run_at": "2026-06-23T05:00:00-04:00",
+      "last_run_at": "2026-06-22T05:00:52.647263-04:00",
+      "last_status": "ok",
+      "last_error": null,
+      "last_delivery_error": null,
+      "deliver": "telegram:-1003947663220,discord:#cron-jobs",
+      "origin": {
+        "platform": "telegram",
+        "chat_id": "8878729385",
+        "chat_name": "Andrew Alhaj",
+        "thread_id": null
+      },
+      "enabled_toolsets": null,
+      "workdir": null,
+      "profile": null,
+      "fire_claim": null
+    },
+    {
+      "id": "cb16d70205c4",
+      "name": "Memory Honcho Dedup",
+      "prompt": "MEMORY HONCHO DEDUP \u2014 run daily. Two-stage safe deletion.\n\nSTAGE 0 \u2014 READ ~/.hermes/memories/MEMORY.md. Split by '\u00a7' into entries. These are canonical. DO NOT use read_file to read this file \u2014 read_file adds line-number prefixes (4|content) that corrupt the file if you write it back. Use terminal: cat ~/.hermes/memories/MEMORY.md\n\nSTAGE 1 \u2014 For each entry, call honcho_search(query=\"<condensed topic>\", peer='user', max_tokens=600). If Honcho has a semantically equivalent conclusion (same facts, same detail level), flag it. If Honcho's version is less precise or missing specifics, do NOT flag.\n\nSTAGE 2 \u2014 Already-flagged entries: if [HONCHO_DUP: YYYY-MM-DD] date \u22653 days ago, REMOVE the entry. Report what was removed. If flagged <3 days ago, leave it.\n\nSTAGE 3 \u2014 REPORT: if entries were DELETED, write \"YYYY-MM-DD: memory dedup removed N entries (topics: ...)\" to ~/.hermes/references/audit-log.md. If only flags added, remain silent. If clean, respond \"[SILENT]\".\n\nSAFETY \u2014 An entry is a candidate for removal ONLY if ALL of:\n1. Honcho preserves semantically equivalent information at the same detail level\n2. The entry does NOT contain hard constraints / rules (MUST, NEVER, hard stop, always gate, do not)\n3. The entry does NOT contain specific technical config (IP addresses, version numbers, parameter values, port numbers, procedure steps with exact commands)\n\nIf any condition fails, keep the entry. Do NOT use a hardcoded list of protected entries \u2014 derive protection from the entry's actual content using the three conditions above.\n\nTOOLS: Use patch(old_string=entire_entry, new_string=\"...\") for flagging; patch(old_string=entire_entry, new_string=\"\") for deletion. Only modify MEMORY.md and audit-log.md.\n\nINTEGRITY CHECK \u2014 After any write to MEMORY.md, run:\n  python3 /root/.hermes/scripts/memory_sanitize.py --check\nIf it exits non-zero, immediately restore from backup and report failure instead of success.",
+      "skills": [],
+      "skill": null,
+      "model": "qwen2.5-32b-64k",
+      "provider": "custom:mac-studio",
+      "base_url": null,
+      "script": null,
+      "no_agent": false,
+      "context_from": null,
+      "schedule": {
+        "kind": "cron",
+        "expr": "0 7 * * *",
+        "display": "0 7 * * *"
+      },
+      "schedule_display": "0 7 * * *",
+      "repeat": {
+        "times": null,
+        "completed": 17
+      },
+      "enabled": true,
+      "state": "scheduled",
+      "paused_at": null,
+      "paused_reason": null,
+      "created_at": "2026-06-06T23:32:45.367273+00:00",
+      "next_run_at": "2026-06-23T07:00:00-04:00",
+      "last_run_at": "2026-06-22T07:07:49.075860-04:00",
+      "last_status": "ok",
+      "last_error": null,
+      "last_delivery_error": null,
+      "deliver": "telegram:-1003947663220,discord:#cron-jobs",
+      "origin": {
+        "platform": "telegram",
+        "chat_id": "8878729385",
+        "chat_name": "Andrew Alhaj",
+        "thread_id": null
+      },
+      "enabled_toolsets": [
+        "honcho",
+        "file"
+      ],
+      "workdir": null,
+      "profile": null,
+      "fire_claim": null
+    },
+    {
+      "id": "06c1c40fb732",
+      "name": "Memory Dedup Audit",
+      "prompt": "Load skill memory-dedup-audit. Execute its STEP 1 and STEP 2 procedures. Report failures only to Cron Jobs channel. If all checks pass on both steps: respond [SILENT] \u2014 nothing to report.",
+      "skills": [
+        "memory-dedup-audit"
+      ],
+      "skill": "memory-dedup-audit",
+      "model": "qwen2.5-32b-64k",
+      "provider": "custom:mac-studio",
+      "base_url": null,
+      "script": null,
+      "no_agent": false,
+      "context_from": null,
+      "schedule": {
+        "kind": "cron",
+        "expr": "0 8 * * 0",
+        "display": "0 8 * * 0"
+      },
+      "schedule_display": "0 8 * * 0",
+      "repeat": {
+        "times": null,
+        "completed": 3
+      },
+      "enabled": true,
+      "state": "scheduled",
+      "paused_at": null,
+      "paused_reason": null,
+      "created_at": "2026-06-06T23:41:24.833808+00:00",
+      "next_run_at": "2026-06-28T08:00:00-04:00",
+      "last_run_at": "2026-06-21T08:07:19.611686-04:00",
+      "last_status": "ok",
+      "last_error": null,
+      "last_delivery_error": null,
+      "deliver": "telegram:-1003947663220,discord:#cron-jobs",
+      "origin": {
+        "platform": "telegram",
+        "chat_id": "8878729385",
+        "chat_name": "Andrew Alhaj",
+        "thread_id": null
+      },
+      "enabled_toolsets": [
+        "terminal",
+        "file"
+      ],
+      "workdir": null,
+      "profile": null,
+      "fire_claim": null
+    },
+    {
+      "id": "d6417b2f32c6",
+      "name": "Honcho Drift Correction",
+      "prompt": "You are a Honcho memory drift watchdog for the operator Andrew Alhaj. Run silently; only alert on a correction or a read failure.\n\nIMPORTANT PEER BINDING: Always address the operator by the EXPLICIT peer ID \"8878729385\" \u2014 never the alias peer=\"user\". In an isolated cron session the \"user\" alias mis-resolves to an empty \"root\" peer; the real operator card lives at peer 8878729385 (workspace \"hermes\"). Use peer=\"8878729385\" for every honcho_profile / honcho_conclude call below.\n\nSTEP 1 \u2014 Load the blocklist as the SINGLE SOURCE OF TRUTH. Read /root/.hermes/references/honcho-confabulation-blocklist.md.\n- \"Blocked terms\" table = facts that must NOT appear as asserted about the operator.\n- \"Known-TRUE \u2014 do NOT flag\" section = real facts/models that look similar but are legitimate.\nDerive scan terms ONLY from the current file contents \u2014 do NOT use any hardcoded list from this prompt or memory. The file is authoritative and may have been edited since this prompt was written.\n\nSTEP 2 \u2014 Read the live curated card: honcho_profile(peer=\"8878729385\").\n\nSTEP 3 \u2014 FAIL-LOUD CHECK (critical). If the read returns None, an empty list, an error, or zero asserted facts: DO NOT conclude \"clean\". An empty/unreadable card is a READ FAILURE. Send: send_message(target=\"telegram:-1003947663220\", message=\"\u26a0\ufe0f Honcho Drift cron: could not read a populated operator card at peer 8878729385 (got empty/None). Watchdog could not verify \u2014 manual check needed.\") and end. Only proceed if you got a populated card (expect ~22-26 real facts as the baseline).\n\nSTEP 4 \u2014 Scan the populated card for each Blocked term from the file (case-insensitive). EXCLUSION RULE: if a term also appears in the Known-TRUE section (e.g. LanceDB, claude-opus-4-8, deepseek-v4-flash, deepseek-v4-pro, the 5.78.238.81 IP), it is legitimate \u2014 never flag it. For the Opus entry: flag ONLY a claimed personal model PREFERENCE by Andrew, never the bare model name.\n\nSTEP 5 \u2014 Decision:\n- If NO blocked term is asserted as a fact: respond exactly: CLEAN \u2014 no drift detected. (Saved locally, not sent.)\n- If ANY blocked term is asserted as a fact: it is DRIFT. (a) For each, honcho_conclude(peer=\"8878729385\", conclusion=\"<matching ground-truth statement from the file>\"). (b) Re-assert the clean card: honcho_profile(peer=\"8878729385\", card=[...]) \u2014 preserve all genuine facts, strip only the false ones. (c) send_message(target=\"telegram:-1003947663220\", message=\"\ud83e\uddf9 Honcho drift corrected \u2014 re-planted negations for: <terms>. Live card re-asserted clean.\").\n\nPRECISION: Only treat a term as drift if asserted as a FACT ABOUT THE OPERATOR on the live card. A term inside a negation (\"Sanja is NOT real\", \"NOT a backup\") is the fix working \u2014 never flag it. Never flag anything in the Known-TRUE section.",
+      "skills": [],
+      "skill": null,
+      "model": "qwen2.5-32b-64k",
+      "provider": "custom:mac-studio",
+      "base_url": null,
+      "script": null,
+      "no_agent": false,
+      "context_from": null,
+      "schedule": {
+        "kind": "cron",
+        "expr": "30 6 * * *",
+        "display": "30 6 * * *"
+      },
+      "schedule_display": "30 6 * * *",
+      "repeat": {
+        "times": null,
+        "completed": 20
+      },
+      "enabled": true,
+      "state": "scheduled",
+      "paused_at": null,
+      "paused_reason": null,
+      "created_at": "2026-06-08T19:40:56.596232+00:00",
+      "next_run_at": "2026-06-23T06:30:00-04:00",
+      "last_run_at": "2026-06-22T06:35:07.012474-04:00",
+      "last_status": "ok",
+      "last_error": null,
+      "last_delivery_error": null,
+      "deliver": "local",
+      "origin": {
+        "platform": "telegram",
+        "chat_id": "8878729385",
+        "chat_name": "Andrew Alhaj",
+        "thread_id": null
+      },
+      "enabled_toolsets": null,
+      "workdir": null,
+      "profile": null,
+      "fire_claim": null
+    },
+    {
+      "id": "c76b0c5bb66f",
+      "name": "Swarm Proving Ground \u2014 Reference Staleness Audit",
+      "prompt": "You are running a low-stakes PROVING-GROUND swarm to (a) keep three reference docs honest against live system state and (b) accumulate a track record for the Kanban swarm. Follow the loaded kanban-swarm-dispatch skill's dispatch + introspection doctrine + verify-against-ground-truth steps exactly.\n\nSTEP 1 \u2014 Dispatch a 3-worker swarm. Run this exact command via terminal:\n\nhermes kanban swarm \\\n  --worker \"swarm-worker-a:Audit infrastructure-summary.md staleness\" \\\n  --worker \"swarm-worker-b:Audit honcho-confabulation-blocklist.md staleness\" \\\n  --worker \"swarm-worker-c:Audit swarm-introspection-doctrine.md staleness\" \\\n  --verifier swarm-verifier \\\n  --synthesizer swarm-synthesizer \\\n  --created-by default \\\n  --priority 4 \\\n  \"Staleness audit of 3 reference docs against LIVE system state. ASSIGNMENTS: worker-a audits /root/.hermes/references/infrastructure-summary.md; worker-b audits /root/.hermes/references/honcho-confabulation-blocklist.md; worker-c audits /root/.hermes/references/swarm-introspection-doctrine.md. METHOD (CRITICAL \u2014 introspection doctrine): read your assigned doc at its ABSOLUTE path, then verify each live-state claim it makes by reading the ACTUAL source directly at its absolute path \u2014 cat/read files, python3 sqlite3 module on absolute db paths, read /root/.hermes/cron/jobs.json and /root/.hermes/config.yaml directly. Do NOT use `hermes cron`, `hermes profile`, or any profile-scoped `hermes` subcommand and do NOT use relative paths \u2014 they resolve to your EMPTY worker profile and produce false 'missing' results. For each claim report CURRENT or DRIFTED with the exact line and the correct live value. Synthesizer: produce a consolidated per-doc staleness report listing only DRIFTED items with line-level specifics; if all current, state CLEAN.\" \\\n  --json\n\nCapture the returned root_id, worker_ids, verifier_id, synthesizer_id.\n\nSTEP 2 \u2014 Monitor. Poll every ~60s (use sleep) with `hermes kanban show <id>` for each worker, the verifier, and the synthesizer. Stop when the synthesizer is done/blocked OR after a hard cap of 12 minutes. If the verifier BLOCKS, the synthesizer will not run \u2014 that is the gate working; capture the verifier's block reason.\n\nSTEP 3 \u2014 Verify before reporting (mandatory). The synthesizer/worker output is a SELF-REPORT. Before alerting on any claimed drift, spot-check it yourself: read the cited doc line and the live source at its absolute path and confirm the discrepancy is real. Discard any 'drift' that is actually a worker error (e.g. a false 'missing' from profile-scoped lookups).\n\nSTEP 4 \u2014 Report:\n- If verified real staleness exists: send_message(target=\"telegram:-1003947663220\", message=\"\ud83d\udccb Swarm proving-ground audit \u2014 staleness found:\\n<per-doc, line-level, verified items>\"). Keep it tight.\n- If docs are CLEAN (no verified drift) AND the swarm ran end-to-end: respond exactly [SILENT] (nothing sent \u2014 this is the healthy path).\n- If the swarm STALLED (hit the 12-min cap, a worker crashed, or the verifier behaved wrongly): send_message(target=\"telegram:-1003947663220\", message=\"\u26a0\ufe0f Swarm proving-ground: run did not complete cleanly \u2014 <what happened>. Manual check.\") so we learn about swarm flakiness.\n\nSTEP 5 \u2014 Cleanup (ALWAYS, even if earlier steps errored): archive every task you created: `hermes kanban archive <id>` for root, all workers, verifier, synthesizer. Then confirm no stray swarm processes: `ps -eo pid,args | grep swarm- | grep -v grep`. If any remain, note it in your report.\n\nBe precise and quiet. The healthy outcome is [SILENT] + clean archived board.",
+      "skills": [
+        "kanban-swarm-dispatch"
+      ],
+      "skill": "kanban-swarm-dispatch",
+      "model": "deepseek-v4-flash",
+      "provider": "deepseek",
+      "base_url": null,
+      "script": null,
+      "no_agent": false,
+      "context_from": null,
+      "schedule": {
+        "kind": "cron",
+        "expr": "0 10 1,15 * *",
+        "display": "0 10 1,15 * *"
+      },
+      "schedule_display": "0 10 1,15 * *",
+      "repeat": {
+        "times": null,
+        "completed": 1
+      },
+      "enabled": true,
+      "state": "scheduled",
+      "paused_at": null,
+      "paused_reason": null,
+      "created_at": "2026-06-08T21:29:01.628188+00:00",
+      "next_run_at": "2026-07-01T10:00:00-04:00",
+      "last_run_at": "2026-06-08T21:37:25.576074+00:00",
+      "last_status": "ok",
+      "last_error": null,
+      "last_delivery_error": null,
+      "deliver": "local",
+      "origin": {
+        "platform": "telegram",
+        "chat_id": "8878729385",
+        "chat_name": "Andrew Alhaj",
+        "thread_id": null
+      },
+      "enabled_toolsets": null,
+      "workdir": null,
+      "profile": null
+    },
+    {
+      "id": "0158c7ca8d0a",
+      "name": "Kanban Dashboard Export",
+      "prompt": "",
+      "skills": [],
+      "skill": null,
+      "model": null,
+      "provider": null,
+      "base_url": null,
+      "script": "kanban_export.py",
+      "no_agent": true,
+      "context_from": null,
+      "schedule": {
+        "kind": "interval",
+        "minutes": 5,
+        "display": "every 5m"
+      },
+      "schedule_display": "every 5m",
+      "repeat": {
+        "times": null,
+        "completed": 2939
+      },
+      "enabled": true,
+      "state": "scheduled",
+      "paused_at": null,
+      "paused_reason": null,
+      "created_at": "2026-06-09T05:15:44.937322+00:00",
+      "next_run_at": "2026-06-22T23:08:17.344765-04:00",
+      "last_run_at": "2026-06-22T23:03:17.344765-04:00",
+      "last_status": "ok",
+      "last_error": null,
+      "last_delivery_error": null,
+      "deliver": "local",
+      "origin": {
+        "platform": "telegram",
+        "chat_id": "8878729385",
+        "chat_name": "Andrew Alhaj",
+        "thread_id": null
+      },
+      "enabled_toolsets": null,
+      "workdir": null,
+      "profile": null,
+      "fire_claim": null
+    },
+    {
+      "id": "fc8a225eaea3",
+      "name": "Memory Offload (default)",
+      "prompt": "MEMORY OFFLOAD (default profile) \u2014 hourly, threshold-gated, SILENT unless it acts.\n\nSTEP 0 \u2014 Read caps + size:\n  python3 -c \"import yaml;c=yaml.safe_load(open('/root/.hermes/config.yaml'))['memory'];print(c['memory_char_limit'])\"\n  wc -m /root/.hermes/memories/MEMORY.md\nCompute MEMORY.md as a percentage of memory_char_limit.\n\nGATE: If MEMORY.md is < 85% of cap, respond with exactly [SILENT] and STOP. Do nothing else. Most runs end here \u2014 that is correct and expected.\n\nSTEP 1 (only if >=85%) \u2014 Read /root/.hermes/memories/MEMORY.md. Entries are split by lines containing only '\u00a7'. Identify OFFLOADABLE entries = stable REFERENCE facts (host specs, ports, topology, model strings, tool quirks, cold-fact pointers). NEVER offload: behavioral/preference facts, hard constraints (MUST/NEVER/gate/approval/&quot;don't&quot;), or entries with specific technical config that must fire unprompted every turn. Err strongly toward KEEPING hot \u2014 a false keep costs ~140 chars, a false offload costs a future round-trip.\n\nSTEP 2 \u2014 For each offload candidate, store full text to the cold store:\n  cd /root/.hermes && KNOWLEDGE_TAGS=\"<topic>,offload\" KNOWLEDGE_PRIORITY=high python3 scripts/knowledge.py store \"<full fact text>\"\n\nSTEP 3 \u2014 VERIFY retrievable BEFORE trimming:\n  cd /root/.hermes && python3 scripts/knowledge.py search \"<key terms>\"\nConfirm a hit scoring >=0.80. If it does not surface >=0.80, DO NOT trim that entry \u2014 keep it hot.\n\nSTEP 4 \u2014 Backup then trim ATOMICALLY:\n  cp /root/.hermes/memories/MEMORY.md /root/.hermes/memories/MEMORY.md.bak-offload-$(date +%s)\nEdit MEMORY.md: replace each verified-offloaded entry with a ONE-LINE pointer cue, e.g. \"<topic>: knowledge.py search \\\"<key terms>\\\".\" NEVER remove an entry without its pointer landing in the same edit. A pointerless trim is a silent deletion \u2014 forbidden.\n\nINTEGRITY CHECK \u2014 After any write to MEMORY.md, run:\n  python3 /root/.hermes/scripts/memory_sanitize.py --check\nIf it exits non-zero (corruption detected), immediately restore from the .bak-offload-* you just made:\n  cp /root/.hermes/memories/MEMORY.md.bak-offload-<ts> /root/.hermes/memories/MEMORY.md\nThen report the failure instead of success. DO NOT use read_file to read MEMORY.md and then write_file to save it \u2014 read_file adds line-number prefixes (4|content) that corrupt the file. Use the patch tool for targeted edits only.\n\nSTEP 5 \u2014 Append to /root/.hermes/references/memory-offload-audit-log.md: date, what offloaded, tags, retrieval terms, MEMORY.md before%\u2192after%.\n\nSTEP 6 \u2014 Report to the cron channel ONE line only: \"MEMORY offload: N entries \u2192 cold store, MEMORY.md X%\u2192Y%.\" On ANY error or failed verification, report the error instead. If you returned [SILENT] in STEP 0, do not report anything.",
+      "skills": [],
+      "skill": null,
+      "model": "qwen2.5-32b-64k",
+      "provider": "custom:mac-studio",
+      "base_url": null,
+      "script": null,
+      "no_agent": false,
+      "context_from": null,
+      "schedule": {
+        "kind": "cron",
+        "expr": "0 * * * *",
+        "display": "0 * * * *"
+      },
+      "schedule_display": "0 * * * *",
+      "repeat": {
+        "times": null,
+        "completed": 283
+      },
+      "enabled": true,
+      "state": "scheduled",
+      "paused_at": null,
+      "paused_reason": null,
+      "created_at": "2026-06-09T13:05:01.992436+00:00",
+      "next_run_at": "2026-06-23T00:00:00-04:00",
+      "last_run_at": "2026-06-22T23:06:23.250247-04:00",
+      "last_status": "ok",
+      "last_error": null,
+      "last_delivery_error": null,
+      "deliver": "telegram:-1003947663220",
+      "origin": {
+        "platform": "telegram",
+        "chat_id": "8878729385",
+        "chat_name": "Andrew Alhaj",
+        "thread_id": null
+      },
+      "enabled_toolsets": [
+        "terminal",
+        "file"
+      ],
+      "workdir": null,
+      "profile": null,
+      "fire_claim": null
+    },
+    {
+      "id": "bec1c7983747",
+      "name": "Memory Offload (ha-bot)",
+      "prompt": "MEMORY OFFLOAD (HAJarvis / ha-bot profile) \u2014 hourly, threshold-gated, SILENT unless it acts.\n\nYou are operating on the ha-bot profile's memory. The cold store is SHARED (Supabase pgvector via ~/.hermes/scripts/knowledge.py) \u2014 tag every offload with \"ha-bot\" so it stays domain-attributed.\n\nSTEP 0 \u2014 Read caps + size:\n  python3 -c \"import yaml;c=yaml.safe_load(open('/root/.hermes/profiles/ha-bot/config.yaml'))['memory'];print(c['memory_char_limit'])\"\n  wc -m /root/.hermes/profiles/ha-bot/memories/MEMORY.md\nCompute MEMORY.md as a percentage of memory_char_limit.\n\nGATE: If MEMORY.md is < 85% of cap, respond with exactly [SILENT] and STOP. Most runs end here \u2014 correct and expected.\n\nSTEP 1 (only if >=85%) \u2014 Read /root/.hermes/profiles/ha-bot/memories/MEMORY.md. Entries split by lines containing only '\u00a7'. Identify OFFLOADABLE = stable smart-home REFERENCE facts (device maps, entity IDs, port numbers, integration quirks, cold-fact pointers). NEVER offload: behavioral facts, the approval/greenlight gate, hard constraints (MUST/NEVER/gate), or facts that must fire unprompted every turn (e.g. \"Sonos BROKEN\", scope boundaries). Err strongly toward KEEPING hot.\n\nSTEP 2 \u2014 Store full text to the shared cold store:\n  cd /root/.hermes && KNOWLEDGE_TAGS=\"ha-bot,<topic>\" KNOWLEDGE_PRIORITY=high python3 scripts/knowledge.py store \"<full fact text>\"\n\nSTEP 3 \u2014 VERIFY retrievable BEFORE trimming:\n  cd /root/.hermes && python3 scripts/knowledge.py search \"<key terms>\"\nConfirm a hit >=0.80. If not, DO NOT trim \u2014 keep it hot.\n\nSTEP 4 \u2014 Backup then trim ATOMICALLY:\n  cp /root/.hermes/profiles/ha-bot/memories/MEMORY.md /root/.hermes/profiles/ha-bot/memories/MEMORY.md.bak-offload-$(date +%s)\nEdit MEMORY.md: replace each verified-offloaded entry with a ONE-LINE pointer, e.g. \"<topic>: knowledge.py search \\\"<key terms>\\\".\" NEVER remove an entry without its pointer landing in the same edit. A pointerless trim is forbidden.\n\nSTEP 5 \u2014 Append to /root/.hermes/references/memory-offload-audit-log.md: date, profile=ha-bot, what offloaded, tags, retrieval terms, before%\u2192after%.\n\nSTEP 6 \u2014 Report ONE line to the cron channel: \"HAJarvis MEMORY offload: N entries \u2192 cold store, X%\u2192Y%.\" On any error/failed verification, report the error. If [SILENT] at STEP 0, report nothing.",
+      "skills": [],
+      "skill": null,
+      "model": "qwen2.5-32b-64k",
+      "provider": "custom:mac-studio",
+      "base_url": null,
+      "script": null,
+      "no_agent": false,
+      "context_from": null,
+      "schedule": {
+        "kind": "cron",
+        "expr": "0 * * * *",
+        "display": "0 * * * *"
+      },
+      "schedule_display": "0 * * * *",
+      "repeat": {
+        "times": null,
+        "completed": 287
+      },
+      "enabled": true,
+      "state": "scheduled",
+      "paused_at": null,
+      "paused_reason": null,
+      "created_at": "2026-06-09T13:05:38.144076+00:00",
+      "next_run_at": "2026-06-23T00:00:00-04:00",
+      "last_run_at": "2026-06-22T23:01:36.146887-04:00",
+      "last_status": "ok",
+      "last_error": null,
+      "last_delivery_error": null,
+      "deliver": "telegram:-1003947663220",
+      "origin": {
+        "platform": "telegram",
+        "chat_id": "8878729385",
+        "chat_name": "Andrew Alhaj",
+        "thread_id": null
+      },
+      "enabled_toolsets": [
+        "terminal",
+        "file"
+      ],
+      "workdir": null,
+      "profile": "ha-bot",
+      "fire_claim": null
+    },
+    {
+      "id": "6b18c45517f6",
+      "name": "Memory Honcho Dedup (ha-bot)",
+      "prompt": "MEMORY HONCHO DEDUP (HAJarvis / ha-bot) \u2014 run daily. Two-stage safe deletion. SILENT unless it acts or errors.\n\nSTAGE 0 \u2014 READ /root/.hermes/profiles/ha-bot/memories/MEMORY.md. Split by lines containing only '\u00a7' into entries. These are canonical.\n\nSTAGE 1 \u2014 For each entry, call honcho_search(query=\"<condensed topic>\", peer=\"8878729385\", max_tokens=600). NOTE: always use the EXPLICIT operator peer ID \"8878729385\" \u2014 never peer=\"user\" (the alias mis-resolves to an empty root peer in an isolated cron session). If Honcho holds a semantically equivalent conclusion at equal-or-greater detail, FLAG the MEMORY.md entry as a dedup candidate. If Honcho's version is less precise or missing specifics, KEEP the hot entry (it is load-bearing).\n\nPROTECT from dedup regardless of Honcho overlap: entries with hard constraints (MUST/NEVER/gate/approval), specific technical config (entity IDs, ports, device maps, version numbers), or behavioral facts that must fire every turn. Derive protection from CONTENT, not a hardcoded list.\n\nSTAGE 2 \u2014 For each flagged candidate: back up MEMORY.md (cp to .bak-dedup-$(date +%s)), then remove ONLY the flagged entry, leaving a one-line pointer if the fact still has cold-store value. Re-read the file after to confirm structure intact (no broken '\u00a7' delimiters).\n\nREPORT one line to the cron channel ONLY if you removed something: \"HAJarvis Honcho dedup: removed N entries (Honcho-redundant).\" If nothing flagged: respond [SILENT]. On error: report the error.",
+      "skills": [],
+      "skill": null,
+      "model": "qwen2.5-32b-64k",
+      "provider": "custom:mac-studio",
+      "base_url": null,
+      "script": null,
+      "no_agent": false,
+      "context_from": null,
+      "schedule": {
+        "kind": "cron",
+        "expr": "30 7 * * *",
+        "display": "30 7 * * *"
+      },
+      "schedule_display": "30 7 * * *",
+      "repeat": {
+        "times": null,
+        "completed": 13
+      },
+      "enabled": true,
+      "state": "scheduled",
+      "paused_at": null,
+      "paused_reason": null,
+      "created_at": "2026-06-09T13:06:09.325251+00:00",
+      "next_run_at": "2026-06-23T07:30:00-04:00",
+      "last_run_at": "2026-06-22T07:38:11.185866-04:00",
+      "last_status": "ok",
+      "last_error": null,
+      "last_delivery_error": null,
+      "deliver": "telegram:-1003947663220",
+      "origin": {
+        "platform": "telegram",
+        "chat_id": "8878729385",
+        "chat_name": "Andrew Alhaj",
+        "thread_id": null
+      },
+      "enabled_toolsets": [
+        "honcho",
+        "file"
+      ],
+      "workdir": null,
+      "profile": "ha-bot",
+      "fire_claim": null
+    },
+    {
+      "id": "acd33286823b",
+      "name": "Memory Dedup Audit (ha-bot)",
+      "prompt": "MEMORY DEDUP AUDIT (HAJarvis / ha-bot) \u2014 weekly. Validate that the ha-bot Memory Honcho Dedup cron's safety logic is intact and that ha-bot's memory stores are healthy.\n\nSTEP 1 \u2014 Read /root/.hermes/profiles/ha-bot/memories/MEMORY.md and USER.md. Confirm: (a) both parse (no orphaned '\u00a7' delimiters, valid structure); (b) neither is over its cap \u2014 caps via python3 -c \"import yaml;print(yaml.safe_load(open('/root/.hermes/profiles/ha-bot/config.yaml'))['memory'])\"; wc -m each file and compute percentage.\n\nSTEP 2 \u2014 Inspect the 'Memory Honcho Dedup (ha-bot)' cron prompt (search default jobs.json /root/.hermes/cron/jobs.json for that name). Confirm its content-based protection logic is intact: it must protect hard-constraint / specific-config / behavioral entries from deletion, and must use explicit peer 8878729385 (never peer=\"user\"). \n\nReport failures ONLY to the cron channel (one concise message listing what failed). If all checks pass: respond [SILENT] \u2014 nothing to report.",
+      "skills": [],
+      "skill": null,
+      "model": "qwen2.5-32b-64k",
+      "provider": "custom:mac-studio",
+      "base_url": null,
+      "script": null,
+      "no_agent": false,
+      "context_from": null,
+      "schedule": {
+        "kind": "cron",
+        "expr": "30 8 * * 0",
+        "display": "30 8 * * 0"
+      },
+      "schedule_display": "30 8 * * 0",
+      "repeat": {
+        "times": null,
+        "completed": 2
+      },
+      "enabled": true,
+      "state": "scheduled",
+      "paused_at": null,
+      "paused_reason": null,
+      "created_at": "2026-06-09T13:06:10.328602+00:00",
+      "next_run_at": "2026-06-28T08:30:00-04:00",
+      "last_run_at": "2026-06-21T08:35:02.429134-04:00",
+      "last_status": "ok",
+      "last_error": null,
+      "last_delivery_error": null,
+      "deliver": "telegram:-1003947663220",
+      "origin": {
+        "platform": "telegram",
+        "chat_id": "8878729385",
+        "chat_name": "Andrew Alhaj",
+        "thread_id": null
+      },
+      "enabled_toolsets": [
+        "terminal",
+        "file"
+      ],
+      "workdir": null,
+      "profile": "ha-bot",
+      "fire_claim": null
+    },
+    {
+      "id": "e49150c365e4",
+      "name": "Monthly Cold-Store Staleness Audit",
+      "prompt": "Run the cold-store staleness audit on the Supabase pgvector knowledge store, following the loaded knowledge-store skill's \"Staleness Audit Methodology\" section EXACTLY. Steps: (1) Read the previous audit ledger at /root/.hermes/references/staleness-audit-*.md (newest) for the prior dead-term list and open items. (2) Run: python3 ~/.hermes/scripts/knowledge.py status \u2014 note total row count and table health BEFORE anything else. (3) Run the deterministic dead-term scan using knowledge.py search-batch against verified-dead literals; verify each premise against the live filesystem/system before trusting it. (4) Classify every hit into CORRECT / KEEP-historical / PROTECT-meta / REINGEST-chunk buckets \u2014 read borderline rows before finalizing. (5) Also report: row count vs last audit, age profile, duplicate counts, and orphan ratio vs baseline in references/orphan-ratio-baseline.json. (6) Write the ledger to /root/.hermes/references/staleness-audit-<YYYY-MM-DD>.md. STRICTLY READ-ONLY: do NOT delete or rewrite any row \u2014 present proposed mutations in the ledger and the delivery message for Andrew's approval. Deliver a compact summary: rows scanned, hits per bucket, proposed mutations (if any), orphan ratio trend.",
+      "skills": [
+        "knowledge-store"
+      ],
+      "skill": "knowledge-store",
+      "model": "qwen2.5-32b-64k",
+      "provider": "custom:mac-studio",
+      "base_url": null,
+      "script": null,
+      "no_agent": false,
+      "context_from": null,
+      "schedule": {
+        "kind": "cron",
+        "expr": "0 5 1 * *",
+        "display": "0 5 1 * *"
+      },
+      "schedule_display": "0 5 1 * *",
+      "repeat": {
+        "times": null,
+        "completed": 0
+      },
+      "enabled": true,
+      "state": "scheduled",
+      "paused_at": null,
+      "paused_reason": null,
+      "created_at": "2026-06-09T23:37:12.527813+00:00",
+      "next_run_at": "2026-07-01T05:00:00+00:00",
+      "last_run_at": null,
+      "last_status": null,
+      "last_error": null,
+      "last_delivery_error": null,
+      "deliver": "telegram:-1003947663220",
+      "origin": {
+        "platform": "telegram",
+        "chat_id": "8878729385",
+        "chat_name": "Andrew Alhaj",
+        "thread_id": null
+      },
+      "enabled_toolsets": [
+        "terminal",
+        "file",
+        "skills"
+      ],
+      "workdir": null,
+      "profile": null
+    },
+    {
+      "id": "38efb0814181",
+      "name": "Skill description cliff watchdog",
+      "prompt": "Silent watchdog: runs skill_desc_watchdog.py every 6h. Empty stdout = silent (all local skill descriptions within the 60-char cliff). Non-empty = alert listing offenders whose trigger keyword is being truncated out of the system prompt.",
+      "skills": [],
+      "skill": null,
+      "model": null,
+      "provider": null,
+      "base_url": null,
+      "script": "skill_desc_watchdog.py",
+      "no_agent": true,
+      "context_from": null,
+      "schedule": {
+        "kind": "cron",
+        "expr": "0 */6 * * *",
+        "display": "0 */6 * * *"
+      },
+      "schedule_display": "0 */6 * * *",
+      "repeat": {
+        "times": null,
+        "completed": 27
+      },
+      "enabled": true,
+      "state": "scheduled",
+      "paused_at": null,
+      "paused_reason": null,
+      "created_at": "2026-06-16T09:21:53.136586-04:00",
+      "next_run_at": "2026-06-23T00:00:00-04:00",
+      "last_run_at": "2026-06-22T18:00:09.739767-04:00",
+      "last_status": "ok",
+      "last_error": null,
+      "last_delivery_error": null,
+      "deliver": "local",
+      "origin": {
+        "platform": "telegram",
+        "chat_id": "8878729385",
+        "chat_name": "Andrew Alhaj",
+        "thread_id": null
+      },
+      "enabled_toolsets": null,
+      "workdir": null,
+      "fire_claim": null
+    },
+    {
+      "id": "e4c476294f07",
+      "name": "Parallel.ai Re-exposure Watchdog",
+      "prompt": "Silent watchdog: asserts web-parallel plugin stays disabled and web.backend/search_backend don't resolve to the keyless Parallel.ai default. Self-heals the plugin-disable; alerts on config drift (gated, manual re-assert). Empty stdout = silent = clean. See ~/.hermes/scripts/parallel_watchdog.py.",
+      "skills": [],
+      "skill": null,
+      "model": null,
+      "provider": null,
+      "base_url": null,
+      "script": "parallel_watchdog.py",
+      "no_agent": true,
+      "context_from": null,
+      "schedule": {
+        "kind": "cron",
+        "expr": "0 5 * * *",
+        "display": "0 5 * * *"
+      },
+      "schedule_display": "0 5 * * *",
+      "repeat": {
+        "times": null,
+        "completed": 7
+      },
+      "enabled": true,
+      "state": "scheduled",
+      "paused_at": null,
+      "paused_reason": null,
+      "created_at": "2026-06-16T12:55:25.762334-04:00",
+      "next_run_at": "2026-06-23T05:00:00-04:00",
+      "last_run_at": "2026-06-22T05:00:50.431445-04:00",
+      "last_status": "ok",
+      "last_error": null,
+      "last_delivery_error": null,
+      "deliver": "telegram:-1003947663220,discord:#cron-jobs",
+      "origin": {
+        "platform": "telegram",
+        "chat_id": "8878729385",
+        "chat_name": "Andrew Alhaj",
+        "thread_id": null
+      },
+      "enabled_toolsets": null,
+      "workdir": null,
+      "fire_claim": null
+    },
+    {
+      "id": "26b23776360b",
+      "name": "Memory Headroom Watchdog",
+      "prompt": "Backstop watchdog: alerts only when a memory store crosses 90% of its live cap. Silent otherwise. Primary mechanism is in-session compaction by the agent; this is the backstop.",
+      "skills": [],
+      "skill": null,
+      "model": null,
+      "provider": null,
+      "base_url": null,
+      "script": "memory_headroom_watchdog.py",
+      "no_agent": true,
+      "context_from": null,
+      "schedule": {
+        "kind": "cron",
+        "expr": "0 */6 * * *",
+        "display": "0 */6 * * *"
+      },
+      "schedule_display": "0 */6 * * *",
+      "repeat": {
+        "times": null,
+        "completed": 25
+      },
+      "enabled": true,
+      "state": "scheduled",
+      "paused_at": null,
+      "paused_reason": null,
+      "created_at": "2026-06-16T15:39:28.679764-04:00",
+      "next_run_at": "2026-06-23T00:00:00-04:00",
+      "last_run_at": "2026-06-22T18:00:09.662227-04:00",
+      "last_status": "ok",
+      "last_error": null,
+      "last_delivery_error": null,
+      "deliver": "local",
+      "origin": {
+        "platform": "telegram",
+        "chat_id": "8878729385",
+        "chat_name": "Andrew Alhaj",
+        "thread_id": null
+      },
+      "enabled_toolsets": null,
+      "workdir": null,
+      "fire_claim": null
+    },
+    {
+      "id": "18ba6ea06795",
+      "name": "Session Distill \u2014 Semantic Digest Flush",
+      "prompt": "Distills ended Hermes sessions into semantic digests stored in Supabase (pgvector). Silent when nothing qualifies; delivers a 1-line summary when sessions are distilled. These digests surface automatically in future turns via B-full at \u22650.80.",
+      "skills": [],
+      "skill": null,
+      "model": null,
+      "provider": null,
+      "base_url": null,
+      "script": "session_distill.py",
+      "no_agent": true,
+      "context_from": null,
+      "schedule": {
+        "kind": "cron",
+        "expr": "0 */4 * * *",
+        "display": "0 */4 * * *"
+      },
+      "schedule_display": "0 */4 * * *",
+      "repeat": {
+        "times": null,
+        "completed": 37
+      },
+      "enabled": true,
+      "state": "scheduled",
+      "paused_at": null,
+      "paused_reason": null,
+      "created_at": "2026-06-16T16:26:54.326520-04:00",
+      "next_run_at": "2026-06-23T00:00:00-04:00",
+      "last_run_at": "2026-06-22T20:00:28.522849-04:00",
+      "last_status": "ok",
+      "last_error": null,
+      "last_delivery_error": null,
+      "deliver": "local",
+      "origin": {
+        "platform": "telegram",
+        "chat_id": "8878729385",
+        "chat_name": "Andrew Alhaj",
+        "thread_id": null
+      },
+      "enabled_toolsets": null,
+      "workdir": null,
+      "fire_claim": null
+    },
+    {
+      "id": "223e51b1abd6",
+      "name": "Mac Studio Ollama Watchdog",
+      "prompt": "",
+      "skills": [],
+      "skill": null,
+      "model": null,
+      "provider": null,
+      "base_url": null,
+      "script": "studio-watchdog.sh",
+      "no_agent": true,
+      "context_from": null,
+      "schedule": {
+        "kind": "interval",
+        "minutes": 15,
+        "display": "every 15m"
+      },
+      "schedule_display": "every 15m",
+      "repeat": {
+        "times": null,
+        "completed": 537
+      },
+      "enabled": true,
+      "state": "scheduled",
+      "paused_at": null,
+      "paused_reason": null,
+      "created_at": "2026-06-16T23:41:30.114768-04:00",
+      "next_run_at": "2026-06-22T23:07:17.112919-04:00",
+      "last_run_at": "2026-06-22T22:52:17.112919-04:00",
+      "last_status": "ok",
+      "last_error": null,
+      "last_delivery_error": null,
+      "deliver": "telegram:-1003947663220,discord:#cron-jobs",
+      "origin": {
+        "platform": "telegram",
+        "chat_id": "8878729385",
+        "chat_name": "Andrew Alhaj",
+        "thread_id": null
+      },
+      "enabled_toolsets": null,
+      "workdir": null,
+      "fire_claim": null
+    },
+    {
+      "id": "b98ccb3e60a3",
+      "name": "Memory File Sanitizer",
+      "prompt": "",
+      "skills": [],
+      "skill": null,
+      "model": null,
+      "provider": null,
+      "base_url": null,
+      "script": "memory_sanitize.py",
+      "no_agent": true,
+      "context_from": null,
+      "schedule": {
+        "kind": "cron",
+        "expr": "*/30 * * * *",
+        "display": "*/30 * * * *"
+      },
+      "schedule_display": "*/30 * * * *",
+      "repeat": {
+        "times": null,
+        "completed": 227
+      },
+      "enabled": true,
+      "state": "scheduled",
+      "paused_at": null,
+      "paused_reason": null,
+      "created_at": "2026-06-18T05:35:36.204628-04:00",
+      "next_run_at": "2026-06-22T23:30:00-04:00",
+      "last_run_at": "2026-06-22T23:00:16.157509-04:00",
+      "last_status": "ok",
+      "last_error": null,
+      "last_delivery_error": null,
+      "deliver": "local",
+      "origin": {
+        "platform": "telegram",
+        "chat_id": "8878729385",
+        "chat_name": "Andrew Alhaj",
+        "thread_id": null
+      },
+      "enabled_toolsets": null,
+      "workdir": null,
+      "fire_claim": null
+    },
+    {
+      "id": "8da92146720a",
+      "name": "User Profile Offload (default)",
+      "prompt": "USER PROFILE OFFLOAD (default profile) \u2014 hourly, threshold-gated, SILENT unless it acts.\n\nSTEP 0 \u2014 Read caps + size:\n  python3 -c \"import yaml;c=yaml.safe_load(open('/root/.hermes/config.yaml'))['memory'];print(c['user_char_limit'])\"\n  wc -m /root/.hermes/memories/USER.md\nCompute USER.md as a percentage of user_char_limit.\n\nGATE: If USER.md is < 88% of cap, respond with exactly [SILENT] and STOP.\n\nSTEP 1 (only if >=88%) \u2014 Read /root/.hermes/memories/USER.md (use: cat /root/.hermes/memories/USER.md). Entries split by lines containing only '\u00a7'. Classify each entry using the CUE TEST:\n\n  QUESTION: \"If I violate this entry before reading any message this turn, is it already too late?\"\n\n  YES \u2192 KEEP HOT always. These are behavioral entries with no retrieval cue:\n    - Any entry containing: hates, never, always, hard line, declined, constraint, MUST, forbidden, rejects, prefers, values, wants, expects, pushes back, review BEFORE\n    - Tone / communication style / response-style preferences\n    - Hard constraints and red lines (BadUSB declined, etc.)\n    - Correction patterns (\"don't do X\", \"always Y\")\n    - Financial/account constraints (Claude Max plan, token headroom)\n    - Dummy data / confabulation guards\n    - Short entries under 100 chars (pointer would be longer)\n    - ANY entry where missing it at turn-start = violation already happened\n\n  NO \u2192 OFFLOADABLE. These are reference facts with a topic cue \u2014 a user message about the topic would trigger retrieval:\n    - Hardware specs (Mac mini, Mac Studio model/RAM/IP)\n    - Project paths and docs locations (/root/projects/...)\n    - Tool implementation state (WebUI internals, specific config details)\n    - Version strings, port numbers in non-critical contexts\n\n  When in doubt: KEEP HOT. A false keep costs ~120 chars. A false offload means Andrew has to repeat himself \u2014 worst outcome.\n\nSTEP 2 \u2014 For each offload candidate, store full text to the cold store:\n  cd /root/.hermes && KNOWLEDGE_TAGS=\"user-profile,offload\" KNOWLEDGE_PRIORITY=high python3 scripts/knowledge.py store \"<full entry text>\"\n\nSTEP 3 \u2014 VERIFY retrievable BEFORE trimming:\n  cd /root/.hermes && python3 scripts/knowledge.py search \"<key terms from entry>\"\nConfirm a hit scoring >=0.80. If not, DO NOT trim \u2014 keep it hot.\n\nSTEP 4 \u2014 Backup then trim ATOMICALLY using patch tool only:\n  cp /root/.hermes/memories/USER.md /root/.hermes/memories/USER.md.bak-offload-$(date +%s)\nReplace each verified-offloaded entry with a ONE-LINE pointer: \"<topic>: knowledge.py search \\\"<key terms>\\\".\"\nNEVER use read_file then write_file \u2014 read_file adds N| line-number prefixes that corrupt the file.\nNEVER remove an entry without its pointer in the same edit.\n\nINTEGRITY CHECK \u2014 After any write, verify:\n  python3 -c \"\ntxt = open('/root/.hermes/memories/USER.md').read()\nlines = [l for l in txt.splitlines() if l.strip() and l.strip() != chr(167)]\ncorrupted = [l for l in lines if l[:3].rstrip('|').isdigit() and '|' in l[:5]]\nprint('CORRUPTED' if corrupted else 'OK', len(txt), 'chars')\n\"\nIf CORRUPTED, restore from backup immediately.\n\nSTEP 5 \u2014 Append to /root/.hermes/references/user-offload-audit-log.md: date, what offloaded, retrieval terms, USER.md before%\u2192after%.\n\nSTEP 6 \u2014 Report ONE line only: \"USER offload: N entries \u2192 cold store, USER.md X%\u2192Y%.\" On error, report the error. If [SILENT] in STEP 0, report nothing.",
+      "skills": [],
+      "skill": null,
+      "model": "qwen2.5-32b-64k",
+      "provider": "custom:mac-studio",
+      "base_url": null,
+      "script": null,
+      "no_agent": false,
+      "context_from": null,
+      "schedule": {
+        "kind": "cron",
+        "expr": "30 * * * *",
+        "display": "30 * * * *"
+      },
+      "schedule_display": "30 * * * *",
+      "repeat": {
+        "times": null,
+        "completed": 95
+      },
+      "enabled": true,
+      "state": "scheduled",
+      "paused_at": null,
+      "paused_reason": null,
+      "created_at": "2026-06-18T23:42:33.524115-04:00",
+      "next_run_at": "2026-06-22T23:30:00-04:00",
+      "last_run_at": "2026-06-22T22:33:49.058952-04:00",
+      "last_status": "ok",
+      "last_error": null,
+      "last_delivery_error": null,
+      "deliver": "telegram:-1003947663220",
+      "origin": {
+        "platform": "telegram",
+        "chat_id": "8878729385",
+        "chat_name": "Andrew Alhaj",
+        "thread_id": null
+      },
+      "enabled_toolsets": [
+        "terminal",
+        "file"
+      ],
+      "workdir": null,
+      "fire_claim": null
+    }
+  ],
+  "updated_at": "2026-06-22T23:06:23.255764-04:00"
+}

@@ -1,0 +1,18 @@
+# /etc/systemd/system/cloudflared.service
+# Token lives in /root/.cloudflared/token (chmod 600), written via file tools /
+# python heredoc — NOT pasted inline (shell middleware can mangle long eyJ blobs).
+# --protocol http2: QUIC hides real errors behind "control stream failure".
+[Unit]
+Description=cloudflared
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+TimeoutStartSec=15
+Type=notify
+ExecStart=/bin/bash -c '/usr/bin/cloudflared --no-autoupdate tunnel run --protocol http2 --token "$(cat /root/.cloudflared/token)"'
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target

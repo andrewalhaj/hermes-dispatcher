@@ -1,0 +1,447 @@
+{
+  "jobs": [
+    {
+      "id": "840045b799b8",
+      "name": "Daily Delegation Audit",
+      "prompt": "SELF-AUDIT: Scan your session database for the last 24 hours and identify token-waste patterns. Specifically flag:\n1. Sessions with >100K input tokens and zero delegate_task calls\n2. Sessions with >8 web_search calls and zero delegation\n3. Sessions with >15 terminal calls without delegation\n\nFor each violation found, analyze what should have been delegated and write a short corrective action to /root/.hermes/pending-fixes.md in this format:\n```\n## [DATE] - [Session title]\n- Violation: [type]\n- Root cause: [brief analysis]\n- Fix: [specific corrective action]\n- Estimated savings: [token/cost estimate]\n```\n\nIf no violations found, write a single line: \"No violations detected on [DATE].\"\n\nAfter writing, append a one-line summary of findings to /root/.hermes/audit-log.md.\n\nDO NOT modify any config or session files. This is read-only analysis + write proposed fixes only.",
+      "skills": [
+        "hermes-agent"
+      ],
+      "skill": "hermes-agent",
+      "model": "deepseek-v4-pro",
+      "provider": "deepseek",
+      "base_url": null,
+      "script": null,
+      "no_agent": false,
+      "context_from": null,
+      "schedule": {
+        "kind": "cron",
+        "expr": "0 9 * * *",
+        "display": "0 9 * * *"
+      },
+      "schedule_display": "0 9 * * *",
+      "repeat": {
+        "times": null,
+        "completed": 7
+      },
+      "enabled": true,
+      "state": "scheduled",
+      "paused_at": null,
+      "paused_reason": null,
+      "created_at": "2026-06-01T21:35:34.065984+00:00",
+      "next_run_at": "2026-06-09T09:00:00+00:00",
+      "last_run_at": "2026-06-08T09:12:07.001580+00:00",
+      "last_status": "ok",
+      "last_error": null,
+      "last_delivery_error": null,
+      "deliver": "telegram:-1003947663220,discord:#cron-jobs",
+      "origin": null,
+      "enabled_toolsets": [
+        "terminal",
+        "file",
+        "session_search"
+      ],
+      "workdir": null,
+      "profile": "executor"
+    },
+    {
+      "id": "56384e341bfd",
+      "name": "Honcho-to-Obsidian Bridge",
+      "prompt": "",
+      "skills": [],
+      "skill": null,
+      "model": null,
+      "provider": null,
+      "base_url": null,
+      "script": "honcho-bridge.sh",
+      "no_agent": true,
+      "context_from": null,
+      "schedule": {
+        "kind": "cron",
+        "expr": "0 8 * * *",
+        "display": "0 8 * * *"
+      },
+      "schedule_display": "0 8 * * *",
+      "repeat": {
+        "times": null,
+        "completed": 6
+      },
+      "enabled": true,
+      "state": "scheduled",
+      "paused_at": null,
+      "paused_reason": null,
+      "created_at": "2026-06-02T18:39:54.910072+00:00",
+      "next_run_at": "2026-06-09T08:00:00+00:00",
+      "last_run_at": "2026-06-08T08:00:33.280981+00:00",
+      "last_status": "ok",
+      "last_error": null,
+      "last_delivery_error": null,
+      "deliver": "local",
+      "origin": {
+        "platform": "telegram",
+        "chat_id": "8878729385",
+        "chat_name": "Andrew Alhaj",
+        "thread_id": null
+      },
+      "enabled_toolsets": null,
+      "workdir": null,
+      "profile": null
+    },
+    {
+      "id": "d0bc81b9640b",
+      "name": "Daily Hermes Backup",
+      "prompt": "",
+      "skills": [],
+      "skill": null,
+      "model": null,
+      "provider": null,
+      "base_url": null,
+      "script": "backup.sh",
+      "no_agent": true,
+      "context_from": null,
+      "schedule": {
+        "kind": "cron",
+        "expr": "0 3 * * *",
+        "display": "0 3 * * *"
+      },
+      "schedule_display": "0 3 * * *",
+      "repeat": {
+        "times": null,
+        "completed": 6
+      },
+      "enabled": true,
+      "state": "scheduled",
+      "paused_at": null,
+      "paused_reason": null,
+      "created_at": "2026-06-02T20:49:08.718851+00:00",
+      "next_run_at": "2026-06-09T03:00:00+00:00",
+      "last_run_at": "2026-06-08T03:00:35.636471+00:00",
+      "last_status": "ok",
+      "last_error": null,
+      "last_delivery_error": null,
+      "deliver": "local",
+      "origin": {
+        "platform": "telegram",
+        "chat_id": "8878729385",
+        "chat_name": "Andrew Alhaj",
+        "thread_id": null
+      },
+      "enabled_toolsets": null,
+      "workdir": null,
+      "profile": null
+    },
+    {
+      "id": "cdd1800159eb",
+      "name": "Weekly KB Dedup Scan",
+      "prompt": "",
+      "skills": [],
+      "skill": null,
+      "model": null,
+      "provider": null,
+      "base_url": null,
+      "script": "dedup_scan.py",
+      "no_agent": true,
+      "context_from": null,
+      "schedule": {
+        "kind": "cron",
+        "expr": "0 4 * * 0",
+        "display": "0 4 * * 0"
+      },
+      "schedule_display": "0 4 * * 0",
+      "repeat": {
+        "times": null,
+        "completed": 2
+      },
+      "enabled": true,
+      "state": "scheduled",
+      "paused_at": null,
+      "paused_reason": null,
+      "created_at": "2026-06-02T20:52:05.064363+00:00",
+      "next_run_at": "2026-06-14T04:00:00+00:00",
+      "last_run_at": "2026-06-08T03:45:47.583630+00:00",
+      "last_status": "ok",
+      "last_error": null,
+      "last_delivery_error": null,
+      "deliver": "telegram:-1003947663220,discord:#cron-jobs",
+      "origin": {
+        "platform": "telegram",
+        "chat_id": "8878729385",
+        "chat_name": "Andrew Alhaj",
+        "thread_id": null
+      },
+      "enabled_toolsets": null,
+      "workdir": null,
+      "profile": null
+    },
+    {
+      "id": "e6c2661c7972",
+      "name": "Daily Knowledge Capture",
+      "prompt": "You are the daily knowledge-capture curator. The script output above (session_digest.py) contains the last 24 hours of real user/assistant conversation from this Hermes system.\n\nYour job: extract DURABLE, factual knowledge worth remembering across sessions, and store it to LanceDB so the agent never has to be re-taught. This directly prevents the user from repeating himself.\n\nSTEP 1 \u2014 Read the digest above. Identify facts that are:\n  \u2022 Infrastructure/config truths (server roles, IPs, ports, DB locations, credentials locations, file paths)\n  \u2022 Tool/system quirks and their workarounds\n  \u2022 Bug root-causes and fixes discovered\n  \u2022 User corrections (\"it's actually X, not Y\") and naming conventions he insists on\n  \u2022 Verified state that contradicts older beliefs (these are HIGH priority \u2014 they supersede stale facts)\n\nDO NOT capture: task progress, \"I did X then Y\" logs, transient session state, anything stale in 7 days, PR/commit/issue numbers.\n\nSTEP 2 \u2014 Collect ALL candidate fact-topics first, then dedup-check them in ONE batched call (do NOT run a separate search per fact \u2014 that cold-loads the embedding model N times):\n  python3 ~/.hermes/scripts/knowledge.py search-batch \"topic1|||topic2|||topic3|||...\"\nThe output groups results under '=== QUERY: <topic> ===' headers. A query that prints '(no existing facts \u2014 safe to store)' or only low-score (<0.75) hits is NEW \u2014 store it. If a near-identical fact exists, skip it. If an existing fact is now WRONG (contradicted by today's verified state), store the corrected version with tag CORRECTION and priority critical \u2014 the search layer will surface both, and the newer one wins.\n\nSTEP 3 \u2014 Store each new fact:\n  KNOWLEDGE_TAGS=\"<comma,tags>\" KNOWLEDGE_PRIORITY=\"<normal|high|critical>\" python3 ~/.hermes/scripts/knowledge.py store \"<concise declarative fact>\"\n\nWrite facts as declarative truths, not narrative. \"Manifest reads Railway DB, not local postgres\" \u2713 \u2014 \"Today I discovered Manifest reads Railway\" \u2717.\n\nSTEP 4 \u2014 Keep a one-line audit trail: append \"YYYY-MM-DD: captured N facts (topics: ...)\" to ~/.hermes/audit-log.md.\n\nBe conservative \u2014 0-5 high-quality facts per day is the target, not volume. If nothing durable happened, store nothing and note \"no durable facts\" in the audit log. This job runs silently (deliver=local); only your audit-log line records the run.",
+      "skills": [],
+      "skill": null,
+      "model": "deepseek-v4-pro",
+      "provider": "deepseek",
+      "base_url": null,
+      "script": "session_digest.py",
+      "no_agent": false,
+      "context_from": null,
+      "schedule": {
+        "kind": "cron",
+        "expr": "30 2 * * *",
+        "display": "30 2 * * *"
+      },
+      "schedule_display": "30 2 * * *",
+      "repeat": {
+        "times": null,
+        "completed": 6
+      },
+      "enabled": true,
+      "state": "scheduled",
+      "paused_at": null,
+      "paused_reason": null,
+      "created_at": "2026-06-03T17:37:23.342080+00:00",
+      "next_run_at": "2026-06-09T02:30:00+00:00",
+      "last_run_at": "2026-06-08T02:33:02.573465+00:00",
+      "last_status": "ok",
+      "last_error": null,
+      "last_delivery_error": null,
+      "deliver": "local",
+      "origin": {
+        "platform": "telegram",
+        "chat_id": "8878729385",
+        "chat_name": "Andrew Alhaj",
+        "thread_id": null
+      },
+      "enabled_toolsets": [
+        "terminal",
+        "file"
+      ],
+      "workdir": null,
+      "profile": null
+    },
+    {
+      "id": "6537cacf1cd6",
+      "name": "Infra Watchdog (15-min)",
+      "prompt": "Silent infra watchdog \u2014 script delivers alerts verbatim on P0/P1 only. See ~/.hermes/scripts/infra_watchdog.py",
+      "skills": [],
+      "skill": null,
+      "model": null,
+      "provider": null,
+      "base_url": null,
+      "script": "infra_watchdog.py",
+      "no_agent": true,
+      "context_from": null,
+      "schedule": {
+        "kind": "cron",
+        "expr": "*/15 * * * *",
+        "display": "*/15 * * * *"
+      },
+      "schedule_display": "*/15 * * * *",
+      "repeat": {
+        "times": null,
+        "completed": 471
+      },
+      "enabled": true,
+      "state": "scheduled",
+      "paused_at": null,
+      "paused_reason": null,
+      "created_at": "2026-06-03T21:00:13.756542+00:00",
+      "next_run_at": "2026-06-08T18:45:00+00:00",
+      "last_run_at": "2026-06-08T18:30:10.488633+00:00",
+      "last_status": "ok",
+      "last_error": null,
+      "last_delivery_error": null,
+      "deliver": "telegram:-1003947663220,discord:#cron-jobs",
+      "origin": {
+        "platform": "telegram",
+        "chat_id": "8878729385",
+        "chat_name": "Andrew Alhaj",
+        "thread_id": null
+      },
+      "enabled_toolsets": null,
+      "workdir": null,
+      "profile": null
+    },
+    {
+      "id": "16004ed5f085",
+      "name": "Infrastructure Change Watchdog",
+      "prompt": "",
+      "skills": [],
+      "skill": null,
+      "model": null,
+      "provider": null,
+      "base_url": null,
+      "script": "infra-watchdog.py",
+      "no_agent": true,
+      "context_from": null,
+      "schedule": {
+        "kind": "interval",
+        "minutes": 5,
+        "display": "every 5m"
+      },
+      "schedule_display": "every 5m",
+      "repeat": {
+        "times": null,
+        "completed": 920
+      },
+      "enabled": true,
+      "state": "scheduled",
+      "paused_at": null,
+      "paused_reason": null,
+      "created_at": "2026-06-05T05:58:53.318224+00:00",
+      "next_run_at": "2026-06-08T18:37:08.380081+00:00",
+      "last_run_at": "2026-06-08T18:32:08.380081+00:00",
+      "last_status": "ok",
+      "last_error": null,
+      "last_delivery_error": null,
+      "deliver": "telegram:-1003947663220,discord:#cron-jobs",
+      "origin": {
+        "platform": "telegram",
+        "chat_id": "8878729385",
+        "chat_name": "Andrew Alhaj",
+        "thread_id": null
+      },
+      "enabled_toolsets": null,
+      "workdir": null,
+      "profile": null
+    },
+    {
+      "id": "23d4c20ae12d",
+      "name": "Patch Guard Self-Heal",
+      "prompt": "Self-heal watchdog for OAuth-bypass + delegation-guard patch files. Silent when healthy; restores from golden copies in ~/.hermes/references/patch-guard/ and reports when drift is detected.",
+      "skills": [],
+      "skill": null,
+      "model": null,
+      "provider": null,
+      "base_url": null,
+      "script": "patch_guard.py",
+      "no_agent": true,
+      "context_from": null,
+      "schedule": {
+        "kind": "cron",
+        "expr": "0 5 * * *",
+        "display": "0 5 * * *"
+      },
+      "schedule_display": "0 5 * * *",
+      "repeat": {
+        "times": null,
+        "completed": 3
+      },
+      "enabled": true,
+      "state": "scheduled",
+      "paused_at": null,
+      "paused_reason": null,
+      "created_at": "2026-06-06T22:48:06.144277+00:00",
+      "next_run_at": "2026-06-09T05:00:00+00:00",
+      "last_run_at": "2026-06-08T05:00:31.699204+00:00",
+      "last_status": "ok",
+      "last_error": null,
+      "last_delivery_error": null,
+      "deliver": "telegram:-1003947663220,discord:#cron-jobs",
+      "origin": {
+        "platform": "telegram",
+        "chat_id": "8878729385",
+        "chat_name": "Andrew Alhaj",
+        "thread_id": null
+      },
+      "enabled_toolsets": null,
+      "workdir": null,
+      "profile": null
+    },
+    {
+      "id": "cb16d70205c4",
+      "name": "Memory Honcho Dedup",
+      "prompt": "MEMORY HONCHO DEDUP \u2014 run daily. Two-stage safe deletion.\n\nSTAGE 0 \u2014 READ ~/.hermes/memories/MEMORY.md. Split by '\u00a7' into entries. These are canonical.\n\nSTAGE 1 \u2014 For each entry, call honcho_search(query=\"<condensed topic>\", peer='user', max_tokens=600). If Honcho has a semantically equivalent conclusion (same facts, same detail level), flag it. If Honcho's version is less precise or missing specifics, do NOT flag.\n\nSTAGE 2 \u2014 Already-flagged entries: if [HONCHO_DUP: YYYY-MM-DD] date \u22653 days ago, REMOVE the entry. Report what was removed. If flagged <3 days ago, leave it.\n\nSTAGE 3 \u2014 REPORT: if entries were DELETED, write \"YYYY-MM-DD: memory dedup removed N entries (topics: ...)\" to ~/.hermes/references/audit-log.md. If only flags added, remain silent. If clean, respond \"[SILENT]\".\n\nSAFETY \u2014 An entry is a candidate for removal ONLY if ALL of:\n1. Honcho preserves semantically equivalent information at the same detail level\n2. The entry does NOT contain hard constraints / rules (MUST, NEVER, hard stop, always gate, do not)\n3. The entry does NOT contain specific technical config (IP addresses, version numbers, parameter values, port numbers, procedure steps with exact commands)\n\nIf any condition fails, keep the entry. Do NOT use a hardcoded list of protected entries \u2014 derive protection from the entry's actual content using the three conditions above.\n\nTOOLS: Use patch(old_string=entire_entry, new_string=\"...\") for flagging; patch(old_string=entire_entry, new_string=\"\") for deletion. Only modify MEMORY.md and audit-log.md.",
+      "skills": [],
+      "skill": null,
+      "model": "deepseek-v4-pro",
+      "provider": "deepseek",
+      "base_url": null,
+      "script": null,
+      "no_agent": false,
+      "context_from": null,
+      "schedule": {
+        "kind": "cron",
+        "expr": "0 7 * * *",
+        "display": "0 7 * * *"
+      },
+      "schedule_display": "0 7 * * *",
+      "repeat": {
+        "times": null,
+        "completed": 2
+      },
+      "enabled": true,
+      "state": "scheduled",
+      "paused_at": null,
+      "paused_reason": null,
+      "created_at": "2026-06-06T23:32:45.367273+00:00",
+      "next_run_at": "2026-06-09T07:00:00+00:00",
+      "last_run_at": "2026-06-08T07:08:20.788679+00:00",
+      "last_status": "ok",
+      "last_error": null,
+      "last_delivery_error": null,
+      "deliver": "telegram:-1003947663220,discord:#cron-jobs",
+      "origin": {
+        "platform": "telegram",
+        "chat_id": "8878729385",
+        "chat_name": "Andrew Alhaj",
+        "thread_id": null
+      },
+      "enabled_toolsets": [
+        "honcho",
+        "file"
+      ],
+      "workdir": null,
+      "profile": null
+    },
+    {
+      "id": "06c1c40fb732",
+      "name": "Memory Dedup Audit",
+      "prompt": "Load skill memory-dedup-audit. Execute its STEP 1 and STEP 2 procedures. Report failures only to Cron Jobs channel. If all checks pass on both steps: respond [SILENT] \u2014 nothing to report.",
+      "skills": [
+        "memory-dedup-audit"
+      ],
+      "skill": "memory-dedup-audit",
+      "model": "deepseek-v4-pro",
+      "provider": "deepseek",
+      "base_url": null,
+      "script": null,
+      "no_agent": false,
+      "context_from": null,
+      "schedule": {
+        "kind": "cron",
+        "expr": "0 8 * * 0",
+        "display": "0 8 * * 0"
+      },
+      "schedule_display": "0 8 * * 0",
+      "repeat": {
+        "times": null,
+        "completed": 1
+      },
+      "enabled": true,
+      "state": "scheduled",
+      "paused_at": null,
+      "paused_reason": null,
+      "created_at": "2026-06-06T23:41:24.833808+00:00",
+      "next_run_at": "2026-06-14T08:00:00+00:00",
+      "last_run_at": "2026-06-07T08:01:06.926939+00:00",
+      "last_status": "ok",
+      "last_error": null,
+      "last_delivery_error": null,
+      "deliver": "telegram:-1003947663220,discord:#cron-jobs",
+      "origin": {
+        "platform": "telegram",
+        "chat_id": "8878729385",
+        "chat_name": "Andrew Alhaj",
+        "thread_id": null
+      },
+      "enabled_toolsets": [
+        "terminal",
+        "file"
+      ],
+      "workdir": null,
+      "profile": null
+    }
+  ],
+  "updated_at": "2026-06-08T18:32:08.380211+00:00"
+}

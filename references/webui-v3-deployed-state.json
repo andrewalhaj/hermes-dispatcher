@@ -1,0 +1,16 @@
+{
+  "deployment": "2026-06-18",
+  "project_dir": "/root/projects/hermes-webui-new",
+  "source_dir": "/root/projects/hermes-ui-fresh",
+  "data_sources": {
+    "kanban": "~/.hermes/kanban.db",
+    "insights": "~/.hermes/state.db",
+    "memory": "~/.hermes/memories/MEMORY.md + USER.md + SOUL.md + AGENTS.md",
+    "lancedb": "~/.hermes/knowledge_db/knowledge.lance (483 rows)",
+    "honcho": "Obsidian vault peer-card.md (daily cron sync)",
+    "obsidian": "/root/Documents/Obsidian Vault/**/*.md",
+    "skills": "~/.hermes/skills/**SKILL.md (153 total, 60 served)"
+  },
+  "galaxy_tiers": 9,
+  "schema_note": "kanban.db tasks has no updated_at column, only created_at/started_at/completed_at"
+}

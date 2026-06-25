@@ -1,0 +1,277 @@
+{
+  "version": 1,
+  "installed": {
+    "honcho": {
+      "source": "official",
+      "identifier": "official/autonomous-ai-agents/honcho",
+      "trust_level": "builtin",
+      "scan_verdict": "dangerous",
+      "content_hash": "sha256:3092e450107aab14",
+      "install_path": "autonomous-ai-agents/honcho",
+      "files": [
+        "SKILL.md"
+      ],
+      "metadata": {},
+      "installed_at": "2026-06-03T20:03:13.442208+00:00",
+      "updated_at": "2026-06-03T20:03:13.442214+00:00"
+    },
+    "brainstorming": {
+      "source": "url",
+      "identifier": "https://raw.githubusercontent.com/obra/superpowers/main/skills/brainstorming/SKILL.md",
+      "trust_level": "community",
+      "scan_verdict": "safe",
+      "content_hash": "sha256:679e98bacd6301a4",
+      "install_path": "collaboration/brainstorming",
+      "files": [
+        "SKILL.md"
+      ],
+      "metadata": {
+        "url": "https://raw.githubusercontent.com/obra/superpowers/main/skills/brainstorming/SKILL.md",
+        "awaiting_name": false
+      },
+      "installed_at": "2026-06-03T20:24:37.280373+00:00",
+      "updated_at": "2026-06-03T20:24:37.280381+00:00"
+    },
+    "verification-before-completion": {
+      "source": "url",
+      "identifier": "https://raw.githubusercontent.com/obra/superpowers/main/skills/verification-before-completion/SKILL.md",
+      "trust_level": "community",
+      "scan_verdict": "safe",
+      "content_hash": "sha256:363a6828d1202055",
+      "install_path": "software-development/verification-before-completion",
+      "files": [
+        "SKILL.md"
+      ],
+      "metadata": {
+        "url": "https://raw.githubusercontent.com/obra/superpowers/main/skills/verification-before-completion/SKILL.md",
+        "awaiting_name": false
+      },
+      "installed_at": "2026-06-03T20:25:03.446358+00:00",
+      "updated_at": "2026-06-03T20:25:03.446367+00:00"
+    },
+    "obsidian-markdown": {
+      "source": "url",
+      "identifier": "https://raw.githubusercontent.com/kepano/obsidian-skills/main/skills/obsidian-markdown/SKILL.md",
+      "trust_level": "community",
+      "scan_verdict": "safe",
+      "content_hash": "sha256:4b2e75ee874c5124",
+      "install_path": "productivity/obsidian-markdown",
+      "files": [
+        "SKILL.md"
+      ],
+      "metadata": {
+        "url": "https://raw.githubusercontent.com/kepano/obsidian-skills/main/skills/obsidian-markdown/SKILL.md",
+        "awaiting_name": false
+      },
+      "installed_at": "2026-06-03T21:05:25.016519+00:00",
+      "updated_at": "2026-06-03T21:05:25.016524+00:00"
+    },
+    "defuddle": {
+      "source": "url",
+      "identifier": "https://raw.githubusercontent.com/kepano/obsidian-skills/main/skills/defuddle/SKILL.md",
+      "trust_level": "community",
+      "scan_verdict": "safe",
+      "content_hash": "sha256:7df09e9eebcd1554",
+      "install_path": "productivity/defuddle",
+      "files": [
+        "SKILL.md"
+      ],
+      "metadata": {
+        "url": "https://raw.githubusercontent.com/kepano/obsidian-skills/main/skills/defuddle/SKILL.md",
+        "awaiting_name": false
+      },
+      "installed_at": "2026-06-03T21:05:52.596229+00:00",
+      "updated_at": "2026-06-03T21:05:52.596235+00:00"
+    },
+    "baoyu-article-illustrator": {
+      "source": "official",
+      "identifier": "official/creative/baoyu-article-illustrator",
+      "trust_level": "builtin",
+      "scan_verdict": "backfilled",
+      "content_hash": "sha256:49c09a0ee50b2e59",
+      "install_path": "creative/baoyu-article-illustrator",
+      "files": [
+        "PORT_NOTES.md",
+        "SKILL.md",
+        "prompts/system.md",
+        "references/palettes/macaron.md",
+        "references/palettes/mono-ink.md",
+        "references/palettes/neon.md",
+        "references/palettes/warm.md",
+        "references/prompt-construction.md",
+        "references/style-presets.md",
+        "references/styles/blueprint.md",
+        "references/styles/chalkboard.md",
+        "references/styles/editorial.md",
+        "references/styles/elegant.md",
+        "references/styles/fantasy-animation.md",
+        "references/styles/flat-doodle.md",
+        "references/styles/flat.md",
+        "references/styles/ink-notes.md",
+        "references/styles/intuition-machine.md",
+        "references/styles/minimal.md",
+        "references/styles/nature.md",
+        "references/styles/notion.md",
+        "references/styles/pixel-art.md",
+        "references/styles/playful.md",
+        "references/styles/retro.md",
+        "references/styles/scientific.md",
+        "references/styles/screen-print.md",
+        "references/styles/sketch-notes.md",
+        "references/styles/sketch.md",
+        "references/styles/vector-illustration.md",
+        "references/styles/vintage.md",
+        "references/styles/warm.md",
+        "references/styles/watercolor.md",
+        "references/styles.md",
+        "references/usage.md",
+        "references/workflow.md"
+      ],
+      "metadata": {
+        "backfilled_from": "optional-skills"
+      },
+      "installed_at": "2026-06-06T22:30:08.873456+00:00",
+      "updated_at": "2026-06-06T22:30:08.873456+00:00"
+    },
+    "baoyu-comic": {
+      "source": "official",
+      "identifier": "official/creative/baoyu-comic",
+      "trust_level": "builtin",
+      "scan_verdict": "backfilled",
+      "content_hash": "sha256:4378c8ba82fd3649",
+      "install_path": "creative/baoyu-comic",
+      "files": [
+        "PORT_NOTES.md",
+        "SKILL.md",
+        "references/analysis-framework.md",
+        "references/art-styles/chalk.md",
+        "references/art-styles/ink-brush.md",
+        "references/art-styles/ligne-claire.md",
+        "references/art-styles/manga.md",
+        "references/art-styles/minimalist.md",
+        "references/art-styles/realistic.md",
+        "references/auto-selection.md",
+        "references/base-prompt.md",
+        "references/character-template.md",
+        "references/layouts/cinematic.md",
+        "references/layouts/dense.md",
+        "references/layouts/four-panel.md",
+        "references/layouts/mixed.md",
+        "references/layouts/splash.md",
+        "references/layouts/standard.md",
+        "references/layouts/webtoon.md",
+        "references/ohmsha-guide.md",
+        "references/partial-workflows.md",
+        "references/presets/concept-story.md",
+        "references/presets/four-panel.md",
+        "references/presets/ohmsha.md",
+        "references/presets/shoujo.md",
+        "references/presets/wuxia.md",
+        "references/storyboard-template.md",
+        "references/tones/action.md",
+        "references/tones/dramatic.md",
+        "references/tones/energetic.md",
+        "references/tones/neutral.md",
+        "references/tones/romantic.md",
+        "references/tones/vintage.md",
+        "references/tones/warm.md",
+        "references/workflow.md"
+      ],
+      "metadata": {
+        "backfilled_from": "optional-skills"
+      },
+      "installed_at": "2026-06-06T22:30:08.884175+00:00",
+      "updated_at": "2026-06-06T22:30:08.884175+00:00"
+    },
+    "creative-ideation": {
+      "source": "official",
+      "identifier": "official/creative/creative-ideation",
+      "trust_level": "builtin",
+      "scan_verdict": "backfilled",
+      "content_hash": "sha256:0045b1d6486f5e2e",
+      "install_path": "creative/creative-ideation",
+      "files": [
+        "SKILL.md",
+        "references/full-prompt-library.md"
+      ],
+      "metadata": {
+        "backfilled_from": "optional-skills"
+      },
+      "installed_at": "2026-06-06T22:30:08.886072+00:00",
+      "updated_at": "2026-06-06T22:30:08.886072+00:00"
+    },
+    "pixel-art": {
+      "source": "official",
+      "identifier": "official/creative/pixel-art",
+      "trust_level": "builtin",
+      "scan_verdict": "backfilled",
+      "content_hash": "sha256:b7ae08576dac501e",
+      "install_path": "creative/pixel-art",
+      "files": [
+        "ATTRIBUTION.md",
+        "SKILL.md",
+        "references/palettes.md",
+        "scripts/__init__.py",
+        "scripts/palettes.py",
+        "scripts/pixel_art.py",
+        "scripts/pixel_art_video.py"
+      ],
+      "metadata": {
+        "backfilled_from": "optional-skills"
+      },
+      "installed_at": "2026-06-06T22:30:08.887622+00:00",
+      "updated_at": "2026-06-06T22:30:08.887622+00:00"
+    },
+    "minecraft-modpack-server": {
+      "source": "official",
+      "identifier": "official/gaming/minecraft-modpack-server",
+      "trust_level": "builtin",
+      "scan_verdict": "backfilled",
+      "content_hash": "sha256:b10f2b1258e9012b",
+      "install_path": "gaming/minecraft-modpack-server",
+      "files": [
+        "SKILL.md"
+      ],
+      "metadata": {
+        "backfilled_from": "optional-skills"
+      },
+      "installed_at": "2026-06-06T22:30:08.888443+00:00",
+      "updated_at": "2026-06-06T22:30:08.888443+00:00"
+    },
+    "pokemon-player": {
+      "source": "official",
+      "identifier": "official/gaming/pokemon-player",
+      "trust_level": "builtin",
+      "scan_verdict": "backfilled",
+      "content_hash": "sha256:c1bc96fc9bb270c0",
+      "install_path": "gaming/pokemon-player",
+      "files": [
+        "SKILL.md"
+      ],
+      "metadata": {
+        "backfilled_from": "optional-skills"
+      },
+      "installed_at": "2026-06-06T22:30:08.888858+00:00",
+      "updated_at": "2026-06-06T22:30:08.888858+00:00"
+    },
+    "dspy": {
+      "source": "official",
+      "identifier": "official/mlops/research/dspy",
+      "trust_level": "builtin",
+      "scan_verdict": "backfilled",
+      "content_hash": "sha256:bbbe1148d27953a8",
+      "install_path": "mlops/research/dspy",
+      "files": [
+        "SKILL.md",
+        "references/examples.md",
+        "references/modules.md",
+        "references/optimizers.md"
+      ],
+      "metadata": {
+        "backfilled_from": "optional-skills"
+      },
+      "installed_at": "2026-06-06T22:30:08.890261+00:00",
+      "updated_at": "2026-06-06T22:30:08.890261+00:00"
+    }
+  }
+}

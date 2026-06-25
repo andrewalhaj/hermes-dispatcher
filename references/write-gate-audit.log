@@ -1,0 +1,628 @@
+2026-06-11T17:37:47 BLOCK terminal: systemctl --user restart
+2026-06-11T17:37:47 BLOCK write_file: write_file: config.yaml
+2026-06-11T17:37:47 BLOCK terminal: docker restart
+2026-06-11T17:37:48 BLOCK terminal: systemctl --user restart
+2026-06-11T17:38:03 BLOCK terminal: systemctl --user restart
+2026-06-11T17:38:03 BLOCK write_file: write_file: config.yaml
+2026-06-11T17:38:03 BLOCK terminal: docker restart
+2026-06-11T17:38:03 BLOCK terminal: systemctl --user restart
+2026-06-11T17:38:46 BLOCK terminal: systemctl --user restart
+2026-06-11T17:38:46 BLOCK write_file: write_file: config.yaml
+2026-06-11T17:38:46 BLOCK terminal: docker restart
+2026-06-11T17:38:46 BLOCK terminal: systemctl --user restart
+2026-06-12T02:31:37 BLOCK terminal: reboot
+2026-06-12T02:31:43 BLOCK terminal: reboot
+2026-06-12T02:34:49 ARM ttl=120 note=storing T2 mac knowledge facts to LanceDB - safe
+2026-06-12T16:26:05 BLOCK terminal: apt-get install
+2026-06-12T16:26:16 ARM ttl=600 note=Andrew greenlit Wi-Fi/BT firmware setup on mac mini ('Yes' + 'did b try again'); dmg2img is a depend
+2026-06-12T16:36:19 BLOCK terminal: pip install
+2026-06-12T16:36:24 BLOCK terminal: redirect to gated path (/.env)
+2026-06-12T16:36:39 BLOCK terminal: redirect to gated path (config.yaml)
+2026-06-12T16:36:44 BLOCK terminal: redirect to gated path (/etc/)
+2026-06-12T16:40:52 ARM ttl=3600 note=Full Hermes migration hil-1 → mac mini greenlighted by Andrew: delete dead profiles, install Hermes 
+2026-06-12T17:14:20 ARM ttl=3600 note=Andrew greenlighted full Hermes migration from hil-1 to andrew-macmini (2026-06-12 session)
+2026-06-12T14:14:39 ARM ttl=900 note=Andrew: 'final check / every single config all set' — EnvironmentFile fix on gateway units + config 
+2026-06-12T14:42:05 ARM ttl=300 note=Andrew 'yes' — restart default hermes-gateway to load EnvironmentFile keys
+2026-06-12T14:43:42 ARM ttl=300 note=Andrew 'yes' to default gateway restart (EnvironmentFile pickup) — final migration step
+2026-06-12T16:28:02 BLOCK terminal: reboot
+2026-06-12T16:28:05 BLOCK terminal: reboot
+2026-06-12T16:28:08 BLOCK terminal: reboot
+2026-06-12T16:28:18 BLOCK terminal: reboot
+2026-06-12T17:18:07 BLOCK terminal: redirect to gated path (/.env)
+2026-06-12T17:23:04 BLOCK terminal: redirect to gated path (/.env)
+2026-06-12T17:23:07 ARM ttl=600 note=Andrew greenlighted both fixes: add EnvironmentFile to gateway units, fix hermes shebang
+2026-06-12T17:33:36 BLOCK terminal: redirect to gated path (config.yaml)
+2026-06-12T23:09:52 BLOCK terminal: redirect to gated path (/.env)
+2026-06-12T23:10:35 BLOCK terminal: redirect to gated path (/.env)
+2026-06-12T23:12:09 BLOCK terminal: redirect to gated path (config.yaml)
+2026-06-12T23:15:08 BLOCK patch: patch: anthropic_billing_bypass.py
+2026-06-12T23:15:12 ARM ttl=600 note=swap _HEAVY_MODEL from fable-5 to opus-4-8 in bypass
+2026-06-13T00:07:47 BLOCK terminal: redirect to gated path (/etc/)
+2026-06-13T00:09:11 BLOCK terminal: redirect to gated path (/.env)
+2026-06-13T00:10:17 BLOCK terminal: systemctl --user restart
+2026-06-13T00:10:21 ARM ttl=600 note=restart ha-bot and default gateways to reload bypass fix
+2026-06-13T00:43:01 BLOCK terminal: redirect to gated path (/.env)
+2026-06-13T00:43:08 ARM ttl=600 note=Adding APIFY_API_KEY to Mealio .env.docker for Instagram fetcher
+2026-06-13T00:55:27 BLOCK terminal: scp
+2026-06-13T02:30:31 BLOCK terminal: shutdown
+2026-06-13T02:30:37 ARM ttl=600 note=daily knowledge capture cron job — autonomous execution
+2026-06-13T13:09:51 ARM ttl=600 note=Andrew greenlighted: replace fetcher.ts on hil-1 + rebuild mealio container
+2026-06-16T08:33:09 BLOCK terminal: pip install
+2026-06-16T09:20:46 BLOCK patch: patch: skill_desc_audit.py
+2026-06-16T09:20:52 ARM ttl=600 note=c+a greenlit: exclude .archive in skill_desc_audit.py + create watchdog wrapper + cron
+2026-06-16T10:15:14 BLOCK terminal: redirect to gated path (config.yaml)
+2026-06-16T10:38:34 BLOCK terminal: redirect to gated path (config.yaml)
+2026-06-16T10:42:28 BLOCK terminal: apt-get install
+2026-06-16T10:42:33 BLOCK terminal: redirect to gated path (config.yaml)
+2026-06-16T12:38:43 BLOCK terminal: redirect to gated path (config.yaml)
+2026-06-16T12:44:59 BLOCK terminal: redirect to gated path (config.yaml)
+2026-06-16T12:51:45 BLOCK terminal: redirect to gated path (config.yaml)
+2026-06-16T13:07:17 BLOCK terminal: redirect to gated path (config.yaml)
+2026-06-16T13:07:22 BLOCK terminal: redirect to gated path (config.yaml)
+2026-06-16T13:07:26 ARM ttl=900 note=User greenlit CodeGraph install: backup + mcp_servers and platform_toolsets write
+2026-06-16T13:15:26 DISARM manual
+2026-06-16T13:15:30 BLOCK terminal: systemctl --user restart
+2026-06-16T13:15:35 BLOCK terminal: systemctl --user restart
+2026-06-16T13:15:40 ARM ttl=300 note=User chose Restart now via clarify: detached gateway restart for CodeGraph MCP discovery
+2026-06-16T13:34:09 BLOCK terminal: redirect to gated path (config.yaml)
+2026-06-16T13:34:09 BLOCK terminal: redirect to gated path (config.yaml)
+2026-06-16T13:34:25 BLOCK terminal: redirect to gated path (config.yaml)
+2026-06-16T13:34:38 BLOCK terminal: redirect to gated path (/.env)
+2026-06-16T13:34:51 BLOCK terminal: redirect to gated path (config.yaml)
+2026-06-16T13:34:57 BLOCK terminal: redirect to gated path (AGENTS.md)
+2026-06-16T13:34:57 BLOCK terminal: redirect to gated path (config.yaml)
+2026-06-16T13:35:04 BLOCK terminal: redirect to gated path (AGENTS.md)
+2026-06-16T13:39:47 BLOCK terminal: redirect to gated path (AGENTS.md)
+2026-06-16T13:39:58 ARM ttl=1200 note=User greenlit all-tier retrieval indexing: reading core docs to ingest into LanceDB (no writes to th
+2026-06-16T13:53:19 DISARM manual
+2026-06-16T14:00:14 BLOCK terminal: redirect to gated path (config.yaml)
+2026-06-16T14:28:01 BLOCK terminal: redirect to gated path (patch-guard)
+2026-06-16T14:32:13 ARM ttl=1800 note=User greenlit hermes core update (11521 commits): snapshot profile + golden bypass + detached update
+2026-06-16T14:57:39 DISARM manual
+2026-06-16T15:02:16 BLOCK terminal: redirect to gated path (config.yaml)
+2026-06-16T15:02:16 BLOCK terminal: redirect to gated path (config.yaml)
+2026-06-16T15:07:40 BLOCK terminal: redirect to gated path (patch-guard)
+2026-06-16T15:33:22 BLOCK terminal: redirect to gated path (config.yaml)
+2026-06-16T15:44:54 BLOCK terminal: redirect to gated path (config.yaml)
+2026-06-16T15:47:15 BLOCK patch: patch: write_gate.py
+2026-06-16T15:47:21 ARM ttl=300 note=WS4 write-gate read-allowlist patch — greenlit by Andrew 2026-06-16, 18/18 test battery passed
+2026-06-16T15:47:57 DISARM manual
+2026-06-16T21:00:18 BLOCK terminal: redirect to gated path (/etc/)
+2026-06-16T21:22:37 ARM ttl=120 note=Andrew greenlighted sudoers write on Mac Studio /etc/sudoers.d/localadmin-nopasswd
+2026-06-16T21:22:47 DISARM manual
+2026-06-16T21:27:02 ARM ttl=120 note=Andrew greenlighted /etc/sysctl.conf write on Mac Studio for persistent iogpu.wired_limit_mb=57344
+2026-06-16T21:27:07 DISARM manual
+2026-06-16T21:41:57 ARM ttl=600 note=Andrew greenlighted: custom_providers + delegation in config.yaml, executor profile model, bulk cron
+2026-06-16T21:42:26 DISARM manual
+2026-06-16T21:49:27 ARM ttl=120 note=Andrew greenlighted gateway restart to pick up delegation/provider config changes
+2026-06-16T21:50:09 DISARM manual
+2026-06-16T21:51:40 BLOCK terminal: systemctl --user start
+2026-06-16T21:51:45 BLOCK terminal: systemctl --user start
+2026-06-16T21:51:47 ARM ttl=120 note=kill stuck gateway + start fresh
+2026-06-16T21:52:11 ARM ttl=120 note=Andrew greenlighted gateway restart to activate Studio delegation routing
+2026-06-16T21:56:20 DISARM manual
+2026-06-16T21:57:16 ARM ttl=120 note=Updating custom_providers + delegation model name to qwen2.5-128k with context_length override
+2026-06-16T21:57:29 DISARM manual
+2026-06-16T21:57:29 ARM ttl=60 note=update executor profile model to qwen2.5-128k
+2026-06-16T21:57:33 DISARM manual
+2026-06-16T21:57:43 ARM ttl=120 note=gateway restart to pick up qwen2.5-128k model name
+2026-06-16T23:25:00 ARM ttl=300 note=Andrew greenlighted: auxiliary vision+compression to Studio, Whisper large-v3 upgrade
+2026-06-16T23:26:57 DISARM manual
+2026-06-16T23:28:59 ARM ttl=120 note=gateway restart to activate auxiliary Studio routing + Whisper large-v3
+2026-06-16T23:29:30 DISARM manual
+2026-06-16T23:30:03 BLOCK terminal: systemctl --user start
+2026-06-16T23:30:19 BLOCK terminal: kill -9
+2026-06-16T23:33:12 BLOCK terminal: reboot
+2026-06-16T23:41:10 ARM ttl=120 note=add deepseek fallback_providers for delegation resilience
+2026-06-16T23:41:22 DISARM manual
+2026-06-16T23:42:49 ARM ttl=60 note=switch auxiliary vision to qwen2.5vl:7b
+2026-06-16T23:42:56 DISARM manual
+2026-06-16T23:43:01 ARM ttl=60 note=gateway restart: activate fallback_providers + qwen2.5vl vision
+2026-06-16T23:43:08 DISARM manual
+2026-06-17T11:16:47 BLOCK terminal: redirect to gated path (config.yaml)
+2026-06-17T11:27:25 BLOCK terminal: redirect to gated path (config.yaml)
+2026-06-17T11:27:34 ARM ttl=900 note=Option A greenlit by Andrew: repoint 9 bulk cron jobs + aux roles (compression/web_extract/curator) 
+2026-06-17T11:42:11 DISARM manual
+2026-06-17T11:44:13 ARM ttl=900 note=Andrew: fix delegation repoint to qwen2.5-32b-64k + harden studio watchdog with latency probe + addr
+2026-06-17T11:49:22 DISARM manual
+2026-06-17T11:50:19 BLOCK terminal: ssh localadmin@100.93.2.43 "~/OllamaApp/Ollama.app/Contents/Resources/ollama rm 
+2026-06-17T11:50:23 ARM ttl=300 note=Andrew: remove qwen2.5-128k (72B) from Studio disk to free 47GB. No config changes needed — nothing 
+2026-06-17T11:50:29 DISARM manual
+2026-06-17T11:50:51 BLOCK terminal: ssh localadmin@100.93.2.43 "~/OllamaApp/Ollama.app/Contents/Resources/ollama rm 
+2026-06-17T11:50:56 ARM ttl=120 note=Andrew: remove qwen2.5:32b base model from Studio.
+2026-06-17T11:51:02 DISARM manual
+2026-06-17T19:00:42 BLOCK terminal: docker stop
+2026-06-17T19:00:48 ARM ttl=3600 note=Andrew greenlighted proceed with tiers 1-3 hardening: camofox rebind, ufw, Studio firewall, Hermes u
+2026-06-17T19:24:23 ARM ttl=600 note=Andrew greenlighted: restore EnvironmentFile to both gateway units post-update (PITFALL 7 fix)
+2026-06-17T19:44:25 BLOCK terminal: scp
+2026-06-17T19:44:29 BLOCK terminal: scp
+2026-06-17T19:44:32 BLOCK terminal: scp
+2026-06-17T19:44:36 ARM ttl=300 note=bench script to Studio tmp
+2026-06-17T19:51:07 BLOCK patch: patch: SKILL.md
+2026-06-17T19:54:33 ARM ttl=1200 note=KB quality fix: rewrite benchmark to substring-based ground truth + patch eval_benchmark for re-chun
+2026-06-17T20:18:51 BLOCK terminal: redirect to gated path (config.yaml)
+2026-06-17T20:19:07 BLOCK terminal: redirect to gated path (config.yaml)
+2026-06-17T20:39:34 BLOCK terminal: redirect to gated path (/.env)
+2026-06-17T20:40:01 BLOCK write_file: write_file: hermes-webui.service
+2026-06-17T20:40:06 ARM ttl=600 note=user greenlighted full hermes-webui install including systemd unit
+2026-06-17T21:27:28 BLOCK terminal: systemctl restart
+2026-06-17T21:27:31 BLOCK terminal: systemctl restart
+2026-06-17T21:27:34 ARM ttl=120 note=user approved systemctl restart hermes-webui to bust CSS cache
+2026-06-17T21:33:06 BLOCK terminal: systemctl restart
+2026-06-17T21:34:22 ARM ttl=600 note=restart hermes-webui to pick up new version token g804e050d
+2026-06-17T21:35:39 ARM ttl=600 note=restart hermes-webui to pick up new cache-bust token after kanban style commit
+2026-06-17T21:37:33 ARM ttl=600 note=restart hermes-webui to pick up new cache-bust token g804e050d
+2026-06-17T21:38:14 ARM ttl=600 note=user greenlighted systemctl restart hermes-webui to pick up new version token
+2026-06-17T21:41:22 ARM ttl=600 note=user greenlighted systemctl restart hermes-webui to pick up new cache-bust token
+2026-06-17T21:52:54 BLOCK terminal: redirect to gated path (config.yaml)
+2026-06-17T21:52:58 ARM ttl=600 note=user instructed: add webui platform_disabled list matching telegram to config.yaml
+2026-06-17T22:09:52 BLOCK terminal: apt-get install
+2026-06-17T22:10:02 ARM ttl=600 note=user greenlighted: install chromium-browser for WebUI visual verification
+2026-06-17T22:24:53 BLOCK terminal: redirect to gated path (AGENTS.md)
+2026-06-17T22:37:31 ARM ttl=900 note=user greenlighted: Studio model rebuilds (32b→32k ctx, vision→8k ctx) + config.yaml delegation.model
+2026-06-17T23:06:48 BLOCK terminal: redirect to gated path (config.yaml)
+2026-06-17T23:06:56 ARM ttl=1200 note=user greenlit P4 push: Studio plist NUM_PARALLEL 2to4 + MAX_LOADED 2to1 + kill-respawn; delete old m
+2026-06-17T23:22:23 ARM ttl=1200 note=benchmark A/B: plist NUM_PARALLEL 4->3 bench, 3->2 bench, then restore to 4; bootout+bootstrap each 
+2026-06-17T23:52:43 ARM ttl=1800 note=user greenlit aux moves web_extract+compression to sonnet-anthropic in main settings + gateway resta
+2026-06-18T00:05:56 ARM ttl=1200 note=user greenlit switch delegation.model to qwen2.5-coder-14b-32k on Studio + declare in custom_provide
+2026-06-18T00:27:39 ARM ttl=900 note=doc truth-up greenlit by user: strip warning preamble from operating-principles + hard-rules files; 
+2026-06-18T00:36:48 ARM ttl=600 note=ROOT CAUSE FOUND: hermes-webui (PID 1353309) started 21:53, before the 00:29 config edit to delegati
+2026-06-18T01:09:00 ARM ttl=600 note=bump custom_providers mac-studio context_length declarations: 32b-32k 32768→65536, coder-14b-32k 327
+2026-06-18T01:11:32 ARM ttl=900 note=rebuild qwen2.5-32b-32k at num_ctx 65536 on Studio as qwen2.5-32b-64k; update delegation.model + cus
+2026-06-18T01:17:04 ARM ttl=300 note=restart hermes-webui to reload CLI_CONFIG with delegation.model=qwen2.5-32b-64k
+2026-06-18T01:21:20 ARM ttl=900 note=rebuild Studio 32B at 65536 context (num_ctx 65536 Modelfile), update delegation.model + custom_prov
+2026-06-18T01:26:05 ARM ttl=300 note=restart hermes-webui to pick up delegation.model=qwen2.5-32b-65k config change
+2026-06-18T01:28:43 ARM ttl=900 note=rebuild qwen2.5-32b at 65536 context on Studio; update delegation.model + custom_providers declarati
+2026-06-18T01:44:31 BLOCK terminal: systemctl --user restart
+2026-06-18T01:44:36 BLOCK terminal: redirect to gated path (config.yaml)
+2026-06-18T01:44:40 ARM ttl=600 note=raise child_timeout 600->900 + gateway restart
+2026-06-18T02:38:18 ARM ttl=1200 note=P=1 caching experiment: Studio plist NUM_PARALLEL 4->1 + bootout+bootstrap; fire 3 sequential delega
+2026-06-18T02:53:10 ARM ttl=600 note=patch ollama-inference-node-ops skill: add prefix-cache finding (P=1 reuse, cache floor, stable/cont
+2026-06-18T03:11:47 ARM ttl=1200 note=Option A: repoint curator qwen2.5-32b-32k->qwen2.5-32b-64k + remove 3 orphan custom_provider declara
+2026-06-18T03:31:51 BLOCK terminal: systemctl --user restart
+2026-06-18T03:31:55 ARM ttl=300 note=gateway restart to test clean-state delegation (diagnostic)
+2026-06-18T03:36:58 BLOCK terminal: systemctl --user restart
+2026-06-18T03:37:03 ARM ttl=300 note=gateway restart to load coder-14b delegation model (final write confirmed on disk)
+2026-06-18T03:43:44 BLOCK terminal: scp
+2026-06-18T03:43:50 ARM ttl=900 note=rebuild qwen2.5-coder-14b-32k on Studio from freshly pulled base; update delegation model to point a
+2026-06-18T04:00:19 BLOCK terminal: redirect to gated path (config.yaml)
+2026-06-18T04:00:26 ARM ttl=300 note=user greenlighted: swap delegation.model from qwen2.5-coder-14b-32k to qwen2.5-32b-64k + gateway res
+2026-06-18T04:12:36 BLOCK terminal: systemctl --user restart
+2026-06-18T04:12:42 ARM ttl=180 note=user greenlighted delegation fix: gateway restart to apply delegation.api_key=ollama config change
+2026-06-18T04:21:09 BLOCK terminal: systemctl restart
+2026-06-18T04:21:19 ARM ttl=600 note=user greenlit Phase 1 WebUI cutover + mission-control default (option A): restart hermes-webui to lo
+2026-06-18T04:25:59 ARM ttl=300 note=greenlit: swap delegation.model from qwen2.5-coder-14b-32k to qwen2.5-32b-64k per user approval
+2026-06-18T04:27:44 DISARM manual
+2026-06-18T04:27:59 ARM ttl=120 note=Andrew greenlighted Phase 1 cutover: restart hermes-webui to regenerate cache token
+2026-06-18T04:28:39 ARM ttl=300 note=Andrew greenlighted: swap delegation.model coder-14b → 32b-64k + gateway restart
+2026-06-18T04:30:25 ARM ttl=60 note=user greenlighted: systemctl restart hermes-webui for Phase 1 cutover
+2026-06-18T04:31:02 ARM ttl=120 note=greenlit: swap delegation.model coder→32b-64k
+2026-06-18T04:32:57 ARM ttl=600 note=Andrew greenlighted: full Phase 1 cutover + mission-control as backend default skin (A)
+2026-06-18T04:34:41 ARM ttl=300 note=user greenlighted: delegation.model coder-14b → 32b-64k
+2026-06-18T04:36:27 ARM ttl=120 note=user greenlighted Phase 1 cutover: restart hermes-webui to regenerate cache token and activate missi
+2026-06-18T04:36:55 DISARM manual
+2026-06-18T04:37:10 BLOCK terminal: systemctl restart
+2026-06-18T04:37:14 ARM ttl=120 note=user greenlighted restart: Phase 1 cutover, regenerate cache token for mission-control skin
+2026-06-18T04:40:38 BLOCK terminal: systemctl restart
+2026-06-18T04:40:41 ARM ttl=300 note=user greenlighted full Phase 1 cutover: restart hermes-webui to apply mission-control skin as defaul
+2026-06-18T04:43:53 ARM ttl=120 note=cutover: rsync staging static + restart hermes-webui — Andrew greenlighted
+2026-06-18T04:46:00 BLOCK terminal: systemctl restart
+2026-06-18T04:46:03 ARM ttl=300 note=user explicitly greenlighted Phase 1 cutover: restart hermes-webui
+2026-06-18T05:01:40 BLOCK terminal: systemctl restart
+2026-06-18T05:01:46 ARM ttl=300 note=Phase 2 style.css cutover — append-only CSS, backed up, braces verified. Restart regenerates ?v= cac
+2026-06-18T05:07:10 BLOCK terminal: systemctl restart
+2026-06-18T05:07:14 ARM ttl=120 note=restart hermes-webui to regenerate cache-bust token so browser sees new CSS
+2026-06-18T07:20:35 BLOCK terminal: systemctl --user restart
+2026-06-18T07:20:39 ARM ttl=600 note=Andrew greenlit Phase 3 cutover including hermes-webui restart
+2026-06-18T07:30:46 BLOCK patch: patch: MEMORY.md
+2026-06-18T07:35:41 BLOCK terminal: systemctl --user restart
+2026-06-18T07:36:06 ARM ttl=600 note=user approved restart hermes-webui for login page redesign
+2026-06-18T07:36:46 ARM ttl=600 note=user approved systemctl restart hermes-webui for login page redesign
+2026-06-18T07:37:28 ARM ttl=600 note=user greenlighted systemctl restart hermes-webui for login page redesign
+2026-06-18T07:37:54 ARM ttl=600 note=user approved hermes-webui restart for login page redesign
+2026-06-18T07:42:38 ARM ttl=300 note=user approved restart — /bust route + login redesign
+2026-06-18T07:43:03 ARM ttl=120 note=system restart hermes-webui for /bust route
+2026-06-18T07:44:45 ARM ttl=300 note=user approved restart — cache-bust route for WebUI SW cache clearing
+2026-06-18T07:46:27 ARM ttl=120 note=restart to load cache-bust route — approved
+2026-06-18T07:49:09 BLOCK terminal: redirect to gated path (/etc/)
+2026-06-18T07:52:37 BLOCK terminal: redirect to gated path (AGENTS.md)
+2026-06-18T07:53:10 BLOCK terminal: redirect to gated path (AGENTS.md)
+2026-06-18T07:58:44 BLOCK terminal: systemctl --user restart
+2026-06-18T07:59:06 BLOCK terminal: systemctl --user restart
+2026-06-18T07:59:09 ARM ttl=120 note=restart hermes-kb-daemon — socket file deleted, daemon orphaned, cold-load fallback only
+2026-06-18T08:03:51 ARM ttl=300 note=user approved restart — overview panel + memory galaxy fix + default skin
+2026-06-18T08:11:06 BLOCK terminal: systemctl restart
+2026-06-18T08:11:09 BLOCK terminal: systemctl restart
+2026-06-18T08:11:17 ARM ttl=600 note=webui restart approved
+2026-06-18T08:20:40 ARM ttl=300 note=restart hermes-webui to load boot.js + ui.js session-restore patches
+2026-06-18T08:25:23 ARM ttl=300 note=restart hermes-webui to load AGENTS.md context-cwd patch
+2026-06-18T08:32:53 BLOCK terminal: redirect to gated path (config.yaml)
+2026-06-18T08:32:57 ARM ttl=600 note=User greenlighted: swap delegation.model from qwen2.5-coder-14b-32k to qwen2.5-32b-64k in config.yam
+2026-06-18T08:37:01 DISARM manual
+2026-06-18T08:38:57 BLOCK terminal: redirect to gated path (/etc/)
+2026-06-18T08:41:16 ARM ttl=600 note=User greenlighted: delete coder model orphans on Studio + run benchmark
+2026-06-18T08:41:50 DISARM manual
+2026-06-18T08:59:25 ARM ttl=300 note=user greenlighted adding kanban to toolsets in config.yaml
+2026-06-18T09:12:31 BLOCK write_file: write_file: kanban_checkpoint.py
+2026-06-18T09:12:37 ARM ttl=600 note=user greenlighted kanban checkpoint - all multi-part tasks
+2026-06-18T09:14:53 ARM ttl=300 note=restart gateway + webui for kanban-checkpoint
+2026-06-18T09:21:18 BLOCK terminal: systemctl restart
+2026-06-18T09:21:26 ARM ttl=600 note=User greenlit 'proceed with the cutover' — restart hermes-webui to load 4 redesigned static files (g
+2026-06-18T09:35:20 BLOCK terminal: systemctl restart
+2026-06-18T09:35:25 ARM ttl=600 note=User said 'Yes' to both CSS + HTML fixes + restart to publish them (post-cutover bug fixes: galaxy f
+2026-06-18T10:17:13 BLOCK terminal: apt-get install
+2026-06-18T10:17:17 ARM ttl=600 note=User provided Cloudflare tunnel token and said 'Restart done' — greenlight to install cloudflared an
+2026-06-18T11:08:14 ARM ttl=1200 note=User greenlighted: fix executor phantom model + build 5 swarm profiles (create, model-set, key-scrub
+2026-06-18T11:10:59 DISARM manual
+2026-06-18T11:21:52 ARM ttl=300 note=User greenlighted: swarm-verifier model→claude-opus-4-8; swarm-synthesizer model→claude-sonnet-4-6 p
+2026-06-18T11:22:08 DISARM manual
+2026-06-18T11:23:29 ARM ttl=600 note=User said 'Option 2 — cutover', meaning replace static/index.html + add static/assets/ from the Reac
+2026-06-18T11:48:29 ARM ttl=300 note=User greenlit cutover option 2: replace static/ with React dist/ build + restart hermes-webui. Backu
+2026-06-18T11:58:08 BLOCK terminal: systemctl restart
+2026-06-18T11:58:17 ARM ttl=600 note=User said 'proceed with the proposed fix for 5' — fix 5 was: restore index.html.bak + restart hermes
+2026-06-18T12:38:33 ARM ttl=300 note=deploying hermes-react dist build to hermes-webui static/ — user-approved wiring task, no service re
+2026-06-18T13:06:50 ARM ttl=300 note=User greenlighted: add .html and .7z to SUPPORTED_DOCUMENT_TYPES in gateway/platforms/base.py
+2026-06-18T13:08:38 ARM ttl=120 note=User greenlighted: restart hermes-gateway to reload base.py with .html and .7z support
+2026-06-18T13:11:15 BLOCK terminal: systemctl --user start
+2026-06-18T13:11:19 BLOCK terminal: systemctl --user start
+2026-06-18T13:11:23 ARM ttl=120 note=same restart approval — SIGKILL stuck gateway then start
+2026-06-18T13:11:45 ARM ttl=120 note=User greenlighted: restart hermes-gateway to pick up .html/.7z SUPPORTED_DOCUMENT_TYPES change
+2026-06-18T13:20:01 ARM ttl=120 note=deploying fresh hermes-react build to hermes-webui static/ — greenlit fresh start
+2026-06-18T13:23:24 ARM ttl=120 note=User said 'scrap it' — restoring vanilla hermes-webui static/ from backup and restarting
+2026-06-18T13:24:49 ARM ttl=300 note=User confirmed: scrap hermes-webui entirely — stop/disable service, remove service file, delete proj
+2026-06-18T13:29:45 ARM ttl=600 note=fresh hermes-webui install: systemd service + wired react frontend
+2026-06-18T13:39:54 BLOCK terminal: redirect to gated path (/.env)
+2026-06-18T13:39:54 ARM ttl=300 note=new hermes-webui-new service — fresh backend for react frontend
+2026-06-18T13:53:46 BLOCK terminal: redirect to gated path (/etc/)
+2026-06-18T13:53:49 ARM ttl=600 note=user greenlighted cloudflared token update and service restart
+2026-06-18T14:01:14 ARM ttl=300 note=restart cloudflared with new tunnel token, DNS record cleared
+2026-06-18T14:14:20 BLOCK terminal: redirect to gated path (/etc/)
+2026-06-18T14:16:47 BLOCK terminal: systemctl restart
+2026-06-18T14:16:54 ARM ttl=600 note=Andrew greenlighted token swap and service reload for cloudflared
+2026-06-18T14:37:31 ARM ttl=300 note=Andrew sent new tunnel token for hil-1 separation — swap token and reload cloudflared on hil-1
+2026-06-18T14:40:32 ARM ttl=300 note=swap mac mini to 6fe4490d token and restore hil-1 to dd096028 backup
+2026-06-18T14:43:38 ARM ttl=600 note=Andrew: just do this yourself — fix hil-1 Mealio tunnel via CF API token, write fresh connector toke
+2026-06-18T14:58:52 ARM ttl=300 note=Andrew: serve standalone HTML as hermes.andrewskingdom.com root — replace dist/index.html
+2026-06-18T15:25:16 BLOCK terminal: systemctl restart
+2026-06-18T15:25:28 ARM ttl=300 note=deploy wired hermes-react build to hermes-webui-new dist and reload service
+2026-06-18T15:33:25 ARM ttl=300 note=restore standalone HTML as served index — stop replacing it with hermes-react build
+2026-06-18T15:44:48 BLOCK terminal: redirect to gated path (/.env)
+2026-06-18T16:11:38 BLOCK terminal: systemctl restart
+2026-06-18T16:11:43 ARM ttl=120 note=Andrew said proceed for full deploy: backup done, dist+server.py copied, now restart hermes-webui
+2026-06-18T16:13:05 ARM ttl=60 note=schema fix: remove updated_at from kanban query, restart hermes-webui
+2026-06-18T16:17:01 BLOCK terminal: redirect to gated path (/.env)
+2026-06-18T16:17:27 BLOCK terminal: redirect to gated path (/.env)
+2026-06-18T16:28:19 BLOCK terminal: systemctl restart
+2026-06-18T16:28:24 BLOCK terminal: systemctl restart
+2026-06-18T16:28:28 ARM ttl=120 note=serve standalone.html directly — restart hermes-webui
+2026-06-18T16:44:26 ARM ttl=60 note=restart hermes-webui with real-data injection server.py
+2026-06-18T16:46:30 BLOCK terminal: systemctl restart
+2026-06-18T16:46:34 ARM ttl=90 note=restart hermes-webui JSON injection fix
+2026-06-18T16:49:58 ARM ttl=90 note=restart hermes-webui final patch
+2026-06-18T16:51:23 ARM ttl=90 note=restart hermes-webui slash-escape fix
+2026-06-18T16:55:19 ARM ttl=90 note=restart hermes-webui duplicate-end-marker fix
+2026-06-18T17:05:40 ARM ttl=90 note=restart hermes-webui real skills in Skills tab
+2026-06-18T17:21:34 BLOCK terminal: systemctl restart
+2026-06-18T17:21:37 ARM ttl=600 note=user said yes to restart hermes-webui for v4 standalone update
+2026-06-18T17:35:05 BLOCK terminal: systemctl restart
+2026-06-18T17:35:08 BLOCK terminal: systemctl restart
+2026-06-18T17:35:11 ARM ttl=300 note=restart hermes-webui to deploy expanded memory wiring
+2026-06-18T17:39:47 ARM ttl=300 note=restart hermes-webui for galaxy wiring
+2026-06-18T17:47:07 BLOCK terminal: systemctl restart
+2026-06-18T17:47:10 ARM ttl=300 note=restart hermes-webui: full galaxy + live polling
+2026-06-18T17:51:46 ARM ttl=300 note=restart hermes-webui: 7-tier galaxy with agents + spread layout
+2026-06-18T17:53:19 ARM ttl=120 note=restart hermes-webui: galaxy zoom-out limit
+2026-06-18T17:59:00 BLOCK terminal: systemctl restart
+2026-06-18T17:59:03 ARM ttl=120 note=restart hermes-webui: sphere morph + importance sizing
+2026-06-18T18:16:15 BLOCK terminal: systemctl restart
+2026-06-18T18:16:18 ARM ttl=120 note=restart hermes-webui: sphere galaxy renderer
+2026-06-18T18:18:42 BLOCK terminal: systemctl restart
+2026-06-18T18:18:45 ARM ttl=120 note=restart hermes-webui: fix galaxy proj redeclaration
+2026-06-18T18:25:58 BLOCK terminal: systemctl restart
+2026-06-18T18:26:02 ARM ttl=120 note=restart hermes-webui: prominent tier-colored galaxy lines
+2026-06-18T18:30:34 BLOCK terminal: systemctl restart
+2026-06-18T18:31:05 ARM ttl=600 note=user greenlighted restart hermes-webui for line color patch
+2026-06-18T18:43:06 BLOCK terminal: systemctl restart
+2026-06-18T18:43:18 BLOCK terminal: systemctl restart
+2026-06-18T18:43:23 ARM ttl=600 note=user greenlighted restart for marble + gradient color patch
+2026-06-18T18:45:29 ARM ttl=300 note=glow zoom fix
+2026-06-18T18:46:28 ARM ttl=300 note=remove marble look
+2026-06-18T18:48:37 ARM ttl=300 note=node shrink on zoom-out
+2026-06-18T18:50:27 ARM ttl=300 note=morph window + shrink tuning
+2026-06-18T18:57:17 BLOCK terminal: systemctl restart
+2026-06-18T18:58:04 BLOCK terminal: systemctl restart
+2026-06-18T18:58:07 ARM ttl=300 note=synapse flicker + dot shrink on zoom-out
+2026-06-18T18:59:29 ARM ttl=300 note=morph window fix
+2026-06-18T19:00:42 ARM ttl=300 note=center galaxy
+2026-06-18T19:04:19 ARM ttl=300 note=center galaxy yaw/pitch
+2026-06-18T20:00:50 BLOCK terminal: systemctl restart
+2026-06-18T20:01:46 BLOCK terminal: systemctl restart
+2026-06-18T20:01:49 ARM ttl=300 note=shift cx left to center cluster
+2026-06-18T20:06:59 BLOCK terminal: systemctl restart
+2026-06-18T20:07:30 BLOCK terminal: systemctl restart
+2026-06-18T20:07:33 ARM ttl=300 note=node click detail panel with real body
+2026-06-18T20:13:08 BLOCK terminal: systemctl restart
+2026-06-18T20:13:12 BLOCK terminal: systemctl restart
+2026-06-18T20:13:16 ARM ttl=300 note=fix click panel + synapse fire + dimmer lines
+2026-06-18T21:50:08 BLOCK terminal: systemctl restart
+2026-06-18T22:09:43 BLOCK terminal: systemctl restart
+2026-06-18T22:09:47 BLOCK terminal: systemctl restart
+2026-06-18T22:09:54 BLOCK terminal: systemctl restart
+2026-06-18T22:40:08 BLOCK patch: patch: kanban_checkpoint.py
+2026-06-18T23:00:24 BLOCK terminal: shutdown
+2026-06-18T23:00:24 BLOCK terminal: shutdown
+2026-06-18T23:00:30 BLOCK terminal: shutdown
+2026-06-18T23:07:05 BLOCK patch: patch: telegram.py
+2026-06-18T23:07:18 ARM ttl=300 note=user greenlighted: fix drop_pending_updates in telegram.py reconnect paths
+2026-06-18T23:07:45 ARM ttl=120 note=restart hermes gateway to pick up telegram.py drop_pending_updates fix
+2026-06-18T23:37:08 BLOCK patch: patch: run.py
+2026-06-18T23:49:27 BLOCK terminal: redirect to gated path (AGENTS.md)
+2026-06-18T23:49:38 ARM ttl=600 note=user greenlighted: update memory-discipline skill, AGENTS.md memory hygiene + write gate, memory_che
+2026-06-18T23:55:48 ARM ttl=120 note=restart gateway to load updated memory_checkpoint.py
+2026-06-19T00:18:59 BLOCK terminal: redirect to gated path (config.yaml)
+2026-06-19T00:19:03 BLOCK terminal: redirect to gated path (config.yaml)
+2026-06-19T00:19:06 BLOCK terminal: redirect to gated path (/.env)
+2026-06-19T00:21:39 BLOCK terminal: redirect to gated path (/.env)
+2026-06-19T00:24:00 BLOCK patch: patch: hermes-gateway.service
+2026-06-19T00:24:04 ARM ttl=600 note=add EnvironmentFile to hermes-gateway.service per user greenlight
+2026-06-19T00:31:58 ARM ttl=300 note=switch delegation to anthropic claude-sonnet-4-6 per user greenlight
+2026-06-19T00:32:35 ARM ttl=300 note=systemctl daemon-reload + restart hermes-gateway, user said restart now
+2026-06-19T01:24:11 BLOCK write_file: write_file: delegation_nudge.py
+2026-06-19T01:24:16 ARM ttl=1800 note=Phase A: write delegation_nudge.py, wire sitecustomize, patch AGENTS.md, patch skills, patch config.
+2026-06-19T01:36:24 ARM ttl=600 note=Phase A: delegation_nudge.py, AGENTS.md, kanban-swarm-dispatch skill patch, config.yaml max_spawn_de
+2026-06-19T01:42:33 ARM ttl=600 note=write launchd plist for llama-server on Mac Studio
+2026-06-19T01:46:20 ARM ttl=300 note=wire mac-studio-llama provider and aux roles in config.yaml
+2026-06-19T01:46:35 ARM ttl=300 note=gateway restart for llama-server config
+2026-06-19T01:57:22 ARM ttl=300 note=point swarm-worker-a/b/c main model at mac-studio-llama qwen2.5-32b
+2026-06-19T01:59:32 ARM ttl=180 note=raise swarm-worker-a/b/c max_spawn_depth 1->2
+2026-06-19T02:01:48 ARM ttl=300 note=web_extract to Studio + executor profile to llama-server
+2026-06-19T02:02:07 ARM ttl=180 note=gateway restart for web_extract aux role change
+2026-06-19T02:04:10 ARM ttl=300 note=web_extract to Studio, executor to llama-server, gateway restart
+2026-06-19T02:08:48 ARM ttl=300 note=update llama-server plist P=4 to P=8 on Studio
+2026-06-19T02:17:08 ARM ttl=300 note=update llama-server plist P=8 to P=12 for benchmark
+2026-06-19T02:30:06 ARM ttl=300 note=delete pre-update-2026-06 and pre-update-2026-06-17 profile dirs
+2026-06-19T04:03:24 BLOCK terminal: redirect to gated path (config.yaml)
+2026-06-19T04:03:30 ARM ttl=600 note=Ship Honcho config fix: Change A (honcho.json first-turn + cadence) + Change B (delete dead config.y
+2026-06-19T04:15:17 ARM ttl=300 note=Worker Honcho config: set recallMode=tools on all 16 swarm-worker host blocks in honcho.json. Keep s
+2026-06-19T04:20:03 ARM ttl=300 note=MCP assignments: (1) global zapier token → ha-bot canonical token, (2) remove zapier from verifier p
+2026-06-19T04:22:58 ARM ttl=300 note=Linear MCP setup: update LINEAR_API_KEY in .env, wire community MCP server that accepts API key auth
+2026-06-19T04:24:07 ARM ttl=120 note=Restart hermes-gateway to load new linear MCP server config.
+2026-06-19T04:29:39 ARM ttl=120 note=Add context7 MCP to global mcp_servers in config.yaml.
+2026-06-19T04:31:14 ARM ttl=120 note=Add CONTEXT7_API_KEY to .env and wire into context7 MCP env block in config.yaml.
+2026-06-19T05:08:52 BLOCK terminal: systemctl restart
+2026-06-19T05:17:38 BLOCK terminal: redirect to gated path (/etc/)
+2026-06-19T05:17:40 BLOCK terminal: redirect to gated path (/etc/)
+2026-06-19T05:22:12 BLOCK terminal: redirect to gated path (/.env)
+2026-06-19T05:22:24 BLOCK terminal: redirect to gated path (AGENTS.md)
+2026-06-19T06:37:28 BLOCK write_file: write_file: SKILL.md
+2026-06-19T06:37:28 BLOCK write_file: write_file: template_card.py
+2026-06-19T06:39:14 BLOCK write_file: write_file: SKILL.md
+2026-06-19T06:39:14 BLOCK write_file: write_file: cron_drift_watchdog.py
+2026-06-19T07:32:07 BLOCK write_file: write_file: MEMORY.md.bak-dedup-$(date +%s)
+2026-06-19T07:32:07 BLOCK patch: patch: MEMORY.md
+2026-06-19T07:32:07 BLOCK write_file: write_file: MEMORY.md.bak-dedup-$(date +%s)
+2026-06-19T07:32:07 BLOCK patch: patch: MEMORY.md
+2026-06-19T07:32:07 BLOCK write_file: write_file: MEMORY.md.bak-dedup-$(date +%s)
+2026-06-19T07:32:07 BLOCK patch: patch: MEMORY.md
+2026-06-19T07:32:07 BLOCK write_file: write_file: MEMORY.md.bak-dedup-$(date +%s)
+2026-06-19T07:32:07 BLOCK patch: patch: MEMORY.md
+2026-06-19T09:04:03 BLOCK terminal: apt-get install
+2026-06-19T09:14:14 BLOCK terminal: systemctl restart
+2026-06-19T09:14:19 BLOCK terminal: systemctl restart
+2026-06-19T09:14:23 ARM ttl=600 note=restart webui service to load new code
+2026-06-19T09:20:51 ARM ttl=600 note=restart webui to fix chat session handling
+2026-06-19T09:45:21 BLOCK terminal: systemctl restart
+2026-06-19T10:23:51 ARM ttl=600 note=user approved restart hermes-webui to fix ternary-close JS syntax bug
+2026-06-19T10:59:46 ARM ttl=300 note=user approved — restart hermes-webui to deploy planning timeline chat component
+2026-06-19T11:01:19 ARM ttl=300 note=deploy planning timeline — second restart, wiring plan progress into SSE sendChat
+2026-06-19T11:09:49 BLOCK terminal: systemctl restart
+2026-06-19T11:12:42 BLOCK terminal: systemctl restart
+2026-06-19T11:12:45 ARM ttl=600 note=user said proceed to restart hermes-webui after sc-html fix
+2026-06-19T11:26:45 BLOCK terminal: redirect to gated path (/.env)
+2026-06-19T11:32:45 ARM ttl=300 note=user greenlighted SECRET_KEY stabilization in .env
+2026-06-19T12:00:09 BLOCK patch: patch: kanban_checkpoint.py
+2026-06-19T12:25:17 BLOCK patch: patch: kanban_tools.py
+2026-06-19T14:48:05 BLOCK terminal: redirect to gated path (AGENTS.md)
+2026-06-19T14:48:08 ARM ttl=600 note=Andrew greenlighted: add board leadership role to AGENTS.md, update kanban_checkpoint.py nudges to a
+2026-06-19T15:58:45 BLOCK terminal: redirect to gated path (AGENTS.md)
+2026-06-19T16:09:19 BLOCK terminal: redirect to gated path (patch-guard)
+2026-06-19T16:31:57 BLOCK terminal: redirect to gated path (config.yaml)
+2026-06-19T18:20:18 BLOCK terminal: systemctl restart
+2026-06-19T18:21:37 BLOCK terminal: systemctl restart
+2026-06-19T18:21:43 BLOCK terminal: systemctl restart
+2026-06-19T18:21:49 BLOCK terminal: systemctl restart
+2026-06-19T18:21:56 BLOCK write_file: write_file: .write_gate_grant.json
+2026-06-19T18:22:16 BLOCK terminal: systemctl restart
+2026-06-19T18:22:55 BLOCK terminal: systemctl restart
+2026-06-19T18:52:07 BLOCK terminal: redirect to gated path (config.yaml)
+2026-06-19T19:47:24 BLOCK terminal: redirect to gated path (/.env)
+2026-06-19T20:06:23 BLOCK terminal: redirect to gated path (/.env)
+2026-06-19T22:21:03 BLOCK terminal: redirect to gated path (/.env)
+2026-06-19T22:21:11 BLOCK terminal: redirect to gated path (/.env)
+2026-06-19T22:21:23 BLOCK terminal: redirect to gated path (/.env)
+2026-06-19T22:29:45 BLOCK terminal: redirect to gated path (/.env)
+2026-06-20T00:07:46 BLOCK terminal: systemctl restart
+2026-06-20T00:09:34 BLOCK terminal: docker restart
+2026-06-20T02:20:42 BLOCK terminal: redirect to gated path (patch-guard)
+2026-06-20T02:28:13 ARM ttl=1800 note=preflight golden sync + core upgrade greenlit by Andrew 2026-06-20
+2026-06-20T02:35:17 DISARM manual
+2026-06-20T03:22:24 ARM ttl=3600 note=Andrew greenlit enforcement build 2026-06-20 all phases full permissions
+2026-06-20T03:34:49 DISARM manual
+2026-06-20T07:32:53 BLOCK patch: patch: MEMORY.md
+2026-06-20T07:32:53 BLOCK patch: patch: MEMORY.md
+2026-06-20T07:32:53 BLOCK patch: patch: MEMORY.md
+2026-06-20T07:32:53 BLOCK patch: patch: MEMORY.md
+2026-06-20T09:03:57 BLOCK terminal: apt-get install
+2026-06-20T12:04:26 BLOCK terminal: redirect to gated path (config.yaml)
+2026-06-20T12:12:49 BLOCK terminal: redirect to gated path (/.env)
+2026-06-20T12:12:58 ARM ttl=300 note=Andrew provided new Honcho API key and said use this
+2026-06-20T12:18:54 BLOCK terminal: systemctl --user stop
+2026-06-20T12:26:50 ARM ttl=300 note=update honcho.json apiKey to new Honcho key ending xqrt — Andrew provided key and said use this
+2026-06-20T12:27:07 DISARM manual
+2026-06-20T12:34:14 ARM ttl=300 note=fix honcho.json workspace lowercase hermes → Hermes across all host blocks — Andrew said yes
+2026-06-20T12:37:29 ARM ttl=120 note=Andrew sent updated SOUL.md and said update it
+2026-06-20T12:38:16 DISARM manual
+2026-06-20T12:39:50 BLOCK terminal: redirect to gated path (AGENTS.md)
+2026-06-20T12:46:45 ARM ttl=180 note=Andrew sent updated AGENTS.md and said update it
+2026-06-20T12:47:49 DISARM manual
+2026-06-20T13:07:57 BLOCK terminal: redirect to gated path (config.yaml)
+2026-06-20T13:08:01 ARM ttl=600 note=User approved: add github MCP server to config.yaml and restart hermes-gateway
+2026-06-20T13:42:19 ARM ttl=1200 note=User approved: install Docker Desktop .deb on Ubuntu 24.04 + start docker-desktop service
+2026-06-20T14:06:15 ARM ttl=300 note=User approved: update config.yaml github MCP server to use docker mcp gateway
+2026-06-20T14:11:15 ARM ttl=600 note=User approved: create gnome-keyring systemd user service + hermes-gateway drop-in dependency
+2026-06-20T14:30:59 ARM ttl=300 note=User approved: write ~/.claude/settings.json with MCP tool permissions
+2026-06-20T14:37:53 BLOCK terminal: reboot
+2026-06-20T14:41:32 ARM ttl=400 note=User approved audit fixes: settings.json typo, github wrapper system engine, cleanup orphans
+2026-06-20T15:05:30 BLOCK patch: patch: SKILL.md
+2026-06-20T15:08:03 BLOCK terminal: redirect to gated path (config.yaml)
+2026-06-20T15:08:07 ARM ttl=600 note=Andrew greenlighted adding Figma MCP to Hermes config.yaml and .env
+2026-06-20T15:25:05 ARM ttl=600 note=Andrew greenlighted: add coding delegation gate to AGENTS.md + create coder profile
+2026-06-20T15:30:55 ARM ttl=900 note=Installing MCP servers from Reddit list: Tavily, Exa, Perplexity, Apify, Crawl4AI, Sentry, Supabase,
+2026-06-20T16:50:29 ARM ttl=600 note=Writing API keys to .env and claude.json, removing mongodb from both configs
+2026-06-20T16:56:18 ARM ttl=300 note=Updating Supabase access token in .env and claude.json
+2026-06-20T18:16:28 ARM ttl=300 note=Wiring Neo4j credentials to .env and claude.json
+2026-06-20T18:28:45 BLOCK terminal: pip install
+2026-06-20T18:56:28 ARM ttl=300 note=Switching neo4j MCP to uvx mcp-neo4j-cypher in both configs
+2026-06-20T20:05:36 ARM ttl=300 note=Updating CLAUDE.md with new MCP tool routing
+2026-06-20T20:55:50 BLOCK terminal: redirect to gated path (config.yaml)
+2026-06-21T13:20:00 BLOCK terminal: pip install
+2026-06-21T13:20:22 BLOCK terminal: pip install
+2026-06-21T13:20:30 ARM ttl=600 note=supabase package install + coder profile model update
+2026-06-21T13:39:48 ARM ttl=120 note=user provided Supabase service role key — add SUPABASE_URL + SUPABASE_SERVICE_KEY to .env
+2026-06-21T13:41:08 ARM ttl=120 note=fix truncated service key in .env
+2026-06-21T16:38:09 ARM ttl=300 note=user greenlighted: restart hermes-kb-daemon, unblock all dispatcher + migration cards
+2026-06-21T20:30:11 BLOCK terminal: apt-get install
+2026-06-21T20:31:07 ARM ttl=120 note=install pandoc + wkhtmltopdf for PDF generation
+2026-06-21T20:44:47 ARM ttl=120 note=stop hermes-dashboard, serve dispatcher on port 8787 instead
+2026-06-21T20:55:54 BLOCK terminal: shutdown
+2026-06-21T20:58:47 BLOCK terminal: shutdown
+2026-06-21T21:12:03 BLOCK terminal: redirect to gated path (config.yaml)
+2026-06-21T22:06:41 BLOCK terminal: systemctl --user restart
+2026-06-21T22:06:58 ARM ttl=600 note=Andrew approved restart of hermes-kb-daemon on mac mini
+2026-06-21T22:11:16 ARM ttl=600 note=Andrew approved cron prompt updates: replace LanceDB references with Supabase in jobs.json
+2026-06-21T22:24:22 BLOCK terminal: redirect to gated path (config.yaml)
+2026-06-21T22:24:31 ARM ttl=120 note=user greenlighted session-end offload hook in config.yaml — Andrew said 'Yes'
+2026-06-21T22:31:41 ARM ttl=120 note=Andrew greenlighted Telegram streaming fix — set ui.platforms.telegram.streaming: false
+2026-06-21T22:31:57 ARM ttl=120 note=restart gateway to apply telegram streaming=false
+2026-06-21T22:35:23 BLOCK terminal: redirect to gated path (config.yaml)
+2026-06-21T22:36:09 BLOCK terminal: redirect to gated path (/.env)
+2026-06-22T02:35:29 BLOCK terminal: systemctl --user restart
+2026-06-22T02:36:01 BLOCK terminal: systemctl --user restart
+2026-06-22T02:36:07 BLOCK terminal: systemctl --user restart
+2026-06-22T10:35:41 BLOCK terminal: redirect to gated path (config.yaml)
+2026-06-22T11:38:10 BLOCK terminal: redirect to gated path (/.env)
+2026-06-22T12:16:39 BLOCK terminal: systemctl start
+2026-06-22T12:43:27 BLOCK terminal: redirect to gated path (config.yaml)
+2026-06-22T13:08:27 BLOCK terminal: redirect to gated path (AGENTS.md)
+2026-06-22T14:56:46 BLOCK patch: patch: AGENTS.md
+2026-06-22T14:56:46 BLOCK patch: patch: AGENTS.md
+2026-06-22T14:56:46 BLOCK patch: patch: AGENTS.md
+2026-06-22T14:56:46 BLOCK patch: patch: AGENTS.md
+2026-06-22T16:06:14 BLOCK patch: patch: MEMORY.md
+2026-06-22T16:06:20 ARM ttl=600 note=cron memory offload — authorized automated maintenance per ha-bot profile offload procedure
+2026-06-22T16:22:04 BLOCK terminal: redirect to gated path (/.env)
+2026-06-22T16:23:52 BLOCK terminal: redirect to gated path (config.yaml)
+2026-06-22T16:49:53 BLOCK patch: patch: config.yaml
+2026-06-22T16:49:57 ARM ttl=600 note=Andrew greenlighted switching coder profile model from claude-haiku-4-5 to claude-sonnet-4-6
+2026-06-22T17:08:17 BLOCK terminal: systemctl restart
+2026-06-22T17:08:20 BLOCK terminal: systemctl restart
+2026-06-22T17:08:32 ARM ttl=120 note=Andrew approved dashboard service reload
+2026-06-22T17:16:01 ARM ttl=300 note=Andrew greenlighted rebase and force-push of feat/live-backend-wiring onto master, then open PR
+2026-06-22T17:26:15 ARM ttl=300 note=Andrew approved cloning coder profile to coder-b as a parallel worker
+2026-06-22T17:51:23 ARM ttl=120 note=rebase force-push for PR3 hermes-dispatcher
+2026-06-22T18:46:18 BLOCK terminal: redirect to gated path (config.yaml)
+2026-06-22T18:46:32 ARM ttl=120 note=git commit+push only — commit message contains 'config.yaml' as documentation of the config.yaml key
+2026-06-22T19:12:26 ARM ttl=120 note=git commit+push for auth feature, then dashboard restart via systemctl
+2026-06-22T19:12:41 ARM ttl=60 note=git commit+push only
+2026-06-22T21:43:47 ARM ttl=60 note=git commit fixed .dashboard_passwd_hash
+2026-06-22T21:56:27 ARM ttl=60 note=git commit + push dashboard changes
+2026-06-22T22:04:35 ARM ttl=60 note=git commit ring chart fix
+2026-06-22T22:11:32 ARM ttl=60 note=git commit sparkles + transparent tiles
+2026-06-22T22:16:37 ARM ttl=60 note=git commit tsparticles + opaque tiles
+2026-06-22T22:19:02 ARM ttl=60 note=git commit password hash update
+2026-06-22T22:22:56 ARM ttl=60 note=git commit aurora shader background
+2026-06-22T22:26:54 ARM ttl=60 note=git commit aurora+stars layered background
+2026-06-22T22:31:36 ARM ttl=60 note=git commit star density bias
+2026-06-22T22:34:42 ARM ttl=60 note=git revert star bias commit
+2026-06-22T22:57:54 ARM ttl=60 note=git commit liquid-glass tiles
+2026-06-22T23:03:57 ARM ttl=60 note=git commit glasstile css + tsparticles stars
+2026-06-22T23:06:28 ARM ttl=60 note=git revert tile commits
+2026-06-22T23:08:59 ARM ttl=60 note=git commit white dense stars
+2026-06-22T23:11:32 ARM ttl=60 note=git commit aurora top-right mask
+2026-06-22T23:14:06 ARM ttl=60 note=git commit aurora full screen
+2026-06-22T23:24:20 BLOCK terminal: redirect to gated path (/etc/)
+2026-06-22T23:24:29 BLOCK terminal: systemctl restart
+2026-06-23T00:08:07 BLOCK terminal: pip install
+2026-06-23T00:08:43 BLOCK terminal: pip install
+2026-06-23T00:08:47 ARM ttl=600 note=Andrew greenlighted Mac Studio deploy
+2026-06-23T01:04:41 BLOCK terminal: pip3 install
+2026-06-23T01:09:46 BLOCK patch: patch: AGENTS.md
+2026-06-23T01:09:53 ARM ttl=600 note=Andrew greenlighted all three: AGENTS.md section, patch hook, skill
+2026-06-23T01:36:17 BLOCK patch: patch: AGENTS.md
+2026-06-23T02:31:56 BLOCK terminal: systemctl restart
+2026-06-23T02:37:47 BLOCK terminal: pip install
+2026-06-23T02:38:29 BLOCK terminal: pip3 install
+2026-06-23T03:03:14 BLOCK terminal: pip install
+2026-06-23T04:10:26 BLOCK terminal: pip3 install
+2026-06-23T05:03:01 BLOCK terminal: pip install
+2026-06-23T06:02:57 BLOCK terminal: pip3 install
+2026-06-23T07:13:40 BLOCK terminal: pip3 install
+2026-06-23T07:33:25 BLOCK write_file: write_file: MEMORY.md.bak-dedup-1703294400
+2026-06-23T07:33:25 BLOCK patch: patch: MEMORY.md
+2026-06-23T08:04:26 BLOCK terminal: systemctl restart
+2026-06-23T08:04:56 BLOCK terminal: pip3 install
+2026-06-23T10:03:24 BLOCK terminal: pip3 install
+2026-06-23T11:12:18 ARM ttl=300 note=Andrew greenlighted memory offload script + cron update
+2026-06-23T12:02:36 BLOCK terminal: redirect to gated path (/etc/)
+2026-06-23T12:03:09 BLOCK terminal: pip3 install
+2026-06-23T12:04:42 BLOCK terminal: pip3 install
+2026-06-23T12:05:00 BLOCK terminal: pip3 install
+2026-06-23T15:17:30 BLOCK patch: patch: AGENTS.md
+2026-06-23T15:17:34 ARM ttl=600 note=Andrew greenlighted AGENTS.md + kanban_checkpoint.py edits for partition-before-dispatch rule
+2026-06-23T15:30:49 BLOCK terminal: redirect to gated path (config.yaml)
+2026-06-23T15:30:55 ARM ttl=600 note=Andrew requested clone coder-c and coder-d from coder-b
+2026-06-23T16:37:15 BLOCK terminal: apt install
+2026-06-23T16:37:20 BLOCK terminal: apt install
+2026-06-23T16:37:26 ARM ttl=600 note=Andrew greenlit terminal multiplexer package for coder profiles
+2026-06-23T16:58:23 ARM ttl=120 note=Andrew greenlit: restart hermes-dashboard to reload password hash
+2026-06-23T17:08:08 BLOCK terminal: systemctl restart
+2026-06-23T17:08:14 ARM ttl=300 note=Andrew greenlit hermes-dashboard service restart to reload password hash
+2026-06-23T17:14:33 ARM ttl=120 note=Andrew greenlit: edit jobs.json to inject one-shot dashboard restart cron
+2026-06-23T17:17:03 BLOCK terminal: systemctl restart
+2026-06-23T17:17:15 ARM ttl=300 note=Andrew greenlit hermes-dashboard restart via system cron
+2026-06-23T17:19:03 ARM ttl=120 note=Andrew greenlit: kill rogue uvicorn 345575 so systemd can rebind 8787
+2026-06-23T23:39:48 BLOCK terminal: redirect to gated path (config.yaml)
+2026-06-23T23:40:03 ARM ttl=600 note=add playwright-mac MCP server to config.yaml
+2026-06-23T23:50:58 ARM ttl=600 note=update playwright-mac to localhost:9378 via SSH tunnel
+2026-06-24T01:29:39 BLOCK terminal: pip install
+2026-06-24T01:29:53 BLOCK terminal: pip install
+2026-06-24T08:58:21 BLOCK terminal: pip install
+2026-06-24T08:58:32 BLOCK terminal: pip install
+2026-06-24T08:58:39 ARM ttl=600 note=user greenlighted A1b bcrypt migration into project venv
+2026-06-24T12:42:47 BLOCK terminal: redirect to gated path (/.env)
+2026-06-24T12:47:13 BLOCK terminal: systemctl restart
+2026-06-24T12:47:25 BLOCK terminal: systemctl restart
+2026-06-24T12:48:13 ARM ttl=600 note=deploy-webhook-route
+2026-06-24T12:54:47 ARM ttl=600 note=add-envfile-to-systemd-override
+2026-06-24T13:27:23 BLOCK terminal: redirect to gated path (/.env)
+2026-06-24T14:27:14 BLOCK terminal: pip install
+2026-06-24T14:27:49 BLOCK terminal: pip install
+2026-06-24T14:27:54 BLOCK terminal: pip install
+2026-06-24T14:28:40 BLOCK terminal: pip install
+2026-06-24T17:35:58 BLOCK terminal: redirect to gated path (/.env)
+2026-06-24T17:36:21 ARM ttl=600 note=set LINEAR_TELEGRAM_CHAT=8878729385 in hermes-dispatcher .env
+2026-06-24T18:35:46 BLOCK terminal: redirect to gated path (/.env)
+2026-06-24T20:02:12 BLOCK terminal: systemctl restart
+2026-06-24T20:08:21 BLOCK terminal: redirect to gated path (/.env)
+2026-06-24T20:08:27 ARM ttl=600 note=neo4j URI fix — user approved in chat
+2026-06-24T20:09:20 ARM ttl=600 note=kill uvicorn to pick up neo4j URI — user approved
+2026-06-24T20:10:11 ARM ttl=600 note=kill + restart uvicorn dispatcher — user approved
+2026-06-24T20:29:25 BLOCK terminal: pip install
+2026-06-24T20:30:25 ARM ttl=600 note=downgrade neo4j driver to test v5 — user approved
+2026-06-24T20:36:35 ARM ttl=600 note=update neo4j creds in .env and config — new instance
+2026-06-24T20:39:41 ARM ttl=600 note=update config.yaml neo4j creds
+2026-06-24T20:39:52 ARM ttl=600 note=restart uvicorn dispatcher for neo4j
+2026-06-24T20:43:31 ARM ttl=600 note=restore neo4j v6 + restart gateway
+2026-06-24T20:58:43 BLOCK terminal: redirect to gated path (/.env)
+2026-06-24T21:07:01 BLOCK terminal: kill -9
+2026-06-24T21:52:55 BLOCK terminal: redirect to gated path (config.yaml)

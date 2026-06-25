@@ -1,42 +1,35 @@
-# ── Python (FastAPI backend) ────────────────────────────────
+# Secrets
+.env
+*.env
+
+# Profiles (session data, venvs — too large)
+profiles/
+
+# Python
 __pycache__/
-*.py[cod]
-*$py.class
+*.pyc
 .venv/
 venv/
-env/
-*.egg-info/
-.pytest_cache/
-.ruff_cache/
 
-# ── Node (root-level safety net; app/ has its own) ──────────
+# Node
 node_modules/
-dist/
-dist-ssr/
 
-# ── Environment / secrets (NEVER commit) ────────────────────
-.env
-.env.*
-!.env.example
-*.pem
-*.key
-.dashboard_passwd_hash
-
-# ── Worker / task scratch artifacts ─────────────────────────
-.task_*
-PROMPT_*.md
-_verify_*.py
-*.log
-
-# ── Local databases (state lives in ~/.hermes, not the repo) ─
+# Sessions
+webui/sessions/
+state/
 *.db
-*.sqlite
-*.sqlite3
 
-# ── Editor / OS ─────────────────────────────────────────────
-.serena/
-.vscode/
-.idea/
-.DS_Store
-data/
+# Cron outputs
+cron/output/
+
+# Backups
 *.bak-*
+
+# Kanban database (large binary)
+kanban/*.db
+kanban/logs/
+
+# Audio
+*.mp3
+*.wav
+audio_cache/

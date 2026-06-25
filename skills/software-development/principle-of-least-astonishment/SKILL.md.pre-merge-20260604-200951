@@ -1,0 +1,183 @@
+---
+name: principle-of-least-astonishment
+description: Apply the Principle of Least Astonishment (POLA) to all development work. Code, interfaces, names, and behaviors must match what a competent reader/user already expects; surprise is a cost to be minimized. Use when writing, reviewing, refactoring, or designing code, APIs, CLIs, function signatures, config schemas, error handling, or naming.
+version: 1.0.0
+author: Hermes Agent
+license: MIT
+platforms: [linux, macos, windows]
+metadata:
+  hermes:
+    tags: [POLA, code-quality, api-design, naming, conventions, code-review, refactoring]
+---
+
+# Principle of Least Astonishment (POLA)
+
+**Core idea:** code, interfaces, and behaviors should match what a competent reader/user would *already expect*. If a choice would surprise someone reading the code cold, it is wrong **by default** — even if it is clever, shorter, or technically correct. Surprise is a cost. Your job is to minimize it.
+
+A reader spends attention every time reality diverges from their prediction. Clever-but-surprising code spends that attention on decoding intent instead of solving the problem. Boring, predictable code is a feature.
+
+## When to Use
+
+Trigger this skill whenever you are **writing, reviewing, refactoring, or designing**:
+- Code (functions, classes, modules)
+- APIs, CLIs, function/method signatures
+- Config schemas, environment variables, flags
+- Naming of anything — variables, functions, files, endpoints, config keys
+- Error handling and return contracts
+
+If the work touches "what will another person predict this does?", this skill applies.
+
+## The Nine Heuristics (checkable, not vibes)
+
+### 1. Names tell the truth
+- `getX()` returns X. It does **not** mutate, delete, persist, or perform I/O as a side effect.
+- `isValid()` / `hasFoo()` / `canBar()` return a boolean.
+- A variable named `count` is a number. `users` is a collection. `userId` is a single id.
+- If a name implies cheap/pure but the body is expensive/effectful, rename the thing — don't leave the lie.
+
+### 2. No hidden side effects
+- Anything that writes to disk, hits the network, mutates an argument, or changes global/static state must be **obvious from the name and signature**.
+- Prefer `saveAndReturnUser()` or split into `save()` + `getUser()` over a `getUser()` that silently writes.
+- A getter that lazily caches is a gray area — name it `getOrCreateX()` / `ensureX()` if the cache write is observable.
+
+### 3. Return contracts are predictable and consistent
+- Pick **one** failure mode per function and keep it. Do not return a value on success, `null` on one failure, and `throw` on another.
+- If the codebase uses exceptions, throw. If it uses `Result`/`Either`/error-return tuples, do that. Don't mix in the same layer.
+- Empty result ≠ error: return `[]` for "no matches", reserve exceptions/`None` for "could not compute".
+
+### 4. Match the surrounding codebase over personal preference
+- **Before writing, read 2-3 neighboring files.** Mirror their naming, error handling, structure, import style, and test patterns.
+- Local convention beats your favorite idiom every time. A consistent codebase is more predictable than a "better" but inconsistent one.
+
+### 5. Match the language/ecosystem when there's no local precedent
+- Idiomatic Python (`snake_case`, context managers, `raise`), idiomatic Go (`CamelCase`, `if err != nil`, no exceptions), idiomatic React (hooks rules, immutable props), idiomatic Rust (`Result`, `?`, ownership).
+- A reader fluent in the language predicts idiomatic code. Fight the language and you manufacture surprise.
+
+### 6. Defaults are safe and unsurprising
+- The default behavior is the **most common, least destructive** one. Dangerous behavior is opt-in and explicit.
+- `delete(path)` should not recurse by default; `delete(path, recursive=true)` opts in.
+- A dry-run-by-default tool surprises nobody; a delete-by-default tool eventually ruins someone's day.
+
+### 7. Fail loudly and early
+- Validate at the boundary where the reader **expects** the check — at the entry point, not three layers deep after silent corruption has spread.
+- Crash on programmer error (bad args, broken invariants). Don't swallow exceptions or return a fabricated default that hides the fault.
+- An error at the source is a bug report; an error three layers down is a debugging session.
+
+### 8. Conventional argument order
+- Follow platform/ecosystem convention: **source before destination** (`copy(src, dst)`), subject before modifier, required before optional.
+- Match the standard library and neighbors. `(haystack, needle)` vs `(needle, haystack)` — pick what the ecosystem already does.
+
+### 9. Don't overload meaning — one function, one job
+- No boolean/enum flag arguments that secretly switch the function into a *different mode* (`process(data, true)` that means "and also email everyone" is a trap).
+- If a flag changes *what the function fundamentally is*, split it into two named functions. Flags that tune behavior within one job are fine; flags that change the job are not.
+
+## Process
+
+### 1. Before writing — learn local conventions
+- Read neighboring files (`search_files` / `read_file`). Note: naming case, error strategy, return contracts, arg order, test layout, comment density.
+- If a linter/formatter config exists (`.eslintrc`, `ruff.toml`, `.editorconfig`, `gofmt`), it *is* the convention. Obey it.
+
+### 2. While writing — interrogate each non-obvious choice
+For every non-trivial decision ask: **"Would this surprise a competent reader?"**
+- If **no** → proceed.
+- If **yes** → either change it to the unsurprising form, **or** if the surprise is genuinely necessary and unavoidable, add a short comment explaining *why* (`// NOTE: mutates in place to avoid a 2GB copy on the hot path`). An explained surprise is a tax; an unexplained one is a bug.
+
+### 3. After writing — cold read pass
+Pretend you have never seen this code. For each function/signature, ask: **"Could I predict its full behavior from its name and signature alone?"**
+- Flag anything whose return type, side effects, failure mode, or argument order you couldn't predict cold.
+- Fix the flags or document why they're unavoidable. Then present the diff.
+
+## Astonishing vs. Unastonishing
+
+**Name that lies about side effects**
+```python
+# ASTONISHING — "get" silently writes to the DB
+def get_user(id):
+    user = db.query(id)
+    user.last_seen = now()
+    db.commit()          # surprise: a getter mutates state
+    return user
+
+# UNASTONISHING — the write is named
+def touch_and_get_user(id):
+    user = db.query(id)
+    user.last_seen = now()
+    db.commit()
+    return user
+# or split: get_user(id) (pure read) + mark_seen(id) (explicit write)
+```
+
+**Inconsistent failure mode**
+```javascript
+// ASTONISHING — three different failure behaviors
+function find(id) {
+  if (!id) throw new Error("no id");   // throws
+  const row = db.get(id);
+  if (!row) return null;               // returns null
+  if (row.deleted) return undefined;   // returns undefined (!)
+  return row;
+}
+
+// UNASTONISHING — one failure mode
+function find(id) {
+  if (!id) throw new Error("id is required");
+  const row = db.get(id);
+  return row && !row.deleted ? row : null;  // not-found is always null
+}
+```
+
+**Dangerous default**
+```python
+# ASTONISHING — wipes a tree with no opt-in
+def clear(path, recursive=True): ...   # one typo nukes a directory
+
+# UNASTONISHING — destructive behavior is opt-in
+def clear(path, recursive=False): ...  # default is the safe, shallow op
+```
+
+**Flag that switches modes**
+```python
+# ASTONISHING — `notify=True` makes a "save" also send emails
+def save_order(order, notify=False):
+    db.write(order)
+    if notify:
+        email_all_customers(order)     # a save function that spams inboxes
+
+# UNASTONISHING — one job each
+def save_order(order): db.write(order)
+def notify_customers(order): email_all_customers(order)
+```
+
+**Unconventional argument order**
+```go
+// ASTONISHING — destination first breaks the stdlib mental model
+func Copy(dst, src string) error  // wait, which one gets overwritten?
+
+// UNASTONISHING — source, then destination (matches io.Copy, cp, rsync)
+func Copy(src, dst string) error
+```
+
+## Pre-Presentation Checklist
+
+Run this against any diff **before** presenting it:
+
+- [ ] **Names:** does every name predict its return type and effects? (`get*` is pure-ish, `is*/has*` is boolean, `count` is a number)
+- [ ] **Side effects:** is every disk/network/global/arg-mutation visible in the name or signature?
+- [ ] **Return contract:** one failure mode per function, consistent with its layer? (no value/null/throw mix)
+- [ ] **Local conventions:** did I read neighbors and mirror their naming, errors, structure, arg order?
+- [ ] **Ecosystem idioms:** where there was no local precedent, is it idiomatic for the language/framework?
+- [ ] **Defaults:** is the default the safest, most common behavior? Is destructive behavior opt-in?
+- [ ] **Fail fast:** does validation happen at the boundary the reader expects, with a loud error?
+- [ ] **Arg order:** conventional (source→dest, required→optional) and matching neighbors?
+- [ ] **One job:** no flag argument that secretly switches the function into a different mode?
+- [ ] **Cold read:** could a stranger predict every function's behavior from signature + name alone?
+- [ ] **Necessary surprises:** is every unavoidable surprise explained in a short comment saying *why*?
+
+If any box is unchecked, fix it or justify it in a comment before shipping the diff.
+
+## Pitfalls
+
+- **"It's obvious to me" ≠ obvious to a cold reader.** You wrote it; you're the worst judge of its surprise factor. Do the cold-read pass anyway.
+- **Consistency beats personal taste.** A codebase that's uniformly "B-grade" is more predictable — and thus better — than one that's a patchwork of locally-optimal "A-grade" choices.
+- **Comments don't fix bad names.** If you need a comment to explain *what* a name means, rename it. Reserve comments for *why* a necessary surprise exists.
+- **Cleverness is a smell.** If you're proud of how clever a line is, a maintainer will hate it at 2am. Prefer boring.

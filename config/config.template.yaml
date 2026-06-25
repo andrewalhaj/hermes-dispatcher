@@ -1,0 +1,68 @@
+# Hermes Configuration Template
+
+This is a STRUCTURAL template showing the config sections without secrets.
+Copy to `~/.hermes/config.yaml` and fill in your values.
+
+```yaml
+# ── Model provider ────────────────────────────────────────────────────
+model:
+  provider: anthropic          # or openai, openrouter, custom:<name>
+  model: claude-sonnet-4-6     # model name for the provider
+
+# ── Memory ────────────────────────────────────────────────────────────
+memory:
+  memory_char_limit: 3000      # hot memory cap in chars
+  user_char_limit: 2250        # user profile cap
+
+# ── Delegation ────────────────────────────────────────────────────────
+delegation:
+  provider: anthropic          # subagent model provider (can differ from main)
+  model: claude-sonnet-4-6
+  max_concurrent_children: 12
+  max_spawn_depth: 2
+
+# ── API keys (secrets — fill in from .env or directly) ───────────────
+model_providers:
+  anthropic:
+    api_key: ""
+  openai:
+    api_key: ""
+  openrouter:
+    api_key: ""
+
+# ── MCP servers ───────────────────────────────────────────────────────
+mcp_servers:
+  neo4j:
+    transport: stdio
+    command: ...
+    env:
+      NEO4J_URI: neo4j+s://<instance-id>.databases.neo4j.io
+      NEO4J_USERNAME: <your-username>
+      NEO4J_PASSWORD: ""
+  github:
+    transport: stdio
+    command: ...
+    env:
+      GITHUB_PERSONAL_ACCESS_TOKEN: ""
+  # ... add other MCP servers (supabase, linear, sentry, etc.)
+
+# ── Gateway ───────────────────────────────────────────────────────────
+gateway:
+  platforms:
+    telegram:
+      token: ""
+    discord:
+      token: ""
+
+# ── Custom providers (if using custom endpoints) ──────────────────────
+custom_providers: {}
+
+# ── Hooks ─────────────────────────────────────────────────────────────
+hooks:
+  on_session_start:
+    - command: ~/.hermes/scripts/heal-skill-descriptions.sh
+      timeout: 30
+  on_session_end:
+    - command: ~/.hermes/scripts/memory-session-end-hook.sh
+      timeout: 10
+```

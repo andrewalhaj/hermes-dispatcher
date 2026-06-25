@@ -1,0 +1,11 @@
+{
+  "_comment": "Domain ownership map for domain_ownership_checkpoint.py. Substring match, case-insensitive. Extend as domains get delegated — no code change needed.",
+  "hosts": {
+    "178.156.246.115": "ha-bot",
+    "ubuntu-2gb-ash-1": "ha-bot",
+    "ash-1": "ha-bot"
+  },
+  "paths": {
+    "/root/wall-dash": "ha-bot"
+  }
+}

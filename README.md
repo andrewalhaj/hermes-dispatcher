@@ -1,199 +1,156 @@
-# Hermes Dispatcher
+# Hermes
 
-**Mission-control dashboard for orchestrating AI worker agents.**
+A self-hosted AI agent platform. Persistent memory, multi-agent task orchestration, and deep integrations with the tools and services Andrew uses daily. Runs on a 2018 Intel Mac Mini under the desk, reaches out to a Mac Studio for GPU inference and two VPS hosts for Home Assistant and Mealio.
 
-Hermes Dispatcher is a self-hosted web dashboard that gives you a live, operational view of a [Hermes](https://claude-code.nousresearch.com) agent swarm. It surfaces kanban task state, agent memory, session history, system health, logs, and skills — all in one dark-themed UI designed for a single operator running multiple AI workers in parallel.
+**Profiles:** `default` (orchestrator) · `ha-bot` (Home Assistant) · `executor` · `coder` / `coder-b` / `coder-c` / `coder-d` (swarm workers)
 
-![Dashboard](https://img.shields.io/badge/stack-React%20%2B%20Vite%20%2B%20FastAPI-blueviolet) ![Python](https://img.shields.io/badge/python-3.11-blue) ![License](https://img.shields.io/badge/license-MIT-green)
+## What it does
 
----
+### Persistent Memory
 
-## What it is
+Hermes remembers across sessions. Two-tier memory system:
 
-Hermes is an AI agent system that runs Claude-based workers on a kanban board. Workers pick up cards, execute tasks (code, research, automation), and push results back to the board. The Dispatcher is the **operator's window** into that system — a real-time dashboard served from the host machine, accessible over Tailscale or Cloudflare Tunnel.
+- **Hot memory (`MEMORY.md`, ≤3000 chars):** Facts that fire every turn — behavioral preferences, hard constraints, active pointers. Injected directly into the system prompt.
+- **Cold store (Supabase pgvector):** Everything else. Semantic retrieval via B-full auto-RAG — every message gets searched against the cold store at ≥0.80 relevance. Facts that clear the probe get trimmed from hot memory.
 
----
+Offload pipeline: `offload_probe.py` → TRIM-SAFE classification → `session-end-offload.py` stores to Supabase → trim from MEMORY.md. Session distillation (`session_distill.py`) extracts decisions and outcomes from completed conversations into searchable digests.
 
-## Features
+### Multi-Agent Task Orchestration
 
-### 🗂 Kanban Board
-Live view of the agent task board. Cards move through `todo → ready → running → blocked → done`. A **Ready for Review** virtual column surfaces `blocked` tasks flagged for human approval (the review-required gate used by coding workers before merge). Filter by assignee, status, and tenant.
+SQLite-backed Kanban board with swarm dispatch. The orchestrator (`default` profile) breaks work into tasks, assigns them to specialist profiles, and the dispatcher spawns workers. Four coder profiles round-robin heavy implementation work. Home Assistant work routes to `ha-bot`.
 
-### 💬 Chat
-Full conversation interface with the Hermes agent. Supports multi-turn sessions, streaming responses, plan blocks (structured agent reasoning rendered inline), and model/reasoning-effort selection. Sessions are filterable to the Telegram source — cron and subagent sessions don't pollute the history. Styled with the ruixen-mono-chat design language: avatar + name + timestamp rows, read-status ticks, reaction pills, and a pill composer.
+- **Kanban board:** Tasks flow `triage → todo → ready → running → done`. Blocked tasks park with a reason. Parents fan in; children auto-promote when dependencies resolve.
+- **Delegation:** `delegate_task` fans out parallel subtasks within a session. Bounded by depth and concurrency limits.
+- **Patches:** Runtime monkey-patches in `patches/` inject enforcement checkpoints (write gate, delegation nudge, domain ownership, skill review) into every session.
 
-### 📊 Mission Overview
-Top-level operational summary:
-- **Hero tile** — GlowHorizon ambient background, live KPI chips (active agents, tasks run, sessions)
-- **Stat grid** — key metrics with sparkline history
-- **Agent breakdown** — per-agent task counts and status with color coding
-- **Activity heatmap** — session volume over time with time-frame selector (Day / Week / Month)
-- **System Monitor** — live CPU, GPU, VRAM, and network for the host machine (Linux x86_64), polled every 3s with 60fps animated arc gauges and per-metric accent colors
-- **Agent Swarm canvas** — particle simulation showing live agent activity, color-coded per worker
+### Knowledge Graph (Neo4j)
 
-### 🖥 System Monitor
-Dual-machine monitoring (Linux host + remote over Tailscale SSH):
+Supabase pgvector handles semantic search; Neo4j AuraDB handles structured relationships. Webhooks mirror facts from Supabase into Neo4j, where they become graph nodes with edges like `LEARNED_IN`, `SUPERSEDES`, and `RELATED_TO`. Enables traversal queries the vector store can't answer.
 
-| Metric | Host (local) | Remote (SSH) |
-|--------|-------------|---------------|
-| CPU % | `psutil` | `psutil` (SSH) |
-| RAM | `psutil` | `psutil` (SSH) |
-| GPU % | `/proc/*/fdinfo` drm-engine-render delta | `ioreg IOAccelerator` |
-| VRAM % | `i915_gem_objects` stolen memory | `ioreg` in-use system memory |
-| Network MB/s | `psutil` | `psutil` (SSH) |
+### Integrations
 
-Machine selection persists across reloads.
+Webhook fleet connects Hermes to external services, all routed through `hermes-dispatcher`:
 
-### 🧠 Memory Editor
-View and edit Hermes memory stores directly from the dashboard: `MEMORY.md`, `USER.md`, `SOUL.md`, and `AGENTS.md`. Per-profile support — switch between default and named profiles. Changes write through to the live agent context.
+| Service | Purpose |
+|---|---|
+| **Sentry** | Error monitoring — crash reports surface as kanban cards |
+| **Linear** | Issue tracking — bidirectional sync with kanban board |
+| **GitHub** | PR review, repo management, code search |
+| **Notion** | Documentation, notes, databases |
+| **Figma** | Design file access, component inspection |
+| **Honcho** | Cross-session memory and peer profiles |
 
-### 🔍 Insights
-Token usage, session counts, and activity analytics. Skill usage tracking with a full info panel per skill. Agent-level breakdowns. Heatmap with Day / Week / Month time-frame selector.
+### Delivery
 
-### 📋 Sessions
-Browse and replay past agent sessions. Click any session to load the full message thread. Filter by source platform (Telegram, local, cron).
+Hermes talks to Andrew through three channels, all wired through the gateway:
 
-### 🛠 Skills
-Browse all installed Hermes skills. Toggle skills on/off per platform. Skills show their trigger description and category. Changes take effect on the next agent session.
-
-### 👥 Agents
-Live agent roster — which profiles are active, their task history, memory footprint (RSS MB), and color-coded status. Capitalized display names. No stale/deleted profiles.
-
-### 📁 Workspace
-⚠ **Not wired** — nav entry exists but panel component is not rendered. Intended to browse the active kanban task workspace — file tree and contents for the current worker's scratch directory.
-
-### 📝 Logs
-Tail live logs from the Hermes gateway, dashboard server, and system journal. Auto-scroll with pause-on-hover.
-
-### ⚙️ Settings
-Persist dashboard preferences: theme, accent color, agent name, workspace path, and dashboard toggles. All controls auto-save on change and survive full page reloads. Backend is the source of truth; localStorage mirrors for instant load.
-
----
-
-## Panel data sources
-
-| Panel | Data source |
-|-------|-------------|
-| Overview | `/api/overview` |
-| Chat | `/api/chat/*` |
-| Kanban | `/api/kanban` |
-| Agents | mock (`src/data/agents.ts`) + `/api/agents` live fallback |
-| Skills | `/api/skills` |
-| Insights | `/api/insights` |
-| Sessions | `/api/sessions` |
-| Memory | `/api/memory` (editor mode) + mock (`src/data/memoryGalaxy.ts`) galaxy view with live honcho refresh |
-| Logs | `/api/logs` |
-| Settings | `/api/settings` |
-| Workspace | ⚠ not wired (nav entry exists, component not rendered) |
-| Profiles | ⚠ not wired (component exists, never imported or rendered) |
-
----
-
-## Stack
-
-| Layer | Technology |
-|-------|-----------:|
-| Frontend | React 18, TypeScript, Vite, Tailwind CSS, Framer Motion |
-| Backend | FastAPI (Python 3.11), uvicorn |
-| Data | SQLite (kanban + sessions via Hermes), `psutil`, SSH probes |
-| Auth | Session cookie (`hd_session`), bcrypt password hash (rounds=12) |
-| Fonts | Space Grotesk |
-| Hosting | Self-hosted on Linux x86_64 (kernel 7.0.12-1-t2-noble), via systemd. Reachable over Tailscale (`andrew-macmini.tailb371d3.ts.net:8787`) and the public Cloudflare Tunnel (`https://hermes.andrewskingdom.com`). The CORS allowlist (see `server.py`) covers both — override with the `DASHBOARD_CORS_ORIGINS` env var. |
-
----
+- **Telegram** (primary) — text, rich markdown, media attachments
+- **Discord** — secondary channel, cron job delivery
+- **WebUI** — React dashboard with session browser, kanban view, memory inspector
 
 ## Architecture
 
 ```
-Browser (any Tailscale client)
-    │
-    └─ Linux host :8787
-           │
-           ▼
-    ┌─────────────────────┐
-    │  uvicorn :8787       │
-    │  server.py           │
-    │  ├─ /api/kanban      │
-    │  ├─ /api/system      │
-    │  ├─ /api/chat        │
-    │  ├─ /api/sessions    │
-    │  ├─ /api/memory      │
-    │  ├─ /api/skills      │
-    │  ├─ /api/insights    │
-    │  ├─ /api/agents      │
-    │  └─ /api/logs        │
-    │                      │
-    │  Reads: kanban.db    │
-    │         ~/.hermes/   │
-    │                      │
-    │  SSH probe ──────────┼──► Remote host (Tailscale)
-    └─────────────────────┘    GPU/CPU/RAM metrics
+┌─────────────────────────────────────────────────────────────┐
+│                    Mac Mini (100.113.100.81)                │
+│                    Intel i7-8700B · 15GB · Ubuntu 24.04     │
+│                                                             │
+│  ┌──────────┐  ┌──────────┐  ┌───────────┐  ┌───────────┐ │
+│  │ Gateway  │  │  Cron    │  │ Dispatcher│  │  WebUI    │ │
+│  │ FastAPI  │  │Scheduler │  │ Webhooks  │  │  React    │ │
+│  │ :8842    │  │          │  │  :8787    │  │           │ │
+│  └────┬─────┘  └────┬─────┘  └─────┬─────┘  └───────────┘ │
+│       │              │              │                        │
+│  ┌────┴──────────────┴──────────────┴────────────────────┐ │
+│  │                    Agent Runtime                       │ │
+│  │  ┌─────────┐  ┌──────────┐  ┌────────────────────┐    │ │
+│  │  │ Skills  │  │ Patches  │  │  Memory Pipeline   │    │ │
+│  │  │ 150+    │  │ Write    │  │  Hot → Probe →     │    │ │
+│  │  │ skills  │  │ Gate     │  │  Cold (Supabase)   │    │ │
+│  │  └─────────┘  └──────────┘  └────────────────────┘    │ │
+│  └───────────────────────────────────────────────────────┘ │
+│                                                             │
+│  ┌──────────────────────────────────────────────────────┐  │
+│  │  State & Storage                                     │  │
+│  │  state.db (SQLite)   ·   Kanban DB (SQLite)          │  │
+│  │  MEMORY.md + USER.md ·   references/                 │  │
+│  └──────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────┘
+         │                    │                    │
+         │ Tailscale          │ Tailscale          │ Internet
+         ▼                    ▼                    ▼
+┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐
+│   Mac Studio     │  │  HIL-1 VPS      │  │  Cloud Services  │
+│   M2 Max · 64GB  │  │  32GB Hetzner   │  │                 │
+│                  │  │                  │  │  Supabase       │
+│  Ollama :11434   │  │  Mealio :3015    │  │  Neo4j AuraDB   │
+│  qwen2.5:72b    │  │  (Next.js app)   │  │  GitHub         │
+│  qwen2.5:32b    │  │                  │  │  Linear         │
+│  qwen2.5vl:7b   │  │                  │  │  Sentry         │
+└─────────────────┘  └─────────────────┘  │  Notion         │
+         │                    │            │  Honcho         │
+         │ Tailscale          │            └─────────────────┘
+         ▼                    ▼
+┌─────────────────┐  ┌─────────────────┐
+│   ASH-1 VPS      │  │  Delivery       │
+│   2GB            │  │                 │
+│                  │  │  Telegram       │
+│  Home Assistant  │  │  Discord        │
+│  Wall Dashboard  │  │  WebUI          │
+│  ha-fusion       │  │                 │
+└─────────────────┘  └─────────────────┘
 ```
 
-The kanban board (`~/.hermes/kanban.db`) is a shared SQLite DB written by the Hermes dispatcher process and read by the dashboard. Workers run on the Linux host and SSH into remote hosts for tasks — they do not run Claude on remote machines.
+### Data Flow — A Turn in Hermes
+
+```
+User message (Telegram)
+  │
+  ▼
+Gateway receives
+  │
+  ├─► B-full: search cold store (Supabase pgvector) ≥0.80 → inject relevant facts
+  ├─► Honcho: inject peer context + session summary
+  ├─► Patches: write gate, delegation nudge, domain ownership checkpoints arm
+  │
+  ▼
+Agent runtime
+  │
+  ├─► Skills loaded (trigger-based matching)
+  ├─► Memory injected (MEMORY.md + USER.md)
+  ├─► Tools available (terminal, file, web, browser, kanban, delegation, MCP servers)
+  │
+  ▼
+Response → Gateway → Telegram
+  │
+  ▼
+Session ends
+  ├─► session-end-offload.py: probe MEMORY.md ≥85% → store TRIM-SAFE facts to Supabase
+  └─► session_distill.py (cron): extract decisions/outcomes → Supabase digests
+```
 
 ## Branches
 
-Each feature domain has its own branch cut from `master`. Work on one domain never blocks another.
-
-| Branch | Domain | Routes / files |
+| Branch | Host | What |
 |---|---|---|
-| `feat/neo4j-pipeline` | Neo4j knowledge graph mirror | `hooks.py` Neo4j layer — pgvector similarity, RELATED_TO edges, Aura integration |
-| `feat/webhook-fleet` | Inbound webhook receivers | `hooks.py` Supabase, Honcho, Figma, GitHub receivers |
-| `feat/linear-intake-pipeline` | Linear → Kanban routing | `hooks.py` Linear webhook + `notify.py` |
-| `feat/sentry-instrumentation` | Sentry error tracking | `hooks.py` Sentry webhook + `sentry.py` |
-| `feat/dashboard-kanban` | Kanban board + UI | `kanban.py` + Kanban panels |
-| `feat/dashboard-memory` | Memory editor + compaction | `memory.py` + memory UI components |
-| `feat/dashboard-chat` | Chat interface + sessions | `chat.py` + `chat/` components |
-| `feat/dashboard-system` | System monitor | `system.py` + `SystemMonitor` panels |
-| `feat/dashboard-auth` | Auth + login | `auth.py` + `Login.tsx` |
+| `main` | Mac Mini | Full Hermes — this branch |
+| `mac-studio` | Mac Studio | Ollama inference node, dashboard client |
+| `vps` | HIL-1 + ASH-1 | Remote fleet overview, topology, ownership |
 
-Create feature PRs from these branches. Merge back to `master` when stable.
+## Key Files
 
----
-
-## Running locally
-
-```bash
-# Backend
-cd /root/hermes-dispatcher
-.venv/bin/uvicorn server:app --host 0.0.0.0 --port 8787 --reload
-
-# Frontend (dev)
-cd app
-npm install
-npm run dev
-
-# Frontend (production build)
-npm run build
-# served automatically by uvicorn from app/dist/
-```
-
-Password hash is stored at `.dashboard_passwd_hash` (bcrypt, rounds=12). This file
-is git-ignored — a fresh clone has no hash and the server will refuse to start with
-a setup hint until you create it. Set via:
-```bash
-python3 -c "import bcrypt; open('.dashboard_passwd_hash','wb').write(bcrypt.hashpw(b'yourpassword', bcrypt.gensalt(rounds=12)))"
-```
-
----
-
-## Deployment
-
-Runs as a systemd service on Linux x86_64:
-
-```ini
-# /etc/systemd/system/hermes-dashboard.service.d/dispatcher-override.conf
-[Service]
-ExecStart=/root/hermes-dispatcher/.venv/bin/uvicorn server:app --host 0.0.0.0 --port 8787
-WorkingDirectory=/root/hermes-dispatcher
-Environment=HERMES_HOME=/root/.hermes
-Restart=always
-RestartSec=3
-```
-
----
-
-## License
-
-MIT
+| Path | Purpose |
+|---|---|
+| `AGENTS.md` | Agent rules — write gate, delegation, coding gates, memory hygiene |
+| `SOUL.md` | Operating principles — how Hermes carries itself |
+| `MEMORY.md` | Hot memory — durable facts injected every turn |
+| `config/config.yaml` | Live configuration (providers, models, MCP servers, hooks, memory caps) |
+| `scripts/offload_probe.py` | Memory probe — classifies facts as TRIM-SAFE / POINTER / KEEP-HOT |
+| `scripts/session-end-offload.py` | Session-end hook — stores candidates to Supabase |
+| `scripts/session_distill.py` | Session distillation — extracts decisions into searchable digests |
+| `scripts/knowledge.py` | Knowledge store client — hybrid search against Supabase pgvector |
+| `patches/` | Runtime monkey-patches — write gate, delegation checkpoint, domain ownership |
+| `skills/` | 150+ agent skills — coding, devops, home automation, creative, research |
+| `references/topology.json` | Single source of truth — host IPs, specs, models, profiles |
+| `references/infrastructure-summary.md` | Detailed infrastructure overview |
+| `references/domain-ownership.json` | Host → Hermes profile ownership mapping |

@@ -1,0 +1,749 @@
+[
+  {
+    "role": "agent",
+    "content": "\ud83d\udea8 **hermes-dashboard** \u2014 created: E2E Test: Pipeline verification",
+    "created_at": 1782334015.404245,
+    "project": "hermes-dashboard",
+    "level": "error",
+    "action": "created",
+    "issue_url": "https://andrew-ol.sentry.io/issues/999"
+  },
+  {
+    "role": "agent",
+    "content": "\ud83d\udea8 **** \u2014 created: ",
+    "created_at": 1782334640.212583,
+    "project": "",
+    "level": "error",
+    "action": "created",
+    "issue_url": ""
+  },
+  {
+    "role": "agent",
+    "content": "\ud83d\udea8 **Hermes Dashboard** \u2014 created: NameError: name 'subprocess' is not defined",
+    "created_at": 1782334650.148338,
+    "project": "Hermes Dashboard",
+    "level": "error",
+    "action": "created",
+    "issue_url": "https://andrew-ol.sentry.io/issues/7573404759/"
+  },
+  {
+    "role": "agent",
+    "content": "\ud83d\udea8 **** \u2014 created: ",
+    "created_at": 1782335199.515753,
+    "project": "",
+    "level": "error",
+    "action": "created",
+    "issue_url": ""
+  },
+  {
+    "role": "agent",
+    "content": "\ud83d\udea8 **Hermes Dashboard** \u2014 created: NameError: name '_PYTHON' is not defined",
+    "created_at": 1782335262.885297,
+    "project": "Hermes Dashboard",
+    "level": "error",
+    "action": "created",
+    "issue_url": "https://andrew-ol.sentry.io/issues/7573420953/"
+  },
+  {
+    "role": "agent",
+    "content": "\ud83d\udea8 **** \u2014 created: ",
+    "created_at": 1782335271.289174,
+    "project": "",
+    "level": "error",
+    "action": "created",
+    "issue_url": ""
+  },
+  {
+    "role": "agent",
+    "content": "\ud83d\udea8 **** \u2014 created: ",
+    "created_at": 1782336936.590533,
+    "project": "",
+    "level": "error",
+    "action": "created",
+    "issue_url": ""
+  },
+  {
+    "role": "agent",
+    "content": "\ud83d\udea8 **Hermes Cli** \u2014 created: RateLimitError: Error code: 429 - {'type': 'error', 'error': {'type': 'rate_limit_error', 'message': \"This request would exceed your account's rate limit. Please try again later.\"}, 'request_id': 'req_011CcNoYQyABMJA7mYKBsANJ'}",
+    "created_at": 1782336946.554505,
+    "project": "Hermes Cli",
+    "level": "error",
+    "action": "created",
+    "issue_url": "https://andrew-ol.sentry.io/issues/7573465245/"
+  },
+  {
+    "role": "agent",
+    "content": "\ud83d\udea8 **** \u2014 created: ",
+    "created_at": 1782337058.299023,
+    "project": "",
+    "level": "error",
+    "action": "created",
+    "issue_url": ""
+  },
+  {
+    "role": "agent",
+    "content": "\ud83d\udea8 **** \u2014 created: ",
+    "created_at": 1782337126.442552,
+    "project": "",
+    "level": "error",
+    "action": "created",
+    "issue_url": ""
+  },
+  {
+    "role": "agent",
+    "content": "\ud83d\udea8 **Hermes Cli** \u2014 created: API call failed after 3 retries. HTTP 429: This request would exceed your account's rate limit. Please try again later. | provider=anthropic model=claude-sonnet-4-6 msgs=2 tokens=~11,414",
+    "created_at": 1782337189.203033,
+    "project": "Hermes Cli",
+    "level": "error",
+    "action": "created",
+    "issue_url": "https://andrew-ol.sentry.io/issues/7573472322/"
+  },
+  {
+    "role": "agent",
+    "content": "\ud83d\udea8 **** \u2014 created: ",
+    "created_at": 1782337198.923531,
+    "project": "",
+    "level": "error",
+    "action": "created",
+    "issue_url": ""
+  },
+  {
+    "role": "agent",
+    "content": "\ud83d\udea8 **** \u2014 created: ",
+    "created_at": 1782337290.713375,
+    "project": "",
+    "level": "error",
+    "action": "created",
+    "issue_url": ""
+  },
+  {
+    "role": "agent",
+    "content": "\ud83d\udea8 **** \u2014 created: ",
+    "created_at": 1782337348.689388,
+    "project": "",
+    "level": "error",
+    "action": "created",
+    "issue_url": ""
+  },
+  {
+    "role": "agent",
+    "content": "\ud83d\udea8 **** \u2014 created: ",
+    "created_at": 1782337427.962133,
+    "project": "",
+    "level": "error",
+    "action": "created",
+    "issue_url": ""
+  },
+  {
+    "role": "agent",
+    "content": "\ud83d\udea8 **** \u2014 created: ",
+    "created_at": 1782337437.697697,
+    "project": "",
+    "level": "error",
+    "action": "created",
+    "issue_url": ""
+  },
+  {
+    "role": "agent",
+    "content": "\ud83d\udea8 **** \u2014 created: ",
+    "created_at": 1782337466.518768,
+    "project": "",
+    "level": "error",
+    "action": "created",
+    "issue_url": ""
+  },
+  {
+    "role": "agent",
+    "content": "\ud83d\udea8 **** \u2014 created: ",
+    "created_at": 1782337475.580004,
+    "project": "",
+    "level": "error",
+    "action": "created",
+    "issue_url": ""
+  },
+  {
+    "role": "agent",
+    "content": "\ud83d\udea8 **** \u2014 created: ",
+    "created_at": 1782337530.633416,
+    "project": "",
+    "level": "error",
+    "action": "created",
+    "issue_url": ""
+  },
+  {
+    "role": "agent",
+    "content": "\ud83d\udea8 **Hermes Dashboard** \u2014 created: TimeoutExpired: Command '['/usr/local/lib/hermes-agent/venv/bin/python3', '/root/.hermes/scripts/knowledge.py', 'store', '--text', 'Sentry alert in :  (error)', '--tags', 'sentry,alert', '--source', 'sentry-webhook', '--priority', 'high', '--context-prefix', '']' timed...",
+    "created_at": 1782337701.848317,
+    "project": "Hermes Dashboard",
+    "level": "error",
+    "action": "created",
+    "issue_url": "https://andrew-ol.sentry.io/issues/7573486017/"
+  },
+  {
+    "role": "agent",
+    "content": "\ud83d\udea8 **** \u2014 created: ",
+    "created_at": 1782337711.214403,
+    "project": "",
+    "level": "error",
+    "action": "created",
+    "issue_url": ""
+  },
+  {
+    "role": "agent",
+    "content": "\ud83d\udea8 **** \u2014 created: ",
+    "created_at": 1782337731.211187,
+    "project": "",
+    "level": "error",
+    "action": "created",
+    "issue_url": ""
+  },
+  {
+    "role": "agent",
+    "content": "\ud83d\udea8 **** \u2014 created: ",
+    "created_at": 1782337741.123149,
+    "project": "",
+    "level": "error",
+    "action": "created",
+    "issue_url": ""
+  },
+  {
+    "role": "agent",
+    "content": "\ud83d\udea8 **** \u2014 created: ",
+    "created_at": 1782337750.757024,
+    "project": "",
+    "level": "error",
+    "action": "created",
+    "issue_url": ""
+  },
+  {
+    "role": "agent",
+    "content": "\ud83d\udea8 **** \u2014 created: ",
+    "created_at": 1782337760.240486,
+    "project": "",
+    "level": "error",
+    "action": "created",
+    "issue_url": ""
+  },
+  {
+    "role": "agent",
+    "content": "\ud83d\udea8 **** \u2014 created: ",
+    "created_at": 1782337769.619559,
+    "project": "",
+    "level": "error",
+    "action": "created",
+    "issue_url": ""
+  },
+  {
+    "role": "agent",
+    "content": "\ud83d\udea8 **** \u2014 created: ",
+    "created_at": 1782337779.212303,
+    "project": "",
+    "level": "error",
+    "action": "created",
+    "issue_url": ""
+  },
+  {
+    "role": "agent",
+    "content": "\ud83d\udea8 **** \u2014 created: ",
+    "created_at": 1782337788.14836,
+    "project": "",
+    "level": "error",
+    "action": "created",
+    "issue_url": ""
+  },
+  {
+    "role": "agent",
+    "content": "\ud83d\udea8 **** \u2014 created: ",
+    "created_at": 1782337797.846415,
+    "project": "",
+    "level": "error",
+    "action": "created",
+    "issue_url": ""
+  },
+  {
+    "role": "agent",
+    "content": "\ud83d\udea8 **** \u2014 created: ",
+    "created_at": 1782337829.461791,
+    "project": "",
+    "level": "error",
+    "action": "created",
+    "issue_url": ""
+  },
+  {
+    "role": "agent",
+    "content": "\ud83d\udea8 **** \u2014 created: ",
+    "created_at": 1782337859.197462,
+    "project": "",
+    "level": "error",
+    "action": "created",
+    "issue_url": ""
+  },
+  {
+    "role": "agent",
+    "content": "\ud83d\udea8 **** \u2014 created: ",
+    "created_at": 1782337868.718035,
+    "project": "",
+    "level": "error",
+    "action": "created",
+    "issue_url": ""
+  },
+  {
+    "role": "agent",
+    "content": "\ud83d\udea8 **** \u2014 created: ",
+    "created_at": 1782337877.757113,
+    "project": "",
+    "level": "error",
+    "action": "created",
+    "issue_url": ""
+  },
+  {
+    "role": "agent",
+    "content": "\ud83d\udea8 **** \u2014 created: ",
+    "created_at": 1782337887.246559,
+    "project": "",
+    "level": "error",
+    "action": "created",
+    "issue_url": ""
+  },
+  {
+    "role": "agent",
+    "content": "\ud83d\udea8 **** \u2014 created: ",
+    "created_at": 1782337896.161546,
+    "project": "",
+    "level": "error",
+    "action": "created",
+    "issue_url": ""
+  },
+  {
+    "role": "agent",
+    "content": "\ud83d\udea8 **** \u2014 created: ",
+    "created_at": 1782337905.341726,
+    "project": "",
+    "level": "error",
+    "action": "created",
+    "issue_url": ""
+  },
+  {
+    "role": "agent",
+    "content": "\ud83d\udea8 **Hermes Cli** \u2014 created: AttributeError: 'str' object has no attribute 'get'",
+    "created_at": 1782337914.404828,
+    "project": "Hermes Cli",
+    "level": "error",
+    "action": "created",
+    "issue_url": "https://andrew-ol.sentry.io/issues/7573489634/"
+  },
+  {
+    "role": "agent",
+    "content": "\ud83d\udea8 **** \u2014 created: ",
+    "created_at": 1782337924.358793,
+    "project": "",
+    "level": "error",
+    "action": "created",
+    "issue_url": ""
+  },
+  {
+    "role": "agent",
+    "content": "\ud83d\udea8 **** \u2014 created: ",
+    "created_at": 1782337934.084602,
+    "project": "",
+    "level": "error",
+    "action": "created",
+    "issue_url": ""
+  },
+  {
+    "role": "agent",
+    "content": "\ud83d\udea8 **** \u2014 created: ",
+    "created_at": 1782337943.856778,
+    "project": "",
+    "level": "error",
+    "action": "created",
+    "issue_url": ""
+  },
+  {
+    "role": "agent",
+    "content": "\ud83d\udea8 **** \u2014 created: ",
+    "created_at": 1782337953.356896,
+    "project": "",
+    "level": "error",
+    "action": "created",
+    "issue_url": ""
+  },
+  {
+    "role": "agent",
+    "content": "\ud83d\udea8 **** \u2014 created: ",
+    "created_at": 1782337983.070292,
+    "project": "",
+    "level": "error",
+    "action": "created",
+    "issue_url": ""
+  },
+  {
+    "role": "agent",
+    "content": "\ud83d\udea8 **** \u2014 created: ",
+    "created_at": 1782337992.53373,
+    "project": "",
+    "level": "error",
+    "action": "created",
+    "issue_url": ""
+  },
+  {
+    "role": "agent",
+    "content": "\ud83d\udea8 **** \u2014 created: ",
+    "created_at": 1782338001.799632,
+    "project": "",
+    "level": "error",
+    "action": "created",
+    "issue_url": ""
+  },
+  {
+    "role": "agent",
+    "content": "\ud83d\udea8 **** \u2014 created: ",
+    "created_at": 1782338011.087944,
+    "project": "",
+    "level": "error",
+    "action": "created",
+    "issue_url": ""
+  },
+  {
+    "role": "agent",
+    "content": "\ud83d\udea8 **** \u2014 created: ",
+    "created_at": 1782338016.743942,
+    "project": "",
+    "level": "error",
+    "action": "created",
+    "issue_url": ""
+  },
+  {
+    "role": "agent",
+    "content": "\ud83d\udea8 **** \u2014 created: ",
+    "created_at": 1782338026.410811,
+    "project": "",
+    "level": "error",
+    "action": "created",
+    "issue_url": ""
+  },
+  {
+    "role": "agent",
+    "content": "\ud83d\udea8 **** \u2014 created: ",
+    "created_at": 1782338035.465691,
+    "project": "",
+    "level": "error",
+    "action": "created",
+    "issue_url": ""
+  },
+  {
+    "role": "agent",
+    "content": "\ud83d\udea8 **** \u2014 created: ",
+    "created_at": 1782338045.006085,
+    "project": "",
+    "level": "error",
+    "action": "created",
+    "issue_url": ""
+  },
+  {
+    "role": "agent",
+    "content": "\ud83d\udea8 **** \u2014 created: ",
+    "created_at": 1782338234.486435,
+    "project": "",
+    "level": "error",
+    "action": "created",
+    "issue_url": ""
+  },
+  {
+    "role": "agent",
+    "content": "\ud83d\udea8 **** \u2014 created: ",
+    "created_at": 1782339040.474345,
+    "project": "",
+    "level": "error",
+    "action": "created",
+    "issue_url": ""
+  },
+  {
+    "role": "agent",
+    "content": "\ud83d\udea8 **Hermes Dispatcher** \u2014 created: ModuleNotFoundError: No module named 'bcrypt'",
+    "created_at": 1782339044.365979,
+    "project": "Hermes Dispatcher",
+    "level": "error",
+    "action": "created",
+    "issue_url": "https://andrew-ol.sentry.io/issues/7573519943/"
+  },
+  {
+    "role": "agent",
+    "content": "\ud83d\udea8 **Hermes Dispatcher** \u2014 created: Exception: Test: Hermes Dispatcher instrumentation",
+    "created_at": 1782339051.168197,
+    "project": "Hermes Dispatcher",
+    "level": "error",
+    "action": "created",
+    "issue_url": "https://andrew-ol.sentry.io/issues/7573520020/"
+  },
+  {
+    "role": "agent",
+    "content": "\ud83d\udea8 **** \u2014 created: ",
+    "created_at": 1782339057.586622,
+    "project": "",
+    "level": "error",
+    "action": "created",
+    "issue_url": ""
+  },
+  {
+    "role": "agent",
+    "content": "\ud83d\udea8 **Hermes Dispatcher** \u2014 created: Form data requires \"python-multipart\" to be installed. ",
+    "created_at": 1782339064.251032,
+    "project": "Hermes Dispatcher",
+    "level": "error",
+    "action": "created",
+    "issue_url": "https://andrew-ol.sentry.io/issues/7573520022/"
+  },
+  {
+    "role": "agent",
+    "content": "\ud83d\udea8 **** \u2014 created: ",
+    "created_at": 1782339433.48811,
+    "project": "",
+    "level": "error",
+    "action": "created",
+    "issue_url": ""
+  },
+  {
+    "role": "agent",
+    "content": "\ud83d\udea8 **Hermes Dispatcher** \u2014 created: Exception: Test: post-restart verification",
+    "created_at": 1782339440.133678,
+    "project": "Hermes Dispatcher",
+    "level": "error",
+    "action": "created",
+    "issue_url": "https://andrew-ol.sentry.io/issues/7573528824/"
+  },
+  {
+    "role": "agent",
+    "content": "\ud83d\udea8 **Hermes Dispatcher** \u2014 created: ValueError: Test: Sentry\u2192Linear\u2192Kanban pipeline verification",
+    "created_at": 1782340033.382565,
+    "project": "Hermes Dispatcher",
+    "level": "error",
+    "action": "created",
+    "issue_url": "https://andrew-ol.sentry.io/issues/7573542255/"
+  },
+  {
+    "role": "agent",
+    "content": "\ud83d\udea8 **** \u2014 created: ",
+    "created_at": 1782340039.840839,
+    "project": "",
+    "level": "error",
+    "action": "created",
+    "issue_url": ""
+  },
+  {
+    "role": "agent",
+    "content": "\ud83d\udea8 **hermes-dispatcher** \u2014 created: Test: Sentry direct probe",
+    "created_at": 1782340047.708233,
+    "project": "hermes-dispatcher",
+    "level": "error",
+    "action": "created",
+    "issue_url": "https://sentry.io/test"
+  },
+  {
+    "role": "agent",
+    "content": "\ud83d\udea8 **Hermes Dispatcher** \u2014 created: Unclosed connection",
+    "created_at": 1782340085.676083,
+    "project": "Hermes Dispatcher",
+    "level": "error",
+    "action": "created",
+    "issue_url": "https://andrew-ol.sentry.io/issues/7573543043/"
+  },
+  {
+    "role": "agent",
+    "content": "\ud83d\udea8 **Hermes Dispatcher** \u2014 created: RuntimeError: Test: full pipeline verification",
+    "created_at": 1782340274.498742,
+    "project": "Hermes Dispatcher",
+    "level": "error",
+    "action": "created",
+    "issue_url": "https://andrew-ol.sentry.io/issues/7573547219/"
+  },
+  {
+    "role": "agent",
+    "content": "\ud83d\udea8 **** \u2014 created: ",
+    "created_at": 1782340279.576416,
+    "project": "",
+    "level": "error",
+    "action": "created",
+    "issue_url": ""
+  },
+  {
+    "role": "agent",
+    "content": "\ud83d\udea8 **hermes-dispatcher** \u2014 created: TEST PIPELINE: dispatcher-verify",
+    "created_at": 1782340660.469146,
+    "project": "hermes-dispatcher",
+    "level": "error",
+    "action": "created",
+    "issue_url": "https://sentry.io/test"
+  },
+  {
+    "role": "agent",
+    "content": "\ud83d\udea8 **hermes-dispatcher** \u2014 created: TEST PIPELINE #2: verify webhook arrives",
+    "created_at": 1782340702.609353,
+    "project": "hermes-dispatcher",
+    "level": "error",
+    "action": "created",
+    "issue_url": "https://sentry.io/test2"
+  },
+  {
+    "role": "agent",
+    "content": "\ud83d\udea8 **hermes-dispatcher** \u2014 created: TEST: deadlock fix verification",
+    "created_at": 1782340942.617332,
+    "project": "hermes-dispatcher",
+    "level": "error",
+    "action": "created",
+    "issue_url": "https://sentry.io/test3"
+  },
+  {
+    "role": "agent",
+    "content": "\ud83d\udea8 **Hermes Dispatcher** \u2014 created: [Errno 98] error while attempting to bind on address ('0.0.0.0', 8787): address already in use",
+    "created_at": 1782340965.768655,
+    "project": "Hermes Dispatcher",
+    "level": "error",
+    "action": "created",
+    "issue_url": "https://andrew-ol.sentry.io/issues/7573562578/"
+  },
+  {
+    "role": "agent",
+    "content": "\ud83d\udea8 **Hermes Dispatcher** \u2014 created: HTTPException: Telegram API error: 400",
+    "created_at": 1782341494.896626,
+    "project": "Hermes Dispatcher",
+    "level": "error",
+    "action": "created",
+    "issue_url": "https://andrew-ol.sentry.io/issues/7573572986/"
+  },
+  {
+    "role": "agent",
+    "content": "\ud83d\udea8 **** \u2014 created: ",
+    "created_at": 1782341500.532322,
+    "project": "",
+    "level": "error",
+    "action": "created",
+    "issue_url": ""
+  },
+  {
+    "role": "agent",
+    "content": "\ud83d\udea8 **** \u2014 created: ",
+    "created_at": 1782341546.141618,
+    "project": "",
+    "level": "error",
+    "action": "created",
+    "issue_url": ""
+  },
+  {
+    "role": "agent",
+    "content": "\ud83d\udea8 **Hermes Dispatcher** \u2014 created: TimeoutError",
+    "created_at": 1782341551.193064,
+    "project": "Hermes Dispatcher",
+    "level": "error",
+    "action": "created",
+    "issue_url": "https://andrew-ol.sentry.io/issues/7573574070/"
+  },
+  {
+    "role": "agent",
+    "content": "\ud83d\udea8 **** \u2014 created: ",
+    "created_at": 1782341577.81417,
+    "project": "",
+    "level": "error",
+    "action": "created",
+    "issue_url": ""
+  },
+  {
+    "role": "agent",
+    "content": "\ud83d\udea8 **** \u2014 created: ",
+    "created_at": 1782341591.697946,
+    "project": "",
+    "level": "error",
+    "action": "created",
+    "issue_url": ""
+  },
+  {
+    "role": "agent",
+    "content": "\ud83d\udea8 **** \u2014 created: ",
+    "created_at": 1782341596.747874,
+    "project": "",
+    "level": "error",
+    "action": "created",
+    "issue_url": ""
+  },
+  {
+    "role": "agent",
+    "content": "\ud83d\udea8 **Hermes Dispatcher** \u2014 created: neo4j write failed for fact e5944f62206d42bb: {neo4j_code: Neo.ClientError.Security.Unauthorized} {message: The client is unauthorized due to authentication failure.} {gql_status: 42NFF} {gql_status_description: error: syntax error or access rule violat...",
+    "created_at": 1782346348.939243,
+    "project": "Hermes Dispatcher",
+    "level": "error",
+    "action": "created",
+    "issue_url": "https://andrew-ol.sentry.io/issues/7573680350/"
+  },
+  {
+    "role": "agent",
+    "content": "\ud83d\udea8 **** \u2014 created: ",
+    "created_at": 1782348449.661292,
+    "project": "",
+    "level": "error",
+    "action": "created",
+    "issue_url": ""
+  },
+  {
+    "role": "agent",
+    "content": "\ud83d\udea8 **Hermes Cli** \u2014 created: BadRequestError: Error code: 400 - {'error': {'code': 400, 'message': 'request (8389 tokens) exceeds the available context size (1536 tokens), try increasing it', 'type': 'exceed_context_size_error', 'n_prompt_tokens': 8389, 'n_ctx': 1536}}",
+    "created_at": 1782348454.741239,
+    "project": "Hermes Cli",
+    "level": "error",
+    "action": "created",
+    "issue_url": "https://andrew-ol.sentry.io/issues/7573732454/"
+  },
+  {
+    "role": "agent",
+    "content": "\ud83d\udea8 **** \u2014 created: ",
+    "created_at": 1782351322.158054,
+    "project": "",
+    "level": "error",
+    "action": "created",
+    "issue_url": ""
+  },
+  {
+    "role": "agent",
+    "content": "\ud83d\udea8 **** \u2014 created: ",
+    "created_at": 1782355462.4428,
+    "project": "",
+    "level": "error",
+    "action": "created",
+    "issue_url": ""
+  },
+  {
+    "role": "agent",
+    "content": "\ud83d\udea8 **** \u2014 created: ",
+    "created_at": 1782358423.901847,
+    "project": "",
+    "level": "error",
+    "action": "created",
+    "issue_url": ""
+  },
+  {
+    "role": "agent",
+    "content": "\ud83d\udea8 **** \u2014 created: ",
+    "created_at": 1782358428.951919,
+    "project": "",
+    "level": "error",
+    "action": "created",
+    "issue_url": ""
+  },
+  {
+    "role": "agent",
+    "content": "\ud83d\udea8 **** \u2014 created: ",
+    "created_at": 1782358433.999933,
+    "project": "",
+    "level": "error",
+    "action": "created",
+    "issue_url": ""
+  },
+  {
+    "role": "agent",
+    "content": "\ud83d\udea8 **** \u2014 created: ",
+    "created_at": 1782358439.076809,
+    "project": "",
+    "level": "error",
+    "action": "created",
+    "issue_url": ""
+  }
+]

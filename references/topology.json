@@ -1,0 +1,77 @@
+{
+  "_meta": {
+    "purpose": "Single source of truth for host/model/profile facts. Verified LIVE, not recalled. whoami-live.sh diffs the running system against this golden and flags drift.",
+    "doctrine": "live-first — if a recalled memory block contradicts this file AND this file contradicts a live probe, the LIVE PROBE wins and this file must be re-verified.",
+    "verified_at": "2026-06-17T21:30:00Z",
+    "verified_by": "live probe: ollama API, ps ewww env check, du -sh models, docker ps, curl health checks"
+  },
+  "primary_host": {
+    "name": "andrew-Macmini",
+    "hardware": "2018 T2 Intel Mac mini (i7-8700B)",
+    "ram_gb": 15,
+    "os": "Ubuntu 24.04 t2-noble",
+    "tailnet_ip": "100.113.100.81",
+    "network": "Ethernet primary, Comcast residential IPv6 exit",
+    "role": "primary Hermes gateway host (orchestrator)"
+  },
+  "peer_hosts": {
+    "hil-1": {"ip": "5.78.238.81", "spec": "32GB/8vCPU Hetzner VPS", "role": "Mealio app host (:3015)"},
+    "ash-1": {"ip": "178.156.246.115", "spec": "2GB VPS", "role": "Home Assistant core + wall-dash"},
+    "mac-studio": {
+      "ip": "100.93.2.43",
+      "tailnet_name": "localadmins-mac-studio",
+      "spec": "Apple M2 Max, 64GB unified, 12 cores, macOS 14.4.1 arm64",
+      "role": "local inference node (Ollama)",
+      "verified_at": "2026-06-17T21:30:00Z",
+      "access": "native sshd on tailnet; ssh localadmin@100.93.2.43 with hermes-agent key (IdentitiesOnly=yes); sudo requires password (interactive only)",
+      "gpu_note": "VRAM cap already raised to 57344MB (~56GB) — persistent via launchd plist; no action needed on restart",
+      "ollama": {
+        "binary": "/Users/localadmin/OllamaApp/Ollama.app/Contents/Resources/ollama",
+        "managed_by": "launchd plist: ~/Library/LaunchAgents/com.ollama.server.plist (KeepAlive=true)",
+        "env": {
+          "OLLAMA_HOST": "0.0.0.0:11434",
+          "OLLAMA_NUM_PARALLEL": "2",
+          "OLLAMA_MAX_LOADED_MODELS": "2",
+          "OLLAMA_KEEP_ALIVE": "30m"
+        },
+        "models": {
+          "qwen2.5:72b": {"size_gb": 44.2, "quant": "Q4_K_M", "role": "heavy delegation — primary local inference"},
+          "qwen2.5-32b-64k:latest": {"size_gb": 18.5, "quant": "Q4_K_M", "role": "cron / aux / compression / curator"},
+          "qwen2.5vl:7b": {"size_gb": 5.6, "quant": "Q4_K_M", "role": "vision tasks", "context": "128K"}
+        },
+        "vram_math": "72b (~45GB) + vl:7b (~6GB) = ~51GB — under 56GB cap; 32b loads on demand (evicts vision)"
+      }
+    }
+  },
+  "models": {
+    "orchestration_default": "claude-sonnet-4-6",
+    "heavy_complex": "claude-opus-4-8",
+    "heavy_mechanism": "set via _HEAVY_MODEL env in anthropic bypass, NOT config.yaml heavy_model key (which is null)",
+    "local_heavy": "qwen2.5:72b @ mac-studio (100.93.2.43:11434) — primary for heavy local delegation",
+    "local_aux": "qwen2.5-32b-64k @ mac-studio — cron / compression / curator",
+    "local_vision": "qwen2.5vl:7b @ mac-studio — vision tasks",
+    "fallback": "deepseek (delegation subagents)",
+    "provider": "anthropic via hermes-claude-auth OAuth bypass (Claude Max)"
+  },
+  "profiles": {
+    "operational": ["default", "executor", "ha-bot"],
+    "backups_non_operational": ["pre-update-2026-06"],
+    "note": "3 operational profiles. NOT 5. There is no 'swarm pod' profile."
+  },
+  "memory": {
+    "memory_char_limit": 3000,
+    "user_char_limit": 2250,
+    "provider": "honcho (hybrid mode)",
+    "note": "read LIVE from config.yaml memory block, never the injected system-prompt header which lags"
+  },
+  "mcp_servers": {
+    "codegraph": {"status": "enabled", "tools_when_warm": 4, "cold_start_quirk": "VERIFIED 2026-06-16: serves 4 tools (codegraph_search/explore/node/files) reliably WHEN its background daemon is warm. A COLD first call (no daemon running, e.g. right after a host/gateway restart) returns 0 tools while the daemon spins up, then self-heals on subsequent calls. Daemon binds to the indexed dir (/usr/local/lib/hermes-agent). NOT a cwd bug \u2014 earlier 'cwd-sensitive' hypothesis was wrong. Mitigation if cold-start matters: warm the daemon on boot (codegraph daemon/serve) before first agent use."},
+    "zapier": {"status": "disabled"}
+  },
+  "stale_claims_to_reject": {
+    "ram_32gb": "REFERS TO MAC MINI ONLY — mini is 15GB. (The 64GB is the separate Mac Studio node, now live, see peer_hosts.mac-studio.)",
+    "mac_studio_m2_max": "NOW VERIFIED LIVE 2026-06-17 — M2 Max/64GB joined tailnet as localadmins-mac-studio (100.93.2.43), inference node. No longer a future claim.",
+    "five_swarm_profiles": "FALSE — 3 operational profiles, no swarm pod",
+    "sonnet_as_only_model": "INCOMPLETE — sonnet orchestrates, opus-4-8 handles heavy"
+  }
+}

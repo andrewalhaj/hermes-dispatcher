@@ -1,0 +1,7 @@
+=== default gateway post-restart verification ===
+time: 2026-06-07 05:45:51 UTC
+PID: 2286905
+active: active
+critical env vars loaded: 3 -> ['DEEPSEEK_API_KEY', 'DISCORD_BOT_TOKEN', 'TELEGRAM_BOT_TOKEN']
+DEEPSEEK tail: 425f (expect 425f = delegation fixed)
+VERDICT: PASS - env loaded, delegation key present

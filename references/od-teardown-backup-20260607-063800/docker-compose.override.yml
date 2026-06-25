@@ -1,0 +1,19 @@
+services:
+  open-design:
+    ports: !override
+      - "100.64.150.51:7456:7456"
+    environment:
+      # Prepend the persisted claude CLI dir so OD's `claude` runtime resolves
+      # the binary via PATH. Full original PATH preserved after it.
+      PATH: "/opt/claude/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+    volumes:
+      # Exec-capable named volume for the claude CLI (rootfs is read-only;
+      # /tmp is noexec). Survives container recreate.
+      - od_claude_cli:/opt/claude
+      # Single-writer OAuth: host is sole refresher; container reads only.
+      # Read-only mount makes container-side token rotation physically
+      # impossible, eliminating the dual-refresh race.
+      - /root/.claude-od:/home/open-design/.claude:ro
+
+volumes:
+  od_claude_cli:

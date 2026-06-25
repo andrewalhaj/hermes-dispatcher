@@ -1,0 +1,9 @@
+{
+  "baseline_ratio": 0.25,
+  "metric": "fact_orphan_ratio",
+  "baseline_orphans": 12,
+  "baseline_scored": 48,
+  "doc_coverage": 0.444,
+  "recorded": "2026-06-09",
+  "note": "after prune(6)+pointers(6)"
+}
