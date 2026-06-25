@@ -132,6 +132,24 @@ Browser (any Tailscale client)
 
 The kanban board (`~/.hermes/kanban.db`) is a shared SQLite DB written by the Hermes dispatcher process and read by the dashboard. Workers run on the Linux host and SSH into remote hosts for tasks — they do not run Claude on remote machines.
 
+## Branches
+
+Each feature domain has its own branch cut from `master`. Work on one domain never blocks another.
+
+| Branch | Domain | Routes / files |
+|---|---|---|
+| `feat/neo4j-pipeline` | Neo4j knowledge graph mirror | `hooks.py` Neo4j layer — pgvector similarity, RELATED_TO edges, Aura integration |
+| `feat/webhook-fleet` | Inbound webhook receivers | `hooks.py` Supabase, Honcho, Figma, GitHub receivers |
+| `feat/linear-intake-pipeline` | Linear → Kanban routing | `hooks.py` Linear webhook + `notify.py` |
+| `feat/sentry-instrumentation` | Sentry error tracking | `hooks.py` Sentry webhook + `sentry.py` |
+| `feat/dashboard-kanban` | Kanban board + UI | `kanban.py` + Kanban panels |
+| `feat/dashboard-memory` | Memory editor + compaction | `memory.py` + memory UI components |
+| `feat/dashboard-chat` | Chat interface + sessions | `chat.py` + `chat/` components |
+| `feat/dashboard-system` | System monitor | `system.py` + `SystemMonitor` panels |
+| `feat/dashboard-auth` | Auth + login | `auth.py` + `Login.tsx` |
+
+Create feature PRs from these branches. Merge back to `master` when stable.
+
 ---
 
 ## Running locally
