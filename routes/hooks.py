@@ -40,7 +40,8 @@ HONCHO_WEBHOOK_SECRET = os.environ.get("HONCHO_WEBHOOK_SECRET", os.environ.get("
 # Credentials from Hermes .env (NEO4J_URI, NEO4J_USERNAME, NEO4J_PASSWORD).
 NEO4J_URI = os.environ.get("NEO4J_URI", "")
 NEO4J_USERNAME = os.environ.get("NEO4J_USERNAME", "neo4j")
-NEO4J_PASSWORD = os.environ.get("NEO4J_PASSWORD", "")
+NEO4J_PASSWORD=os.environ.get("NEO4J_PASSWORD", "")
+NEO4J_DATABASE = os.environ.get("NEO4J_DATABASE", "neo4j")
 _neo4j_drv = None  # lazy-init singleton
 
 
@@ -151,7 +152,7 @@ def _get_neo4j_driver():
 def _init_neo4j(drv) -> None:
     """Ensure Neo4j constraints exist (idempotent)."""
     try:
-        with drv.session() as s:
+        with drv.session(database=NEO4J_DATABASE) as s:
             s.run("CREATE CONSTRAINT fact_id IF NOT EXISTS FOR (f:Fact) REQUIRE f.id IS UNIQUE")
             s.run("CREATE CONSTRAINT session_id IF NOT EXISTS FOR (s:Session) REQUIRE s.session_id IS UNIQUE")
             s.run("CREATE INDEX fact_tags IF NOT EXISTS FOR (f:Fact) ON f.tags")
@@ -165,18 +166,24 @@ def _find_similar_via_pgvector(text: str) -> list[str]:
         import subprocess
         clean = re.sub(r"\s+", " ", text.strip())[:80]
         result = subprocess.run(
-            ["/root/.hermes/.venv/bin/python3", "-m", "knowledge", "search", clean, "--limit", "3"],
+            ["/usr/local/lib/hermes-agent/venv/bin/python3", "/root/.hermes/scripts/knowledge.py", "search", clean, "--limit", "3"],
             capture_output=True, text=True, timeout=8,
             env={**os.environ, "HERMES_HOME": str(HERMES_HOME)},
         )
         if result.returncode != 0:
             return []
-        # Parse knowledge.py search output — lines starting with digit + dot + space
+        # Parse knowledge.py search output — lines with [score] [priority] text
         matches = []
         for line in result.stdout.splitlines():
             line = line.strip()
-            if line and line[0].isdigit() and ". " in line[:4]:
-                matches.append(line.split(". ", 1)[1].strip())
+            # Format: [0.4742] [high] the actual fact text here
+            if line.startswith("[") and "] [" in line:
+                # Extract text after the second bracket
+                rest = line.split("] [", 2)[-1]
+                if "] " in rest:
+                    text_part = rest.split("] ", 1)[1].strip()
+                    if text_part:
+                        matches.append(text_part)
         return matches[:3]
     except Exception as e:
         logger.warning("pgvector similarity lookup failed: %s", e)
@@ -206,18 +213,35 @@ def _write_to_neo4j(
     stored_at = datetime.now(timezone.utc).isoformat()
 
     try:
-        with drv.session() as s:
-            # Upsert the fact node
-            s.run(
-                """
-                MERGE (f:Fact {id: $id})
-                SET f.text = $text, f.tags = $tags, f.priority = $priority,
-                    f.source = $source, f.context_prefix = $context_prefix,
-                    f.stored_at = $stored_at
-                """,
-                id=fact_id, text=text, tags=tag_list, priority=priority,
-                source=source, context_prefix=context_prefix, stored_at=stored_at,
+        with drv.session(database=NEO4J_DATABASE) as s:
+            # Upsert the fact node (MATCH+CREATE to avoid MERGE constraint race)
+            result = s.run(
+                "MATCH (f:Fact {id: $id}) RETURN f",
+                id=fact_id,
             )
+            exists = result.single() is not None
+            if exists:
+                s.run(
+                    """
+                    MATCH (f:Fact {id: $id})
+                    SET f.text = $text, f.tags = $tags, f.priority = $priority,
+                        f.source = $source, f.context_prefix = $context_prefix,
+                        f.stored_at = $stored_at
+                    """,
+                    id=fact_id, text=text, tags=tag_list, priority=priority,
+                    source=source, context_prefix=context_prefix, stored_at=stored_at,
+                )
+            else:
+                s.run(
+                    """
+                    CREATE (f:Fact {id: $id})
+                    SET f.text = $text, f.tags = $tags, f.priority = $priority,
+                        f.source = $source, f.context_prefix = $context_prefix,
+                        f.stored_at = $stored_at
+                    """,
+                    id=fact_id, text=text, tags=tag_list, priority=priority,
+                    source=source, context_prefix=context_prefix, stored_at=stored_at,
+                )
 
             # Find similar facts via pgvector and create RELATED_TO edges
             similar = _find_similar_via_pgvector(text)
@@ -225,13 +249,16 @@ def _write_to_neo4j(
                 sim_id = hashlib.sha256(sim_text.encode()).hexdigest()[:16]
                 if sim_id == fact_id:
                     continue
+                # MATCH+CREATE for similar node to avoid MERGE constraint race
+                sim_result = s.run("MATCH (similar:Fact {id: $id}) RETURN similar", id=sim_id)
+                if sim_result.single() is None:
+                    s.run("CREATE (similar:Fact {id: $id}) SET similar.text = $text",
+                          id=sim_id, text=sim_text)
+                # Create edge (MERGE on edge only, nodes already exist)
                 s.run(
-                    """
-                    MERGE (similar:Fact {id: $sim_id})
-                    ON CREATE SET similar.text = $sim_text
-                    MERGE (f:Fact {id: $fact_id})-[r:RELATED_TO]->(similar)
-                    """,
-                    sim_id=sim_id, sim_text=sim_text, fact_id=fact_id,
+                    "MATCH (f:Fact {id: $fact_id}), (similar:Fact {id: $sim_id}) "
+                    "MERGE (f)-[r:RELATED_TO]->(similar)",
+                    fact_id=fact_id, sim_id=sim_id,
                 )
 
             # If tagged CORRECTION, link superseded facts
@@ -241,9 +268,8 @@ def _write_to_neo4j(
                     if sim_id == fact_id:
                         continue
                     s.run(
-                        """
-                        MERGE (f:Fact {id: $fact_id})-[r:SUPERSEDES]->(old:Fact {id: $old_id})
-                        """,
+                        "MATCH (f:Fact {id: $fact_id}), (old:Fact {id: $old_id}) "
+                        "MERGE (f)-[r:SUPERSEDES]->(old)",
                         fact_id=fact_id, old_id=sim_id,
                     )
 
