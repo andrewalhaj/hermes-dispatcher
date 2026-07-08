@@ -1,0 +1,42 @@
+# Gitleaks configuration for hermes-dispatcher
+
+[extend]
+useDefault = true
+
+# Custom rules for project-specific patterns
+[[rules]]
+id = "custom-generic-api-key"
+description = "Generic API key pattern"
+regex = '''(?i)(?:api[_-]?key|apikey|api[_-]?secret|api_secret)[\s]{0,3}[:=][\s]{0,3}['"][a-zA-Z0-9_\-+=/]{16,}['"]'''
+tags = ["key", "API", "generic"]
+
+[[rules]]
+id = "custom-bearer-token"
+description = "Bearer token in code"
+regex = '''(?i)bearer\s+[a-zA-Z0-9_\-+=/]{20,}'''
+tags = ["token", "bearer", "auth"]
+
+[[rules]]
+id = "custom-private-key-pattern"
+description = "Inline private key"
+regex = '''-----BEGIN\s?(RSA|DSA|EC|OPENSSH|PGP)?\s?PRIVATE\s?KEY-----'''
+tags = ["key", "private"]
+
+# Allowlist for known safe values and test data
+[allowlist]
+description = "Known safe values for hermes-dispatcher"
+paths = [
+    '''(^|/)\.git/''',
+    '''^test/''',
+    '''^tests/''',
+    '''_test\.go$''',
+    '''\.spec\.''',
+]
+# Specific regex patterns to ignore
+regexes = [
+    '''placeholder''',
+    '''your-key-here''',
+    '''changeme''',
+    '''example\.com''',
+    '''GITHUB_TOKEN''',
+]

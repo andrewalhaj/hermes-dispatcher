@@ -1,0 +1,794 @@
+import React, { useEffect, useMemo, useState } from 'react'
+import {
+  LANES,
+  LANE_MAP,
+  PROJ_META,
+  fmtDur,
+  initials,
+  priColor,
+  staleLevel,
+  type LaneId,
+  type Task,
+} from '../../data/kanban'
+import { useInfo } from '../TileInfoDrawer'
+import { profileDisplayName } from '../../data/profileDisplayNames'
+
+interface KanbanPanelProps {
+  accent: string
+}
+
+const DISPLAY_LANES: Array<{ id: string; label: string; color: string; virtual?: boolean }> = LANES.flatMap(
+  (lane) =>
+    lane.id === 'blocked'
+      ? [lane, { id: 'review', label: 'Ready for Review', color: '#f6b73c', virtual: true }]
+      : [lane],
+)
+
+function isReviewReady(t: Task): boolean {
+  return t.status === 'blocked' && (t.blockReason ?? '').toLowerCase().includes('review-required')
+}
+
+/** Extract a Linear issue URL from a task body, if one is present. */
+const LINEAR_URL_RE = /https?:\/\/linear\.app\/[^/\s]+\/issue\/[A-Za-z0-9]+-\d+(?:\/[^\s)]*)?/i
+function linearUrlOf(t: Task): string | undefined {
+  const m = LINEAR_URL_RE.exec(t.desc || '')
+  return m ? m[0] : undefined
+}
+
+/** A card is triageable if it carries a Linear URL (heuristic for "linked"). */
+function isLinearLinked(t: Task): boolean {
+  return !!linearUrlOf(t)
+}
+
+/** Coder fleet assignable from the triage menu. */
+const CODER_FLEET = ['coder', 'coder-b', 'coder-c', 'coder-d']
+
+/** UI priority options → Linear native numeric priority (1=Urgent…4=Low). */
+const PRIORITY_OPTIONS: Array<{ label: string; value: number; color: string }> = [
+  { label: 'Urgent', value: 1, color: '#f87171' },
+  { label: 'High', value: 2, color: '#fb923c' },
+  { label: 'Medium', value: 3, color: '#fbbf24' },
+  { label: 'Low', value: 4, color: '#9298ab' },
+]
+
+interface LinearLabel { id: string; name: string; color: string }
+interface TriageState {
+  taskId: string
+  title: string
+  x: number
+  y: number
+  linked: boolean
+  loading: boolean
+  labels: LinearLabel[]
+  activeLabelIds: string[]
+  assignee: string | null
+}
+
+/** Toast that auto-dismisses. */
+function useToast() {
+  const [toast, setToast] = useState<string | null>(null)
+  const show = (msg: string) => {
+    setToast(msg)
+    window.clearTimeout((show as unknown as { _t?: number })._t)
+    ;(show as unknown as { _t?: number })._t = window.setTimeout(() => setToast(null), 2600)
+  }
+  return { toast, show }
+}
+
+export default function KanbanPanel({ accent }: KanbanPanelProps) {
+  const { openInfo } = useInfo()
+  const [tasks, setTasks] = useState<Task[]>([])
+  const [search, setSearch] = useState('')
+  const [tenantFilter, setTenantFilter] = useState<string>('all')
+  const [projMenu, setProjMenu] = useState(false)
+  const [draggingId, setDraggingId] = useState<string | null>(null)
+  const [dragOverCol, setDragOverCol] = useState<string | null>(null)
+  const [newTaskText, setNewTaskText] = useState('')
+  const [triage, setTriage] = useState<TriageState | null>(null)
+  const { toast, show } = useToast()
+
+  useEffect(() => {
+    fetch('/api/kanban/tasks')
+      .then((r) => r.json())
+      .then((data: Task[]) => setTasks(data))
+      .catch(() => {/* server not up yet */})
+
+    const es = new EventSource('/api/kanban/stream')
+    es.onmessage = (e) => {
+      try {
+        const parsed = JSON.parse(e.data) as { tasks: Task[] }
+        if (Array.isArray(parsed.tasks)) setTasks(parsed.tasks)
+      } catch {
+        /* ignore malformed frame */
+      }
+    }
+    return () => es.close()
+  }, [])
+
+  const tenants = useMemo(() => [...new Set(tasks.map((t) => t.tenant))], [tasks])
+
+  const projLabel = (v: string) => (v === 'all' ? 'Board' : PROJ_META[v]?.label || v)
+  const projDot = (v: string) => (v === 'all' ? '#6a7088' : PROJ_META[v]?.dot || '#6a7088')
+  const tenantCount = (v: string) => (v === 'all' ? tasks.length : tasks.filter((t) => t.tenant === v).length)
+
+  const q = search.trim().toLowerCase()
+  const visible = tasks.filter(
+    (t) =>
+      (!q || `${t.title} ${t.desc} ${t.tenant} ${t.skills.join(' ')}`.toLowerCase().includes(q)) &&
+      (tenantFilter === 'all' || t.tenant === tenantFilter),
+  )
+
+  // Running is dispatcher-owned: never settable from the UI.
+  function moveTask(id: string, status: LaneId) {
+    if (status === 'running') {
+      show('Running is dispatcher-owned — use Run dispatcher')
+      return
+    }
+    // Optimistic update
+    setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, status, ageSec: 0 } : t)))
+    setDraggingId(null)
+    setDragOverCol(null)
+
+    fetch(`/api/kanban/tasks/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status }),
+    }).then((r) => {
+      if (!r.ok) {
+        // Revert on failure
+        fetch('/api/kanban/tasks')
+          .then((r2) => r2.json())
+          .then((data: Task[]) => setTasks(data))
+          .catch(() => {})
+        show('Failed to move task — reverted')
+      }
+    }).catch(() => {
+      fetch('/api/kanban/tasks')
+        .then((r2) => r2.json())
+        .then((data: Task[]) => setTasks(data))
+        .catch(() => {})
+      show('Failed to move task — reverted')
+    })
+  }
+
+  function addTask() {
+    const nt = newTaskText.trim()
+    const title = nt || q || 'New task'
+    const tenant = tenantFilter !== 'all' ? tenantFilter : 'internal'
+    setNewTaskText('')
+
+    fetch('/api/kanban/tasks', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, tenant, desc: '' }),
+    }).then((r) => {
+      if (r.ok) {
+        show('Task created in Triage')
+      } else {
+        show('Failed to create task')
+      }
+    }).catch(() => {
+      show('Failed to create task')
+    })
+  }
+
+  // --- Linear triage (priority / reassign / labels) ---
+  function openTriage(t: Task, x: number, y: number) {
+    const linked = isLinearLinked(t)
+    setTriage({
+      taskId: t.id,
+      title: t.title,
+      x,
+      y,
+      linked,
+      loading: linked,
+      labels: [],
+      activeLabelIds: [],
+      assignee: t.assignee,
+    })
+    if (!linked) return
+    // Fetch the issue's current labels + the team's label palette.
+    Promise.all([
+      fetch(`/api/linear/triage/issue/${t.id}`).then((r) => (r.ok ? r.json() : null)).catch(() => null),
+      fetch('/api/linear/triage/labels').then((r) => (r.ok ? r.json() : null)).catch(() => null),
+    ]).then(([issue, palette]) => {
+      setTriage((prev) => {
+        if (!prev || prev.taskId !== t.id) return prev
+        const active: string[] = issue?.issue?.labels?.map((l: LinearLabel) => l.id) ?? []
+        const labels: LinearLabel[] = palette?.labels ?? []
+        return { ...prev, loading: false, labels, activeLabelIds: active }
+      })
+    })
+  }
+
+  function closeTriage() {
+    setTriage(null)
+  }
+
+  function postTriage(taskId: string, payload: Record<string, unknown>, okMsg: string) {
+    fetch(`/api/linear/triage/${taskId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+      .then((r) => {
+        if (r.ok) {
+          show(okMsg)
+          // Refresh board so the local mirror (priority/assignee) shows immediately.
+          fetch('/api/kanban/tasks')
+            .then((r2) => r2.json())
+            .then((data: Task[]) => setTasks(data))
+            .catch(() => {})
+        } else {
+          r.json().then((j) => show(`Triage failed: ${j.detail || r.status}`)).catch(() => show('Triage failed'))
+        }
+      })
+      .catch(() => show('Triage failed — network'))
+  }
+
+  function triageSetPriority(value: number) {
+    if (!triage) return
+    postTriage(triage.taskId, { priority: value }, `Priority → ${PRIORITY_OPTIONS.find((p) => p.value === value)?.label}`)
+    closeTriage()
+  }
+
+  function triageReassign(assignee: string) {
+    if (!triage) return
+    postTriage(triage.taskId, { assignee, set_assignee: true }, `Reassigned → ${profileDisplayName(assignee)}`)
+    closeTriage()
+  }
+
+  function triageToggleLabel(labelId: string) {
+    if (!triage) return
+    const next = triage.activeLabelIds.includes(labelId)
+      ? triage.activeLabelIds.filter((id) => id !== labelId)
+      : [...triage.activeLabelIds, labelId]
+    setTriage({ ...triage, activeLabelIds: next })
+    postTriage(triage.taskId, { labelIds: next }, 'Labels updated')
+  }
+
+  const dragging = !!draggingId
+
+  return (
+    <div className="relative flex flex-1 flex-col" style={{ minHeight: 0, minWidth: 0 }}>
+      {/* Toolbar */}
+      <div
+        className="flex flex-none flex-wrap items-center"
+        style={{ gap: '9px 11px', padding: '12px 22px 10px' }}
+      >
+        {/* Project dropdown title */}
+        <div className="relative flex-none">
+          {projMenu && (
+            <div onClick={() => setProjMenu(false)} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />
+          )}
+          <button
+            onClick={() => setProjMenu((v) => !v)}
+            className="relative inline-flex items-baseline"
+            style={{
+              zIndex: 45,
+              gap: 10,
+              background: 'none',
+              border: 'none',
+              padding: '4px 8px 4px 7px',
+              margin: 0,
+              borderRadius: 9,
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+              transition: 'background 0.14s',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.05)')}
+            onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
+          >
+            <span className="inline-flex items-baseline" style={{ gap: 10 }}>
+              <span style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 19, letterSpacing: '-0.01em', color: '#f4f6fb' }}>
+                {projLabel(tenantFilter)}
+              </span>
+              <span style={{ fontSize: 12, color: '#6a7088' }}>
+                {visible.length} / {tasks.length}
+              </span>
+            </span>
+            <svg
+              width="13"
+              height="13"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#6a7088"
+              strokeWidth={2.2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              style={{ alignSelf: 'center', transform: projMenu ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}
+            >
+              <path d="M6 9l6 6 6-6" />
+            </svg>
+          </button>
+          {projMenu && (
+            <div
+              style={{
+                position: 'absolute',
+                top: '100%',
+                left: 0,
+                zIndex: 46,
+                marginTop: 7,
+                minWidth: 220,
+                background: '#0c1119',
+                border: '1px solid rgba(255,255,255,0.12)',
+                borderRadius: 11,
+                padding: 6,
+                boxShadow: '0 16px 40px rgba(0,0,0,0.5)',
+                animation: 'hmenuup 0.16s ease',
+              }}
+            >
+              {['all', ...tenants].map((v) => {
+                const selected = tenantFilter === v
+                return (
+                  <div
+                    key={v}
+                    onClick={() => {
+                      setTenantFilter(v)
+                      setProjMenu(false)
+                    }}
+                    className="flex items-center justify-between"
+                    style={{
+                      gap: 12,
+                      padding: '8px 11px',
+                      borderRadius: 8,
+                      fontSize: 12.5,
+                      color: selected ? '#e9ebf2' : '#c6cad8',
+                      cursor: 'pointer',
+                      background: selected ? 'rgba(255,255,255,0.05)' : 'transparent',
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = selected ? 'rgba(255,255,255,0.05)' : 'transparent')}
+                  >
+                    <span className="inline-flex items-center" style={{ gap: 9, minWidth: 0 }}>
+                      <span style={{ width: 7, height: 7, borderRadius: 2, flex: 'none', background: projDot(v) }} />
+                      {projLabel(v)}
+                    </span>
+                    <span className="inline-flex flex-none items-center" style={{ gap: 10 }}>
+                      <span className="mono" style={{ fontSize: 11, color: '#6a7088' }}>{tenantCount(v)}</span>
+                      {selected && (
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={accent} strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M20 6 9 17l-5-5" />
+                        </svg>
+                      )}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Search */}
+        <div className="relative" style={{ flex: '1 1 340px', minWidth: 240, maxWidth: 520 }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#666c82" strokeWidth={2} style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)' }}>
+            <circle cx="11" cy="11" r="7" />
+            <path d="M21 21l-4.3-4.3" />
+          </svg>
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search tasks, tenants…"
+            style={{
+              width: '100%',
+              background: '#11151f',
+              border: '1px solid rgba(255,255,255,0.09)',
+              borderRadius: 8,
+              padding: '8px 42px 8px 32px',
+              color: '#e9ebf2',
+              fontSize: 12.5,
+              fontFamily: 'inherit',
+              outline: 'none',
+            }}
+          />
+          <button
+            onClick={addTask}
+            title="New task"
+            className="inline-flex items-center justify-center"
+            style={{
+              position: 'absolute',
+              right: 6,
+              top: '50%',
+              transform: 'translateY(-50%)',
+              width: 26,
+              height: 26,
+              background: '#161b27',
+              color: '#c6cad8',
+              border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: 7,
+              fontSize: 16,
+              lineHeight: 1,
+              cursor: 'pointer',
+            }}
+          >
+            +
+          </button>
+        </div>
+
+
+      </div>
+
+      {/* Lanes */}
+      <div
+        className="flex flex-1 items-stretch"
+        style={{
+          minHeight: 0,
+          overflowX: 'auto',
+          overflowY: 'hidden',
+          gap: 14,
+          padding: '10px 26px 18px',
+          backgroundImage: 'radial-gradient(rgba(255,255,255,0.035) 1px, transparent 0)',
+          backgroundSize: '22px 22px',
+          backgroundPosition: '-1px -1px',
+        }}
+      >
+        {DISPLAY_LANES.map((col, i) => {
+          const isVirtual = !!col.virtual
+          const isLocked = col.id === 'running'
+          const colTasks = isVirtual
+            ? visible.filter(isReviewReady)
+            : col.id === 'blocked'
+            ? visible.filter((t) => t.status === 'blocked' && !isReviewReady(t))
+            : visible.filter((t) => t.status === col.id)
+          const over = dragOverCol === col.id
+          const forbidden = isLocked && dragging && over
+          return (
+            <div
+              key={col.id}
+              onDragOver={(e) => {
+                if (isVirtual) {
+                  if (e.dataTransfer) e.dataTransfer.dropEffect = 'none'
+                  return
+                }
+                if (isLocked) {
+                  if (e.dataTransfer) e.dataTransfer.dropEffect = 'none'
+                  if (dragOverCol !== col.id) setDragOverCol(col.id)
+                  return
+                }
+                e.preventDefault()
+                if (dragOverCol !== col.id) setDragOverCol(col.id)
+              }}
+              onDrop={(e) => {
+                if (isVirtual) return
+                if (isLocked) {
+                  show('Running is dispatcher-owned — use Run dispatcher')
+                  return
+                }
+                e.preventDefault()
+                if (draggingId) moveTask(draggingId, col.id as LaneId)
+              }}
+              className="flex flex-none flex-col self-stretch"
+              style={{
+                width: 290,
+                minHeight: 0,
+                maxHeight: '100%',
+                background: forbidden ? 'rgba(251,111,111,0.06)' : over && !isLocked && !isVirtual ? `color-mix(in oklab, ${col.color} 9%, #0b0f18)` : '#0b0f18',
+                border: `1px solid ${forbidden ? '#fb6f6f' : over && !isLocked && !isVirtual ? col.color : 'var(--tile-border)'}`,
+                borderStyle: forbidden ? 'dashed' : 'solid',
+                borderRadius: 12,
+                overflow: 'hidden',
+                transition: 'border-color 0.12s, background 0.12s',
+                boxShadow: over && !isLocked && !isVirtual ? `0 0 0 1px ${col.color}, 0 8px 30px rgba(0,0,0,0.35)` : 'none',
+                animation: 'hcellin 0.45s ease backwards',
+                animationDelay: `${i * 0.07}s`,
+              }}
+            >
+              {/* Lane header */}
+              <div
+                className="flex flex-none items-center justify-between"
+                style={{ padding: '13px 15px 12px', background: `linear-gradient(180deg, ${col.color}12, transparent)`, borderBottom: '1px solid rgba(255,255,255,0.04)' }}
+              >
+                <div className="flex items-center" style={{ gap: 9 }}>
+                  <span style={{ width: 9, height: 9, borderRadius: '50%', background: col.color, boxShadow: `0 0 9px ${col.color}` }} />
+                  <span style={{ fontSize: 13, fontWeight: 600, color: '#dde0ea', letterSpacing: '0.01em' }}>{col.label}</span>
+                  {isLocked && (
+                    <span title="Dispatcher-owned — tasks enter via Run dispatcher" className="inline-flex" style={{ color: '#6a7088' }}>
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                        <rect x="5" y="11" width="14" height="9" rx="2" />
+                        <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+                      </svg>
+                    </span>
+                  )}
+                </div>
+                <span className="mono" style={{ fontSize: 11.5, color: '#8c92a6', background: 'rgba(255,255,255,0.06)', borderRadius: 8, padding: '2px 8px' }}>
+                  {colTasks.length}
+                </span>
+              </div>
+
+              {/* Cards */}
+              <div className="flex flex-1 flex-col overflow-y-auto" style={{ minHeight: 0, padding: '10px 11px 13px', gap: 11 }}>
+                {forbidden && (
+                  <div style={{ border: '1px dashed #fb6f6f', background: 'rgba(251,111,111,0.09)', borderRadius: 9, padding: 11, textAlign: 'center', fontSize: 10.5, color: '#fb8c8c' }}>
+                    Running is dispatcher-owned — use Run dispatcher
+                  </div>
+                )}
+                {colTasks.map((t) => {
+                  const pc = priColor(t.priority)
+                  const stale = staleLevel(t.status, t.ageSec)
+                  const staleColor = stale === 'red' ? '#fb6f6f' : stale === 'amber' ? '#f6b73c' : null
+                  const age = fmtDur(t.ageSec)
+                  return (
+                    <div
+                      key={t.id}
+                      draggable
+                      onDragStart={(e) => {
+                        try {
+                          e.dataTransfer.effectAllowed = 'move'
+                          e.dataTransfer.setData('text/plain', t.id)
+                        } catch {
+                          /* noop */
+                        }
+                        setDraggingId(t.id)
+                      }}
+                      onDragEnd={() => {
+                        setDraggingId(null)
+                        setDragOverCol(null)
+                      }}
+                      onContextMenu={(e) => {
+                        e.preventDefault()
+                        openTriage(t, e.clientX, e.clientY)
+                      }}
+                      onClick={() =>
+                        openInfo({
+                          category: `Task · ${col.label}`,
+                          title: t.title,
+                          accent: col.color,
+                          desc: t.desc || 'No description yet.',
+                          linearUrl: linearUrlOf(t),
+                          stats: [
+                            { label: 'Tenant', value: t.tenant },
+                            { label: 'Status', value: LANE_MAP[t.status].label },
+                            { label: 'Priority', value: `P${t.priority}` },
+                            { label: 'Assignee', value: t.assignee ? profileDisplayName(t.assignee) : 'unassigned' },
+                            ...(t.branch ? [{ label: 'Branch', value: t.branch }] : []),
+                            ...(age ? [{ label: 'In status', value: age }] : []),
+                          ],
+                        })
+                      }
+                      className="relative flex flex-none flex-col"
+                      style={{
+                        background: '#141a26',
+                        border: `1px solid ${stale === 'red' ? 'rgba(251,111,111,0.45)' : stale === 'amber' ? 'rgba(246,183,60,0.32)' : 'var(--tile-border)'}`,
+                        borderRadius: 10,
+                        padding: '12px 13px',
+                        paddingLeft: 'calc(13px + 3px)',
+                        cursor: 'pointer',
+                        opacity: draggingId === t.id ? 0.4 : 1,
+                        gap: 9,
+                        transition: 'transform 0.1s, border-color 0.12s, box-shadow 0.12s',
+                        overflow: 'hidden',
+                        boxShadow: stale === 'red' ? '0 0 0 1px rgba(251,111,111,0.4)' : 'none',
+                        animation: 'hdropswap 0.24s cubic-bezier(0.16,1,0.3,1)',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.borderColor = 'var(--tile-border-hover)'
+                        e.currentTarget.style.boxShadow = '0 6px 20px rgba(0,0,0,0.4)'
+                        e.currentTarget.style.transform = 'translateY(-2px)'
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor = stale === 'red' ? 'rgba(251,111,111,0.45)' : stale === 'amber' ? 'rgba(246,183,60,0.32)' : 'var(--tile-border)'
+                        e.currentTarget.style.boxShadow = stale === 'red' ? '0 0 0 1px rgba(251,111,111,0.4)' : 'none'
+                        e.currentTarget.style.transform = 'none'
+                      }}
+                    >
+                      <span style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, background: isVirtual ? col.color : pc }} />
+                      {isVirtual ? (
+                        <>
+                          <div style={{ fontSize: 13, fontWeight: 500, lineHeight: 1.36, color: '#e4e6ee', textWrap: 'pretty' }}>{t.title}</div>
+                          <div style={{
+                            fontSize: 12,
+                            color: '#a8ad9c',
+                            lineHeight: 1.45,
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical',
+                            overflow: 'hidden',
+                          } as React.CSSProperties}>
+                            {(t.blockReason ?? '').replace(/^review-required:\s*/i, '').trim() || 'Awaiting review'}
+                          </div>
+                          <div className="flex items-center justify-end" style={{ marginTop: 1 }}>
+                            {t.assignee && (
+                              <span
+                                className="mono flex items-center justify-center"
+                                style={{ fontSize: 9.5, fontWeight: 600, color: '#0a0e16', background: col.color, width: 21, height: 21, borderRadius: '50%', boxShadow: `0 0 0 2px color-mix(in oklab, ${col.color} 25%, transparent)` }}
+                                title={profileDisplayName(t.assignee)}
+                              >
+                                {initials(t.assignee)}
+                              </span>
+                            )}
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="flex items-center" style={{ gap: 8 }}>
+                            {t.priority !== 0 && (
+                              <span className="mono" style={{ fontSize: 10, fontWeight: 500, color: pc, background: `${pc}1c`, border: `1px solid ${pc}33`, borderRadius: 5, padding: '1px 6px' }}>
+                                P{t.priority}
+                              </span>
+                            )}
+                            <span style={{ fontSize: 10.5, color: '#767c92', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.tenant}</span>
+                          </div>
+                          <div style={{ fontSize: 13, fontWeight: 500, lineHeight: 1.36, color: '#e4e6ee', textWrap: 'pretty' }}>{t.title}</div>
+                          {t.skills.length > 0 && (
+                            <div className="flex flex-wrap" style={{ gap: 5 }}>
+                              {t.skills.slice(0, 3).map((sk) => (
+                                <span key={sk} className="mono" style={{ fontSize: 9.5, color: '#8c92a6', background: 'rgba(255,255,255,0.045)', borderRadius: 5, padding: '2px 6px' }}>
+                                  {sk}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                          <div className="flex items-center justify-between" style={{ marginTop: 1 }}>
+                            <div className="flex items-center" style={{ gap: 11, fontSize: 11, color: '#6a7088' }}>
+                              {age && (
+                                <span
+                                  className="inline-flex items-center"
+                                  style={{ gap: 4, color: staleColor || '#6a7088', background: staleColor ? `${staleColor}1f` : 'transparent', borderRadius: 5, padding: '1px 6px' }}
+                                  title={`in ${LANE_MAP[t.status].label.toLowerCase()} for ${age}`}
+                                >
+                                  {stale === 'red' && (
+                                    <span style={{ width: 5, height: 5, borderRadius: '50%', background: staleColor || '#fb6f6f', animation: 'hpulse 1.4s ease-in-out infinite' }} />
+                                  )}
+                                  {age}
+                                </span>
+                              )}
+                            </div>
+                            {t.assignee && (
+                              <span
+                                className="mono flex items-center justify-center"
+                                style={{ fontSize: 9.5, fontWeight: 600, color: '#0a0e16', background: col.color, width: 21, height: 21, borderRadius: '50%', boxShadow: `0 0 0 2px color-mix(in oklab, ${col.color} 25%, transparent)` }}
+                                title={profileDisplayName(t.assignee)}
+                              >
+                                {initials(t.assignee)}
+                              </span>
+                            )}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )
+                })}
+                {colTasks.length === 0 && !forbidden && (
+                  <div style={{ border: '1px dashed rgba(255,255,255,0.08)', borderRadius: 9, padding: 16, textAlign: 'center', fontSize: 11, color: '#4f566b' }}>empty</div>
+                )}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Linear triage context menu */}
+      {triage && (
+        <>
+          <div onClick={closeTriage} onContextMenu={(e) => { e.preventDefault(); closeTriage() }} style={{ position: 'fixed', inset: 0, zIndex: 55 }} />
+          <div
+            style={{
+              position: 'fixed',
+              left: Math.min(triage.x, window.innerWidth - 244),
+              top: Math.min(triage.y, window.innerHeight - 360),
+              zIndex: 56,
+              width: 232,
+              maxHeight: 360,
+              overflowY: 'auto',
+              background: '#0c1119',
+              border: '1px solid rgba(255,255,255,0.12)',
+              borderRadius: 11,
+              padding: 6,
+              boxShadow: '0 18px 48px rgba(0,0,0,0.6)',
+              animation: 'hmenuup 0.14s ease',
+            }}
+          >
+            <div style={{ padding: '7px 10px 9px', borderBottom: '1px solid rgba(255,255,255,0.06)', marginBottom: 5 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: '#dde0ea', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{triage.title}</div>
+              <div style={{ fontSize: 9.5, color: triage.linked ? '#5aa2f0' : '#6a7088', marginTop: 2 }}>
+                {triage.linked ? '● Linked to Linear' : '○ Not linked — local only'}
+              </div>
+            </div>
+
+            {/* Priority */}
+            <div style={{ fontSize: 9.5, color: '#6a7088', textTransform: 'uppercase', letterSpacing: '0.05em', padding: '4px 10px 3px' }}>Priority</div>
+            {PRIORITY_OPTIONS.map((p) => (
+              <div
+                key={p.value}
+                onClick={() => triageSetPriority(p.value)}
+                className="flex items-center"
+                style={{ gap: 9, padding: '7px 10px', borderRadius: 7, fontSize: 12, color: '#c6cad8', cursor: 'pointer' }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}
+                onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+              >
+                <span style={{ width: 8, height: 8, borderRadius: 2, flex: 'none', background: p.color }} />
+                {p.label}
+              </div>
+            ))}
+
+            {/* Reassign */}
+            <div style={{ fontSize: 9.5, color: '#6a7088', textTransform: 'uppercase', letterSpacing: '0.05em', padding: '8px 10px 3px', borderTop: '1px solid rgba(255,255,255,0.06)', marginTop: 5 }}>Reassign</div>
+            {CODER_FLEET.map((c) => {
+              const sel = triage.assignee === c
+              return (
+                <div
+                  key={c}
+                  onClick={() => triageReassign(c)}
+                  className="flex items-center justify-between"
+                  style={{ gap: 9, padding: '7px 10px', borderRadius: 7, fontSize: 12, color: sel ? '#e9ebf2' : '#c6cad8', cursor: 'pointer', background: sel ? 'rgba(255,255,255,0.05)' : 'transparent' }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = sel ? 'rgba(255,255,255,0.05)' : 'transparent')}
+                >
+                  <span>{profileDisplayName(c)}</span>
+                  {sel && (
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={accent} strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M20 6 9 17l-5-5" />
+                    </svg>
+                  )}
+                </div>
+              )
+            })}
+
+            {/* Labels (Linear-linked only) */}
+            <div style={{ fontSize: 9.5, color: '#6a7088', textTransform: 'uppercase', letterSpacing: '0.05em', padding: '8px 10px 3px', borderTop: '1px solid rgba(255,255,255,0.06)', marginTop: 5 }}>Labels</div>
+            {!triage.linked ? (
+              <div style={{ padding: '6px 10px', fontSize: 11, color: '#565d72' }}>Link to Linear to edit labels</div>
+            ) : triage.loading ? (
+              <div style={{ padding: '6px 10px', fontSize: 11, color: '#565d72' }}>Loading labels…</div>
+            ) : triage.labels.length === 0 ? (
+              <div style={{ padding: '6px 10px', fontSize: 11, color: '#565d72' }}>No labels available</div>
+            ) : (
+              triage.labels.map((l) => {
+                const on = triage.activeLabelIds.includes(l.id)
+                return (
+                  <div
+                    key={l.id}
+                    onClick={() => triageToggleLabel(l.id)}
+                    className="flex items-center justify-between"
+                    style={{ gap: 9, padding: '7px 10px', borderRadius: 7, fontSize: 12, color: on ? '#e9ebf2' : '#c6cad8', cursor: 'pointer', background: on ? 'rgba(255,255,255,0.05)' : 'transparent' }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = on ? 'rgba(255,255,255,0.05)' : 'transparent')}
+                  >
+                    <span className="inline-flex items-center" style={{ gap: 8, minWidth: 0 }}>
+                      <span style={{ width: 8, height: 8, borderRadius: '50%', flex: 'none', background: l.color || '#6a7088' }} />
+                      <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{l.name}</span>
+                    </span>
+                    {on && (
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={accent} strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M20 6 9 17l-5-5" />
+                      </svg>
+                    )}
+                  </div>
+                )
+              })
+            )}
+          </div>
+        </>
+      )}
+
+      {/* Toast */}
+      {toast && (
+        <div
+          className="flex items-center"
+          style={{
+            position: 'fixed',
+            left: '50%',
+            bottom: 28,
+            transform: 'translateX(-50%)',
+            gap: 9,
+            background: '#141a26',
+            border: '1px solid var(--tile-border)',
+            borderLeft: `3px solid ${accent}`,
+            borderRadius: 10,
+            padding: '12px 18px',
+            fontSize: 13,
+            color: '#e9ebf2',
+            boxShadow: '0 16px 44px rgba(0,0,0,0.55)',
+            animation: 'htoast 0.22s ease',
+            zIndex: 50,
+          }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill={accent}>
+            <path d="M13 2L3 14h7v8l10-12h-7z" />
+          </svg>
+          {toast}
+        </div>
+      )}
+    </div>
+  )
+}

@@ -1,0 +1,35 @@
+/* Phase 3 panel keyframes — additive to tokens.css.
+   Defined here (not in the shared tokens.css) so concurrent phases don't
+   collide on the same file. Duplicate keyframe names across phases are
+   harmless: definitions are identical. Imported by Phase 3 panel modules. */
+
+@keyframes hscrimin {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes hdrawerin {
+  from {
+    opacity: 0;
+    transform: translateX(34px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes hcmdrow {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
