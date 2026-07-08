@@ -21,6 +21,7 @@ this file alone.
 
 import os
 import asyncio as _asyncio
+import logging as _logging
 import mimetypes
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -29,6 +30,23 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, RedirectResponse
 from fastapi.routing import APIRouter
+
+# ---------------------------------------------------------------------------
+# Logging — configured at IMPORT time so it applies under the production
+# ``uvicorn server:app`` entrypoint (which never runs the ``__main__`` block
+# below, where basicConfig used to live). Without a root handler here, every
+# ``routes.*`` logger.info/.warning/.error call was silently dropped — which is
+# exactly why the Sentry→Linear leg could fail invisibly. Attach a StreamHandler
+# to the root logger so all module loggers propagate to stdout → journald.
+# Level is INFO by default; override with HERMES_DISPATCHER_LOG_LEVEL.
+_log_level = os.environ.get("HERMES_DISPATCHER_LOG_LEVEL", "INFO").upper()
+if not _logging.getLogger().handlers:
+    _logging.basicConfig(
+        level=getattr(_logging, _log_level, _logging.INFO),
+        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+    )
+else:
+    _logging.getLogger().setLevel(getattr(_logging, _log_level, _logging.INFO))
 
 # ---------------------------------------------------------------------------
 # Paths

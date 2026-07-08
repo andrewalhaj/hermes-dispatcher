@@ -870,10 +870,22 @@ async def sentry_webhook(request: Request):
                         },
                         timeout=aiohttp.ClientTimeout(total=5),
                     ) as resp:
-                        # Consume/release the response body so the connection is
-                        # returned cleanly to the pool.
-                        await resp.read()
-                    logger.info("sentry webhook: added comment to existing Linear issue %s for Sentry issue %s", existing_linear_id, sentry_issue_id)
+                        # Linear returns HTTP 200 even for application-level
+                        # failures (rate/usage limits, validation): the error is
+                        # carried in the GraphQL ``errors`` array, not the status
+                        # code. Inspect it explicitly so failures are never
+                        # silently swallowed.
+                        c_result = await resp.json()
+                    c_errors = c_result.get("errors")
+                    c_ok = ((c_result.get("data") or {}).get("commentCreate") or {}).get("success")
+                    if c_errors or not c_ok:
+                        logger.error(
+                            "sentry webhook: Linear commentCreate FAILED for Sentry issue %s (existing Linear %s, http=%s): %s",
+                            sentry_issue_id, existing_linear_id, resp.status,
+                            json.dumps(c_errors or c_result)[:1000],
+                        )
+                    else:
+                        logger.info("sentry webhook: added comment to existing Linear issue %s for Sentry issue %s", existing_linear_id, sentry_issue_id)
                 else:
                     # No existing issue — create a new one
                     linear_query = """
@@ -904,12 +916,25 @@ async def sentry_webhook(request: Request):
                         timeout=aiohttp.ClientTimeout(total=5),
                     ) as resp:
                         result = await resp.json()
-                        new_issue = (result.get("data", {}) or {}).get("issueCreate", {}).get("issue", {})
+                        # Linear returns HTTP 200 even when the mutation fails:
+                        # usage/rate limits and validation errors arrive as a
+                        # GraphQL ``errors`` array with ``data: null``. Reading
+                        # only result["data"] silently drops these (the original
+                        # bug — an over-quota workspace returned USAGE_LIMIT_EXCEEDED
+                        # and nothing was ever logged or mapped).
+                        errors = result.get("errors")
+                        new_issue = ((result.get("data") or {}).get("issueCreate") or {}).get("issue") or {}
                         if new_issue and new_issue.get("id"):
                             _sentry_linear_map[sentry_issue_id] = new_issue["id"]
                             with open(_SENTRY_LINEAR_MAP_FILE, "w") as _f:
                                 json.dump(_sentry_linear_map, _f)
                             logger.info("sentry webhook: created Linear issue %s for Sentry issue %s", new_issue["id"], sentry_issue_id)
+                        else:
+                            logger.error(
+                                "sentry webhook: Linear issueCreate FAILED for Sentry issue %s (project=%s, http=%s) — NO issue created, NO map entry: %s",
+                                sentry_issue_id, project, resp.status,
+                                json.dumps(errors or result)[:1000],
+                            )
         except Exception as exc:
             logger.warning("sentry webhook: Linear issue creation failed: %s", exc)
 
