@@ -1,0 +1,102 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@keyframes hstars {
+  from { transform: translateY(0); }
+  to   { transform: translateY(-2000px); }
+}
+
+@layer base {
+  * {
+    box-sizing: border-box;
+    /* Smooth scrolling everywhere — anchored jumps + programmatic scrollTo glide. */
+    scroll-behavior: smooth;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  html,
+  body,
+  #root {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+  }
+
+  /* Momentum scrolling on iOS/touch + smooth behavior + stable gutter so content
+     doesn't shift horizontally when the scrollbar appears/disappears. */
+  .overflow-y-auto,
+  [style*="overflow-y: auto"],
+  [style*="overflow-y:auto"],
+  [style*="overflow: auto"],
+  [style*="overflow:auto"] {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+    scrollbar-gutter: stable;
+  }
+
+  /* Respect users who ask for reduced motion. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    html {
+      scroll-behavior: auto;
+    }
+  }
+
+  body {
+    /* Static dark gradient sits fixed behind everything */
+    background:
+      radial-gradient(ellipse at 20% 50%, #0d1525 0%, #080b11 70%),
+      var(--bg);
+    color: var(--text-body);
+    font-family: var(--font-ui);
+    font-size: 14px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::-webkit-scrollbar {
+    width: 9px;
+    height: 9px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.09);
+    border-radius: 6px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.18);
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--text-faint);
+  }
+
+  /* Scale base font slightly on small screens so dense UI stays legible
+     without horizontal overflow. */
+  @media (max-width: 767px) {
+    :root {
+      font-size: 14px;
+    }
+  }
+}
+
+/* System Monitor metric cards: two-up by default, single column on very
+   narrow viewports so the cards don't crush. */
+.sysmon-metric-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+@media (max-width: 480px) {
+  .sysmon-metric-grid {
+    grid-template-columns: 1fr;
+  }
+}
