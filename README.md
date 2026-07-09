@@ -19,29 +19,57 @@ Hermes Dispatcher is a self-hosted FastAPI server that provides a live operation
 
 ## Architecture
 
-```
-                     MM01 (Hermes Host)
-                         │
-  Browser ───────────────┤ uvicorn :8787 (hermes-dispatcher)
-  (Tailscale/CF)         │ ├─ /api/{kanban,chat,system,memory,...}
-                         │ ├─ /api/hooks/{github,sentry,linear,figma,
-                         │ │              notion,knowledge,kanban}
-                         │ └─ /app/dist/ (React SPA)
-                         │
-                         │ hermes-gateway ── Telegram / Discord
-                         │ Neo4j (Docker) · Firecrawl · Cloudflare Tunnel
-                         │
-                         ├──────────────── Tailscale ────────────────┐
-                         ▼                                           ▼
-                    MS01 (inference node)                 External SaaS
-                    Ollama: qwen3-embed,                    Supabase
-                    qwen2.5-32b                             Neo4j Aura
-                                                            Linear
-                                                            Sentry
-                                                            GitHub
+```mermaid
+flowchart TB
+    subgraph HermesHost["Hermes Host"]
+        UVICORN["uvicorn :8787 (hermes-dispatcher)"]
+        GATEWAY["hermes-gateway"]
+        NEO4J["Neo4j (Docker)"]
+        FIRECRAWL["Firecrawl"]
+        CFTUNNEL["Cloudflare Tunnel"]
+    end
+
+    subgraph Routes["Dispatcher Routes"]
+        API["/api/{kanban,chat,system,memory,sessions,skills,agents,overview,insights,logs,settings,search,cron,notify}"]
+        WEBHOOKS["/api/hooks/{github,sentry,linear,figma,notion,knowledge,kanban}"]
+        SPA["/app/dist/ (React SPA)"]
+    end
+
+    subgraph Messaging["Messaging"]
+        TELEGRAM["Telegram"]
+        DISCORD["Discord"]
+    end
+
+    subgraph External["External Services"]
+        SUPABASE["Supabase"]
+        NEO4JAURA["Neo4j Aura"]
+        LINEAR["Linear"]
+        SENTRY["Sentry"]
+        GITHUB["GitHub"]
+    end
+
+    subgraph Inference["Inference Node"]
+        OLLAMA1["Ollama: qwen3-embed"]
+        OLLAMA2["Ollama: qwen2.5-32b"]
+    end
+
+    BROWSER["Browser (Tailscale / Cloudflare)"] --> UVICORN
+    UVICORN --> API
+    UVICORN --> WEBHOOKS
+    UVICORN --> SPA
+
+    GATEWAY --> TELEGRAM
+    GATEWAY --> DISCORD
+
+    UVICORN --> NEO4J
+    UVICORN --> FIRECRAWL
+    UVICORN --> CFTUNNEL
+
+    HermesHost -->|Tailscale| Inference
+    HermesHost -->|Tailscale| External
 ```
 
-**Hosts:** MM01 (Hermes host — agent gateway, dispatcher, dashboard) · MS01 (inference node — Ollama, GPU workloads).
+**Hosts:** Hermes Host (agent gateway, dispatcher, dashboard) · Inference Node (Ollama, GPU workloads).
 
 ---
 
