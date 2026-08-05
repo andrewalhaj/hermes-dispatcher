@@ -1,8 +1,20 @@
 # Hermes Dispatcher
 
-**Mission-control dashboard, webhook fleet, and API backend for orchestrating AI worker agents.**
+**Self-hosted mission control for a fleet of AI worker agents — dashboard, event-driven automation, and API backend in one FastAPI service.**
 
-Hermes Dispatcher is a self-hosted FastAPI server that provides a live operational dashboard over a Hermes agent swarm. It combines a React SPA dashboard with a suite of inbound webhook receivers that translate events from development tools into agent actions — creating issues, updating Kanban boards, storing facts, and notifying Telegram.
+Hermes Dispatcher is the operational hub of a multi-agent AI platform. It provides a live web dashboard over an agent swarm, and a suite of inbound webhook receivers that turn events from development tools (GitHub, Sentry, Linear, Notion, Figma) into autonomous agent actions — creating issues, routing Kanban work to agents, storing knowledge, and notifying stakeholders in real time.
+
+Built and operated in production as a personal platform: one server, ~15 API routers, 7 webhook integrations, and a React SPA, running 24/7 behind Tailscale and a Cloudflare Tunnel.
+
+---
+
+## Highlights
+
+- **Agent orchestration** — Kanban-based task routing dispatches work to a roster of specialized worker agents, each with a defined profile and scoped tool permissions. Card priority maps to dispatch order; agent status is visible live on the board.
+- **Autonomous incident intake** — a Sentry error alert becomes a Linear issue (deduplicated by Sentry event ID), then a prioritized Kanban card, then a Telegram notification — with no human in the loop until one is needed.
+- **Operational visibility** — token usage and cost analytics per model, system metrics (CPU/GPU/RAM/network), live log streaming over SSE, session replay, and an activity heatmap across the agent fleet.
+- **Governed memory** — a hybrid memory architecture: Supabase pgvector for semantic recall, Neo4j for a code knowledge graph, SQLite for board and session state, and markdown as the human-auditable pointer layer.
+- **Security posture** — bcrypt-hashed session auth, git-ignored secrets, webhook signature verification, CORS allowlisting, and network exposure limited to Tailscale/Cloudflare Tunnel.
 
 ---
 
@@ -19,57 +31,82 @@ Hermes Dispatcher is a self-hosted FastAPI server that provides a live operation
 
 ## Architecture
 
+### Event flow
+
+How an external event becomes agent work:
+
 ```mermaid
-flowchart TB
-    subgraph HermesHost["Hermes Host"]
-        UVICORN["uvicorn :8787 (hermes-dispatcher)"]
-        GATEWAY["hermes-gateway"]
-        NEO4J["Neo4j (Docker)"]
-        FIRECRAWL["Firecrawl"]
-        CFTUNNEL["Cloudflare Tunnel"]
-    end
-
-    subgraph Routes["Dispatcher Routes"]
-        API["/api/{kanban,chat,system,memory,sessions,skills,agents,overview,insights,logs,settings,search,cron,notify}"]
-        WEBHOOKS["/api/hooks/{github,sentry,linear,figma,notion,knowledge,kanban}"]
-        SPA["/app/dist/ (React SPA)"]
-    end
-
-    subgraph Messaging["Messaging"]
-        TELEGRAM["Telegram"]
-        DISCORD["Discord"]
-    end
-
-    subgraph External["External Services"]
-        SUPABASE["Supabase"]
-        NEO4JAURA["Neo4j Aura"]
-        LINEAR["Linear"]
-        SENTRY["Sentry"]
+flowchart LR
+    subgraph Sources["Event Sources"]
         GITHUB["GitHub"]
+        SENTRY["Sentry"]
+        LINEAR["Linear"]
+        NOTION["Notion / Figma"]
     end
 
-    subgraph Inference["Inference Node"]
-        OLLAMA1["Ollama: qwen3-embed"]
-        OLLAMA2["Ollama: qwen2.5-32b"]
+    subgraph Dispatcher["Hermes Dispatcher (FastAPI :8787)"]
+        HOOKS["Webhook receivers<br/>/api/hooks/*"]
+        ROUTER["Priority routing<br/>+ dedup"]
+        KANBAN["Kanban board<br/>(SQLite)"]
     end
 
-    BROWSER["Browser (Tailscale / Cloudflare)"] --> UVICORN
-    UVICORN --> API
-    UVICORN --> WEBHOOKS
-    UVICORN --> SPA
+    subgraph Agents["Agent Fleet"]
+        WORKERS["Worker agents<br/>(scoped profiles)"]
+    end
 
-    GATEWAY --> TELEGRAM
-    GATEWAY --> DISCORD
+    subgraph Out["Delivery"]
+        TG["Telegram"]
+        LIN["Linear issues"]
+    end
 
-    UVICORN --> NEO4J
-    UVICORN --> FIRECRAWL
-    UVICORN --> CFTUNNEL
-
-    HermesHost -->|Tailscale| Inference
-    HermesHost -->|Tailscale| External
+    GITHUB --> HOOKS
+    SENTRY --> HOOKS
+    LINEAR --> HOOKS
+    NOTION --> HOOKS
+    HOOKS --> ROUTER
+    ROUTER --> KANBAN
+    ROUTER --> LIN
+    KANBAN --> WORKERS
+    WORKERS --> TG
 ```
 
-**Hosts:** Hermes Host (agent gateway, dispatcher, dashboard) · Inference Node (Ollama, GPU workloads).
+### Deployment topology
+
+Where everything runs:
+
+```mermaid
+flowchart TB
+    BROWSER["Browser<br/>(Tailscale / Cloudflare Tunnel)"]
+
+    subgraph Host["Hermes Host (Linux x86_64)"]
+        UVICORN["uvicorn :8787<br/>API + webhooks + React SPA"]
+        GATEWAY["hermes-gateway<br/>(Telegram / Discord)"]
+        NEO4J["Neo4j (Docker)"]
+        FIRECRAWL["Firecrawl"]
+    end
+
+    subgraph Cloud["External Services"]
+        SUPABASE["Supabase<br/>(pgvector memory)"]
+        LINEAR2["Linear"]
+        SENTRY2["Sentry"]
+        GH2["GitHub"]
+    end
+
+    subgraph GPU["Inference Node (Tailscale)"]
+        OLLAMA["Ollama<br/>qwen3-embed · qwen2.5-32b"]
+    end
+
+    BROWSER --> UVICORN
+    UVICORN --> NEO4J
+    UVICORN --> FIRECRAWL
+    UVICORN <--> SUPABASE
+    UVICORN <--> LINEAR2
+    SENTRY2 --> UVICORN
+    GH2 --> UVICORN
+    UVICORN --> OLLAMA
+```
+
+**In plain terms:** a single uvicorn process serves the API, the webhook receivers, and the pre-built React dashboard. The gateway handles chat platforms. Semantic memory lives in Supabase, the code graph in a local Neo4j container, and embeddings/local inference run on a separate GPU node reached over Tailscale. Nothing is exposed to the public internet except through the Cloudflare Tunnel.
 
 ---
 
@@ -137,7 +174,7 @@ All routes serve under `/api`. Webhooks are at `/api/hooks/{github,sentry,linear
 | `HERMES_DISPATCHER_FALLBACK_PORTS` | — | Comma-separated fallback ports |
 | `DASHBOARD_CORS_ORIGINS` | Tailscale + CF domains | Override CORS allowlist |
 | `HERMES_HOME` | `~/.hermes` | Hermes data root |
-| `OLLAMA_HOST` | — | MS01 Ollama endpoint (for embeddings) |
+| `OLLAMA_HOST` | — | Inference-node Ollama endpoint (for embeddings) |
 
 Required secrets stored in `.env` (git-ignored): `LINEAR_API_KEY`, `SENTRY_*`, `NEO4J_*`, `SUPABASE_*`, `GITHUB_WEBHOOK_SECRET`, etc.
 
@@ -152,3 +189,12 @@ Required secrets stored in `.env` (git-ignored): `LINEAR_API_KEY`, `SENTRY_*`, `
 | Data | SQLite, Supabase pgvector, Neo4j (code graph) |
 | Auth | Session cookie (`hd_session`), bcrypt (rounds=12) |
 | Hosting | Self-hosted on Linux x86_64 |
+
+---
+
+## Branches
+
+| Branch | Purpose |
+|---|---|
+| `master` | Dispatcher — API, webhooks, dashboard SPA |
+| `hermes-agent` | Agent-side skills, patches, and setup |
