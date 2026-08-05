@@ -136,7 +136,7 @@ export const INITIAL_THREADS: Record<string, Message[]> = {
     {
       id: 'h2',
       role: 'agent',
-      text: 'Done — built-in, Honcho, and the Obsidian vault are all connected. The full breakdown is in docs/hermes-memory-stores.md if you want the details.',
+      text: 'Done — built-in, the Supabase knowledge store, and the Obsidian vault are all connected. The full breakdown is in docs/hermes-memory-stores.md if you want the details.',
       at: '2:14 PM',
     },
   ],
@@ -157,9 +157,9 @@ export const PAST_SESSIONS: Record<string, PastSession[]> = {
       when: 'Yesterday · 4:02 PM',
       msgs: [
         { role: 'user', text: 'Which memory stores are actually connected right now?', at: '4:02 PM' },
-        { role: 'agent', text: 'Three: the built-in store, Honcho, and the Obsidian vault. Mem0 is configured but disabled.', at: '4:03 PM' },
-        { role: 'user', text: 'Disable Honcho for now, it is noisy.', at: '4:05 PM' },
-        { role: 'agent', text: 'Done — Honcho is off. Reads now fall back to built-in + Obsidian.', at: '4:05 PM' },
+        { role: 'agent', text: 'Three: the built-in store, the Supabase knowledge store, and the Obsidian vault. Mem0 is configured but disabled.', at: '4:03 PM' },
+        { role: 'user', text: 'Disable Mem0 for now, it is noisy.', at: '4:05 PM' },
+        { role: 'agent', text: 'Done — Mem0 is off. Reads now fall back to built-in + Obsidian.', at: '4:05 PM' },
       ],
     },
     {
