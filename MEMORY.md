@@ -2,7 +2,7 @@ Neo4j: knowledge.py search "Neo4j Aura fce34ad7 knowledge graph pipeline pgvecto
 §
 Dashboard: knowledge.py search "hermes-dashboard deploy build dist index hash restart dashboard_passwd_hash auth"
 §
-Webhooks: knowledge.py search "webhook fleet supabase honcho figma github sentry linear hooks.py"
+Webhooks: knowledge.py search "webhook fleet supabase figma github sentry linear hooks.py"
 §
 Linear: knowledge.py search "Linear team Hermesjarvis 38a0c106 intake kanban deadlock SQLite"
 §

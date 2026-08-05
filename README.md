@@ -38,7 +38,6 @@ Webhook fleet connects Hermes to external services, all routed through `hermes-d
 | **GitHub** | PR review, repo management, code search |
 | **Notion** | Documentation, notes, databases |
 | **Figma** | Design file access, component inspection |
-| **Honcho** | Cross-session memory and peer profiles |
 
 ### Delivery
 
@@ -81,14 +80,14 @@ Hermes talks to Andrew through three channels, all wired through the gateway:
          ▼                    ▼                    ▼
 ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐
 │   Mac Studio     │  │  HIL-1 VPS      │  │  Cloud Services  │
-│   M2 Max · 64GB  │  │  32GB Hetzner   │  │                 │
+│   M2 Max · 64GB  │  │  4GB Hetzner    │  │                 │
 │                  │  │                  │  │  Supabase       │
 │  Ollama :11434   │  │  Mealio :3015    │  │  Neo4j AuraDB   │
 │  qwen2.5:72b    │  │  (Next.js app)   │  │  GitHub         │
 │  qwen2.5:32b    │  │                  │  │  Linear         │
 │  qwen2.5vl:7b   │  │                  │  │  Sentry         │
 └─────────────────┘  └─────────────────┘  │  Notion         │
-         │                    │            │  Honcho         │
+         │                    │            │                 │
          │ Tailscale          │            └─────────────────┘
          ▼                    ▼
 ┌─────────────────┐  ┌─────────────────┐
@@ -110,7 +109,6 @@ User message (Telegram)
 Gateway receives
   │
   ├─► B-full: search cold store (Supabase pgvector) ≥0.80 → inject relevant facts
-  ├─► Honcho: inject peer context + session summary
   ├─► Patches: write gate, delegation nudge, domain ownership checkpoints arm
   │
   ▼

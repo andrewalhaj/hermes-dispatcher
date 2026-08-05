@@ -2,7 +2,7 @@ Heavyweight correct fix over workaround. Shares credentials when stuck. Setup mu
 §
 Design: aurora palette, no glows. Telegram = UX north star. Dashboard: real tiles, chat sidebar flush full-height. Perf: Intel UHD 630 — avoid box-shadow/GLSL, prefer canvas.
 §
-Dashboard: real tiles with live data. Memory galaxy = Supabase/Honcho/references/cold store. Chat sidebar: flush full-height, solid bg.
+Dashboard: real tiles with live data. Memory galaxy = Supabase/references/cold store. Chat sidebar: flush full-height, solid bg.
 §
 Coder fleet round-robin (coder→coder-d), claude-sonnet-4-6. MECHANISM: failure→checkable cause. 'Review the repo' = plain status only. Expects thorough verification — full audit over 'done'.
 §

@@ -29,8 +29,7 @@ Before ANY reply, scan the available skills list. If a skill matches or is even 
 Before multi-step troubleshooting, diagnosis, or any fix attempt:
 
 1. `session_search(query="<topic>")` — already diagnosed?
-2. `honcho_search(query="<topic>")` — parked decisions or preferences?
-3. `memory(action=read)` — durable facts?
+2. `memory(action=read)` — durable facts?
 
 If memory says "diagnosed and parked," report the known state and STOP. Do not re-derive what's already settled — re-deriving is wasted motion dressed as diligence.
 
