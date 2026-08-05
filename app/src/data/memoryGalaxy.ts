@@ -14,7 +14,7 @@ interface ApiGalaxyResponse {
 
 // Keys must match the `tier` strings emitted by routes/memory.py:get_galaxy().
 // Memory files: hot (MEMORY.md), warm (USER.md), soul, agents.
-// References dir: cold. Honcho peer-card: honcho.
+// References dir: cold.
 // Knowledge store rows are split by tag into four sub-tiers via _kb_tier():
 // user-profile, session, offload, knowledge — each needs a distinct label here,
 // otherwise unmapped keys fall back to `cold` and all render as "References".
@@ -24,7 +24,6 @@ const TIER_META: Record<string, { color: string; label: string; center: [number,
   cold: { color: '#6a7088', label: 'References',    center: [ 0.2,  2.3,  0.9] },
   soul:   { color: '#a78bfa', label: 'Soul',       center: [-1.0, -1.8,  0.8] },
   agents: { color: '#34d399', label: 'Agents',      center: [ 1.2, -1.6, -1.0] },
-  honcho: { color: '#f472b6', label: 'Honcho',      center: [ 0.0,  0.0,  2.2] },
   knowledge: { color: '#fb923c', label: 'Knowledge', center: [-0.8, 1.2, -1.8] },
   'user-profile': { color: '#22d3ee', label: 'Profile Facts', center: [ 1.8, -0.4,  1.6] },
   session:        { color: '#e879f9', label: 'Sessions',      center: [-1.9,  1.4, -0.6] },
