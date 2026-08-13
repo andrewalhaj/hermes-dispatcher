@@ -186,6 +186,12 @@ def _make_db(path):
 class AutocloseForCardTest(unittest.TestCase):
     def setUp(self):
         self._orig = la._graphql
+        # Pin KANBAN_DB to this module's temp DB. la.KANBAN_DB is frozen at
+        # import time; when another test module imports `la` first with a
+        # different KANBAN_DB, the stale value points elsewhere. Re-assign in
+        # setUp so this suite is order-independent under the full test run.
+        self._orig_db = la.KANBAN_DB
+        la.KANBAN_DB = _TMP_DB
         # Fresh DB per test.
         if os.path.exists(_TMP_DB):
             os.remove(_TMP_DB)
@@ -193,6 +199,7 @@ class AutocloseForCardTest(unittest.TestCase):
 
     def tearDown(self):
         la._graphql = self._orig
+        la.KANBAN_DB = self._orig_db
         self.conn.close()
         if os.path.exists(_TMP_DB):
             os.remove(_TMP_DB)
