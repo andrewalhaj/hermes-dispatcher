@@ -63,7 +63,7 @@ DIST_DIR: Path = APP_DIR / "app" / "dist"
 # ---------------------------------------------------------------------------
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global _linear_sync_task
+    global _linear_sync_task, _reverse_sync_task
     try:
         from routes.linear_sync import run_outbound_poller
         _linear_sync_stop.clear()
@@ -73,13 +73,36 @@ async def lifespan(app: FastAPI):
         print("[server] linear↔kanban outbound comment poller started")
     except Exception as _exc:  # never block startup on the poller
         print(f"[server] linear sync poller failed to start: {_exc}")
+
+    # Reverse sync: Kanban card done → close linked Linear issue. Catches the
+    # worker `kanban_complete` path, which writes status='done' straight into
+    # kanban.db and fires no webhook. Polls the SQLite DB (kanban has no
+    # outbound webhook) and closes each linked issue exactly once.
+    try:
+        from routes.kanban_linear_poller import run_reverse_sync_poller
+        _reverse_sync_stop.clear()
+        _reverse_sync_task = _asyncio.create_task(
+            run_reverse_sync_poller(_reverse_sync_stop)
+        )
+        print("[server] kanban→linear reverse-sync poller started")
+    except Exception as _exc:  # never block startup on the poller
+        print(f"[server] reverse-sync poller failed to start: {_exc}")
+
     yield
+
     _linear_sync_stop.set()
     if _linear_sync_task is not None:
         try:
             await _asyncio.wait_for(_linear_sync_task, timeout=5)
         except Exception:
             _linear_sync_task.cancel()
+
+    _reverse_sync_stop.set()
+    if _reverse_sync_task is not None:
+        try:
+            await _asyncio.wait_for(_reverse_sync_task, timeout=5)
+        except Exception:
+            _reverse_sync_task.cancel()
 
 
 app = FastAPI(title="Hermes Dispatcher", version="0.1.0", lifespan=lifespan)
@@ -250,6 +273,10 @@ import asyncio as _asyncio
 
 _linear_sync_stop = _asyncio.Event()
 _linear_sync_task: "_asyncio.Task | None" = None
+
+# Reverse-sync poller (Kanban card done → close linked Linear issue) lifecycle.
+_reverse_sync_stop = _asyncio.Event()
+_reverse_sync_task: "_asyncio.Task | None" = None
 
 
 from routes.linear_triage import router as linear_triage_router
