@@ -20,8 +20,6 @@ def _role(name: str) -> str:
         return "Orchestrator"
     if name.startswith("coder"):
         return "Coding"
-    if name == "ha-bot":
-        return "Home Automation"
     if name.startswith("swarm-"):
         return "Swarm worker"
     if name == "executor":
