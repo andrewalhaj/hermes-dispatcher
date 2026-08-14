@@ -42,6 +42,35 @@ router = APIRouter(prefix="/hooks", tags=["hooks"])
 HERMES_HOME = Path(os.environ.get("HERMES_HOME", os.path.expanduser("~/.hermes")))
 WEBHOOK_SECRET = os.environ.get("WEBHOOK_SECRET", "")
 
+# ---------------------------------------------------------------------------
+# Assignee validation
+# ---------------------------------------------------------------------------
+# Live worker profiles that can actually be dispatched. A Kanban card whose
+# assignee is not in this set is UNDISPATCHABLE — it silently rots in the
+# board. `ha-bot` (deleted 2026-06-25) landing here was exactly that failure
+# mode; its home-automation work was folded into `coder` per the same
+# decision. Any assignee that falls outside this set is rewritten to
+# ASSIGNEE_FALLBACK with a logged warning so no card is ever written with a
+# nonexistent profile.
+KNOWN_ASSIGNEES = frozenset({"coder", "coder-b", "coder-c", "coder-d", "default"})
+ASSIGNEE_FALLBACK = "coder"
+
+
+def _valid_assignee(assignee: str | None) -> str:
+    """Return a dispatchable assignee, coercing unknowns to ASSIGNEE_FALLBACK.
+
+    Guards the Linear intake against writing a card assigned to a profile that
+    no longer exists (e.g. the deleted `ha-bot`). Unknown / empty assignees are
+    logged at WARNING and rewritten to the fallback so the card can dispatch.
+    """
+    if isinstance(assignee, str) and assignee in KNOWN_ASSIGNEES:
+        return assignee
+    logger.warning(
+        "assignee %r is not a live worker profile %s — falling back to %r",
+        assignee, sorted(KNOWN_ASSIGNEES), ASSIGNEE_FALLBACK,
+    )
+    return ASSIGNEE_FALLBACK
+
 # Neo4j graph layer — mirrors knowledge facts for relationship traversal.
 # Credentials from Hermes .env (NEO4J_URI, NEO4J_USERNAME, NEO4J_PASSWORD).
 NEO4J_URI = os.environ.get("NEO4J_URI", "")
@@ -1062,10 +1091,13 @@ async def linear_webhook(request: Request):
         # Kanban: higher = first. Map: 0→50, 1→30, 2→10, 3→5, 4→1
         kanban_priority = {0: 50, 1: 30, 2: 10, 3: 5}.get(linear_priority, 1)
 
-        # Round-robin across coder fleet
+        # Round-robin across coder fleet. Draw only from KNOWN_ASSIGNEES so the
+        # pool can never drift out of the dispatchable set, then pass through the
+        # validation guard as a belt-and-suspenders check before the card is
+        # written (no card may carry a nonexistent profile — see _valid_assignee).
         import random
-        coders = ["coder", "coder-b", "coder-c", "coder-d"]
-        assignee = random.choice(coders)
+        coders = [p for p in ("coder", "coder-b", "coder-c", "coder-d") if p in KNOWN_ASSIGNEES]
+        assignee = _valid_assignee(random.choice(coders) if coders else ASSIGNEE_FALLBACK)
 
         description = data.get("description", "") if isinstance(data, dict) else ""
         kanban_body = (
