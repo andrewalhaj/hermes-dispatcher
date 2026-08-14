@@ -7,7 +7,7 @@ REAL data or it is REMOVED. No fabricated metrics. No fake agent names.**
 
 Real data already verified live:
 - `/api/overview` returns `{kanban_summary, active_agents, system:{cpu_pct,mem_pct,disk_pct}, recent_activity, sparkline[24]}`.
-- `/api/agents` returns a list of real profiles with `{name, role, model, color, status, today, completed, total, success, lastActive}`. Real profiles are `coder, coder-b..coder-l, executor, ha-bot, swarm-worker-*, swarm-synthesizer, swarm-verifier`. NOT `rvc-runner/atlas-etl/npc-builder/ops-bot/w-okada-01` — those are FAKE fixtures to delete.
+- `/api/agents` returns a list of real profiles with `{name, role, model, color, status, today, completed, total, success, lastActive}`. Real profiles are `coder, coder-b..coder-l, executor, swarm-worker-*, swarm-synthesizer, swarm-verifier` (`ha-bot` was deleted 2026-06-25; its home-automation work folded into `coder`). NOT `rvc-runner/atlas-etl/npc-builder/ops-bot/w-okada-01` — those are FAKE fixtures to delete.
 - kanban DB at `~/.hermes/kanban.db`. Tables: `tasks(assignee,status,completed_at,...)`, `task_runs(profile,started_at,ended_at,outcome,...)`. Real total task count ~53. There is NO `sqlite3` CLI; use Python `sqlite3` opened read-only `file:...?mode=ro`.
 
 This host is a MM01 with NO GPU telemetry. Do not invent GPU/VRAM/"MS01".
