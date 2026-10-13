@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { ACCENT } from '../../data/agents'
+import { safeIso, toValidTimestamp } from '../../utils/time'
 import '../../styles/phase3.css'
 
 interface LogsProps {
@@ -82,7 +83,7 @@ export default function Logs({ accent = ACCENT }: LogsProps) {
         const [, timestamp, level, service, message] = match
         return {
           id: `${idx}`,
-          timestamp: timestamp || new Date().toISOString(),
+          timestamp: toValidTimestamp(timestamp),
           service: service || 'unknown',
           level: (level?.toLowerCase() as LogLevel) || 'info',
           message: message || line,
@@ -748,7 +749,7 @@ export default function Logs({ accent = ACCENT }: LogsProps) {
                         <div>
                           <div style={{ color: '#6a7088', fontSize: 10, marginBottom: 4 }}>TIMESTAMP</div>
                           <div style={{ fontFamily: 'monospace', color: '#e4e6ee', fontSize: 11 }}>
-                            {new Date(entry.timestamp).toISOString()}
+                            {safeIso(entry.timestamp)}
                           </div>
                         </div>
                       )}
