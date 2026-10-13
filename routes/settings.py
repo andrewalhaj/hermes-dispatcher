@@ -28,6 +28,25 @@ def _load_config() -> dict:
         return yaml.safe_load(f) or {}
 
 
+def _as_dict(value) -> dict:
+    """Coerce a config section to a dict; non-dict shapes (str, list, None) -> {}."""
+    return value if isinstance(value, dict) else {}
+
+
+def _model_dict(value) -> dict:
+    """Normalize the `model` config field.
+
+    Accepts the canonical dict shape ({provider, default}) as well as the
+    legacy/shorthand string shape (`model: gpt-5`), which maps to
+    {"default": <str>}. Anything else -> {}.
+    """
+    if isinstance(value, dict):
+        return value
+    if isinstance(value, str):
+        return {"default": value}
+    return {}
+
+
 def _dump_config(cfg: dict) -> None:
     p = _config_path()
     p.parent.mkdir(parents=True, exist_ok=True)
@@ -41,12 +60,12 @@ def _dump_config(cfg: dict) -> None:
 @router.get("/settings")
 async def get_settings():
     cfg = _load_config()
-    model = cfg.get("model") or {}
-    display = cfg.get("display") or {}
-    memory = cfg.get("memory") or {}
-    agent = cfg.get("agent") or {}
-    delegation = cfg.get("delegation") or {}
-    dashboard = cfg.get("dashboard") or {}
+    model = _model_dict(cfg.get("model"))
+    display = _as_dict(cfg.get("display"))
+    memory = _as_dict(cfg.get("memory"))
+    agent = _as_dict(cfg.get("agent"))
+    delegation = _as_dict(cfg.get("delegation"))
+    dashboard = _as_dict(cfg.get("dashboard"))
     return {
         "model": {
             "default": model.get("default"),
@@ -85,35 +104,40 @@ async def put_settings(body: dict):
                 return
             node = cfg
             for k in keys[:-1]:
-                node = node.setdefault(k, {})
+                nxt = node.get(k)
+                if not isinstance(nxt, dict):
+                    # Replace legacy scalar shapes (e.g. `model: <str>`) with a dict
+                    nxt = {}
+                    node[k] = nxt
+                node = nxt
             node[keys[-1]] = value
 
-        bm = (body.get("model") or {})
+        bm = _model_dict(body.get("model"))
         _set(["model", "default"], bm.get("default"))
         _set(["model", "provider"], bm.get("provider"))
 
-        bd = (body.get("display") or {})
+        bd = _as_dict(body.get("display"))
         _set(["display", "language"], bd.get("language"))
         _set(["display", "show_cost"], bd.get("show_cost"))
         _set(["display", "streaming"], bd.get("streaming"))
         _set(["display", "theme"], bd.get("theme"))
 
-        bmem = (body.get("memory") or {})
+        bmem = _as_dict(body.get("memory"))
         _set(["memory", "memory_char_limit"], bmem.get("memory_char_limit"))
         _set(["memory", "user_char_limit"], bmem.get("user_char_limit"))
 
         _set(["agent", "reasoning_effort"], body.get("reasoning_effort"))
 
-        ba = (body.get("agent") or {})
+        ba = _as_dict(body.get("agent"))
         _set(["agent", "name"], ba.get("name"))
         _set(["agent", "workspace"], ba.get("workspace"))
 
-        bdel = (body.get("delegation") or {})
+        bdel = _as_dict(body.get("delegation"))
         _set(["delegation", "provider"], bdel.get("provider"))
         _set(["delegation", "model"], bdel.get("model"))
 
         # Dashboard behavior toggles — whitelist only known keys
-        bdash = body.get("dashboard") or {}
+        bdash = _as_dict(body.get("dashboard"))
         for k in _TOGGLE_KEYS:
             v = bdash.get(k)
             if isinstance(v, bool):
