@@ -136,8 +136,8 @@ def _fetch_counts() -> dict:
 
     stale_cutoff = time.time() - STALE_SECONDS
     open_count = len(nodes)
-    # Urgent per task spec: priority 0 (No priority) or 1 (Urgent).
-    urgent = sum(1 for n in nodes if n.get("priority") in (0, 1))
+    # Urgent per task spec: priority 1 (Urgent). Priority 0 = No priority, not urgent; finding #7.
+    urgent = sum(1 for n in nodes if n.get("priority") == 1)
     stale = sum(1 for n in nodes if _parse_iso(n.get("updatedAt", "")) < stale_cutoff)
     return {"open": open_count, "urgent": urgent, "stale": stale, "error": None}
 
