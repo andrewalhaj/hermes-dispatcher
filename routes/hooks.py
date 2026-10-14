@@ -937,7 +937,7 @@ async def sentry_webhook(request: Request):
                                 "input": {
                                     "teamId": _LINEAR_TEAM_ID,
                                     "title": f"[Sentry] {project}: {issue_title}" if project else f"[Sentry] {issue_title}",
-                                    "description": f"**Sentry Alert**\n\n- **Project:** {project}\n- **Level:** {level}\n- **URL:** {issue_url}" + (f"\n\nsentry-issue-id:{sentry_issue_id}" if sentry_issue_id else ""),
+                                    "description": f"**Sentry Alert**\n\n- **Project:** {project}\n- **Level:** {level}\n- **URL:** {issue_url}" + (f"\n\nSentry Issue ID: {sentry_issue_id}" if sentry_issue_id else ""),  # format matches sentry_autoclose._MARKER_RE; finding #6
                                     "priority": 1,  # High — Sentry alerts are urgent
                                 }
                             },
@@ -967,23 +967,11 @@ async def sentry_webhook(request: Request):
         except Exception as exc:
             logger.warning("sentry webhook: Linear issue creation failed: %s", exc)
 
-    # Fire-and-forget to Telegram via the dashboard's notify endpoint
+    # Fire-and-forget to Telegram — direct call, no HTTP round-trip (finding #3)
     if SENTRY_TELEGRAM_CHAT:
         try:
-            import aiohttp
-            async with aiohttp.ClientSession() as session:
-                async with session.post(
-                    f"http://127.0.0.1:8787/api/hooks/notify",
-                    json={
-                        "chat_id": SENTRY_TELEGRAM_CHAT,
-                        "text": telegram_msg,
-                        "parse_mode": "Markdown",
-                    },
-                    timeout=aiohttp.ClientTimeout(total=5),
-                ) as resp:
-                    # Consume/release the response body so the connection is
-                    # returned cleanly to the pool.
-                    await resp.read()
+            from routes.notify import send_telegram
+            await send_telegram(SENTRY_TELEGRAM_CHAT, telegram_msg, "Markdown")
         except Exception as exc:
             logger.warning("sentry webhook: telegram notify failed: %s", exc)
 
@@ -1086,10 +1074,11 @@ async def linear_webhook(request: Request):
     # Linear acts as the intake funnel — all issues route autonomously (Pattern B)
     if entity_type == "Issue" and action == "create" and entity_title:
         # Map Linear priority to Kanban priority (higher = picked first by dispatcher)
-        linear_priority = data.get("priority", 4) if isinstance(data, dict) else 4
-        # Linear: 0=urgent, 1=high, 2=medium, 3=low, 4=none
-        # Kanban: higher = first. Map: 0→50, 1→30, 2→10, 3→5, 4→1
-        kanban_priority = {0: 50, 1: 30, 2: 10, 3: 5}.get(linear_priority, 1)
+        linear_priority = data.get("priority", 0) if isinstance(data, dict) else 0
+        # Linear: 1=urgent, 2=high, 3=medium, 4=low, 0=no priority
+        # Reuse LINEAR_TO_KANBAN_PRIORITY (linear_triage.py) — single source of truth; finding #7
+        from routes.linear_triage import LINEAR_TO_KANBAN_PRIORITY
+        kanban_priority = LINEAR_TO_KANBAN_PRIORITY.get(linear_priority, 1)
 
         # Round-robin across coder fleet. Draw only from KNOWN_ASSIGNEES so the
         # pool can never drift out of the dispatchable set, then pass through the
@@ -1157,25 +1146,11 @@ async def linear_webhook(request: Request):
         except Exception as exc:
             logger.warning("linear webhook: kanban dispatch failed: %s", exc)
 
-    # Fire-and-forget to Telegram
+    # Fire-and-forget to Telegram — direct call, no HTTP round-trip (finding #3)
     if LINEAR_TELEGRAM_CHAT:
         try:
-            import aiohttp
-            # Bind the response in `async with` so its underlying connection is
-            # released back to the connector BEFORE the session closes. Without
-            # this, `await session.post(...)` leaves the response (and its socket)
-            # unreleased, and aiohttp emits "Unclosed connection" when the session
-            # tears down — the leak Sentry reported as HERMES-DISPATCHER-6.
-            async with aiohttp.ClientSession() as session:
-                async with session.post(
-                    "http://127.0.0.1:8787/api/hooks/notify",
-                    json={"chat_id": LINEAR_TELEGRAM_CHAT, "text": telegram_msg, "parse_mode": "Markdown"},
-                    timeout=aiohttp.ClientTimeout(total=5),
-                ) as resp:
-                    # Consume/release the response body so the connection is
-                    # returned cleanly to the pool.
-                    await resp.read()
-            logger.debug("linear webhook: telegram notify connection released (delivery=%s)", delivery)
+            from routes.notify import send_telegram
+            await send_telegram(LINEAR_TELEGRAM_CHAT, telegram_msg, "Markdown")
         except Exception as exc:
             logger.warning("linear webhook: telegram notify failed: %s", exc)
 

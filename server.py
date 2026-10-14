@@ -148,8 +148,8 @@ _AUTH_EXEMPT = {
     "/api/hooks/kanban",
     "/api/hooks/notion",
     "/api/hooks/notion/sync",
-    "/api/hooks/notify",
-    "/api/kanban/tasks",
+    # /api/hooks/notify removed — use send_telegram() directly; finding #3
+    # /api/kanban/tasks removed — dashboard sends cookie; agents use WEBHOOK_SECRET; finding #2
     "/",
     "/index.html",
     "/favicon.ico",
@@ -292,8 +292,10 @@ async def spa_fallback(full_path: str) -> FileResponse | PlainTextResponse:
     index = DIST_DIR / "index.html"
 
     # Try to serve a real file from dist/ first (JS, CSS, assets, etc.)
-    candidate = DIST_DIR / full_path
-    if candidate.is_file():
+    # resolve() blocks path traversal (finding #1): anything escaping DIST_DIR → index.html.
+    _dist_real = DIST_DIR.resolve()
+    candidate = (DIST_DIR / full_path).resolve()
+    if candidate.is_relative_to(_dist_real) and candidate.is_file():
         media_type, _ = mimetypes.guess_type(str(candidate))
         return FileResponse(candidate, media_type=media_type or "application/octet-stream")
 

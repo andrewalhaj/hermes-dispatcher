@@ -115,3 +115,25 @@ async def notify(payload: NotifyPayload):
     except aiohttp.ClientError as e:
         logger.warning("telegram notify network error: %s", e)
         raise HTTPException(status_code=502, detail="Telegram API unreachable")
+
+
+async def send_telegram(chat_id: str, text: str, parse_mode: str = "Markdown") -> None:
+    """Send a Telegram message directly — call from other route handlers instead of POSTing
+    to /api/hooks/notify. Identical delivery logic; no HTTP round-trip needed. Never raises."""
+    if not TELEGRAM_BOT_TOKEN:
+        logger.warning("send_telegram: bot token not configured")
+        return
+    try:
+        async with aiohttp.ClientSession() as session:
+            status, body = await _send_telegram(session, chat_id, text, parse_mode or None)
+            if status == 200:
+                return
+            if parse_mode and _is_entity_parse_error(status, body):
+                status2, body2 = await _send_telegram(session, chat_id, text, None)
+                if status2 == 200:
+                    return
+                logger.warning("send_telegram plain-text retry failed: %s", body2[:200])
+                return
+            logger.warning("send_telegram failed: %s %s", status, body[:200])
+    except aiohttp.ClientError as e:
+        logger.warning("send_telegram network error: %s", e)

@@ -13,6 +13,7 @@ Session model (per-session tokens, server-side expiry):
 """
 
 import asyncio
+import collections
 import secrets
 import time
 from pathlib import Path
@@ -55,6 +56,26 @@ def _end_session(token: str | None) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Per-IP brute-force limiter — in-memory, 5 failures per 60 s → 429
+# shortcut: resets on process restart; sufficient for single-process deployment
+# ---------------------------------------------------------------------------
+_FAIL_WINDOW = 60  # seconds
+_FAIL_LIMIT = 5
+_FAIL_LOG: dict[str, list[float]] = collections.defaultdict(list)
+
+
+def _is_rate_limited(ip: str) -> bool:
+    now = time.time()
+    recent = [t for t in _FAIL_LOG[ip] if now - t < _FAIL_WINDOW]
+    _FAIL_LOG[ip] = recent
+    return len(recent) >= _FAIL_LIMIT
+
+
+def _record_failure(ip: str) -> None:
+    _FAIL_LOG[ip].append(time.time())
+
+
+# ---------------------------------------------------------------------------
 # Password hash — read from file at import time
 # ---------------------------------------------------------------------------
 # .dashboard_passwd_hash is intentionally NOT tracked in git (it's a secret).
@@ -79,12 +100,30 @@ router = APIRouter()
 
 @router.post("/auth/login")
 async def login(request: Request) -> JSONResponse:
-    body = await request.json()
+    ip = request.client.host if request.client else "unknown"
+
+    if _is_rate_limited(ip):
+        return JSONResponse({"ok": False, "error": "Too many attempts"}, status_code=429)
+
+    # Validate body shape before bcrypt to avoid a 500 on malformed input
+    try:
+        body = await request.json()
+    except Exception:
+        return JSONResponse({"ok": False, "error": "Invalid request"}, status_code=400)
+    if not isinstance(body, dict):
+        return JSONResponse({"ok": False, "error": "Invalid request"}, status_code=400)
     submitted = body.get("password", "")
-    if not bcrypt.checkpw(submitted.encode(), _PASSWORD_HASH):
+    if not isinstance(submitted, str):
+        return JSONResponse({"ok": False, "error": "Invalid request"}, status_code=400)
+
+    # Run bcrypt off the event loop so it doesn't block other requests (finding #5)
+    ok = await asyncio.to_thread(bcrypt.checkpw, submitted.encode(), _PASSWORD_HASH)
+    if not ok:
+        _record_failure(ip)
         await asyncio.sleep(0.5)
         return JSONResponse({"ok": False, "error": "Invalid password"}, status_code=401)
 
+    is_https = request.headers.get("x-forwarded-proto", request.url.scheme) == "https"
     response = JSONResponse({"ok": True})
     response.set_cookie(
         key="hd_session",
@@ -92,6 +131,7 @@ async def login(request: Request) -> JSONResponse:
         httponly=True,
         samesite="strict",
         path="/",
+        secure=is_https,  # only set Secure flag when served over HTTPS (finding #5)
     )
     return response
 
