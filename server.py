@@ -149,7 +149,8 @@ _AUTH_EXEMPT = {
     "/api/hooks/notion",
     "/api/hooks/notion/sync",
     # /api/hooks/notify removed — use send_telegram() directly; finding #3
-    # /api/kanban/tasks removed — dashboard sends cookie; agents use WEBHOOK_SECRET; finding #2
+    # /api/kanban/tasks removed — dashboard sends cookie; kanban routes require
+    # the session cookie; there is no bearer check on kanban routes.
     "/",
     "/index.html",
     "/favicon.ico",
@@ -221,9 +222,6 @@ app.include_router(overview_router, prefix="/api")
 
 from routes.system import router as system_router
 app.include_router(system_router, prefix="/api")
-
-from routes.workspace import router as workspace_router
-app.include_router(workspace_router, prefix="/api")
 
 from routes.memory import router as memory_router
 app.include_router(memory_router, prefix="/api")
@@ -317,265 +315,17 @@ from sentry_sdk.integrations.asgi import SentryAsgiMiddleware
 app = SentryAsgiMiddleware(app)
 
 # ---------------------------------------------------------------------------
-# Entrypoint — graceful port-conflict (EADDRINUSE / Errno 98) handling
+# Entrypoint — bind the configured port and start uvicorn.
+# Tunables (environment variables):
+#   HERMES_DISPATCHER_HOST   bind host  (default 0.0.0.0)
+#   HERMES_DISPATCHER_PORT   bind port  (default 8787)
+# If the port is already in use uvicorn surfaces the OSError and exits — no
+# silent fallback, no import-time sys.exit.
 # ---------------------------------------------------------------------------
-#
-# The dispatcher previously called uvicorn.run() directly, so a port collision
-# surfaced as an unhandled OSError(Errno 98) that crashed the process and was
-# reported to Sentry (HERMES-DISPATCHER-8). The logic below probes the target
-# socket before handing off to uvicorn and, on conflict:
-#   1. logs a clear warning naming the address and the PID/command holding it,
-#   2. retries with exponential backoff (the holder may be a stale instance
-#      that is still shutting down),
-#   3. optionally falls back to the next free port in a configurable range,
-#   4. exits with a helpful, actionable message if nothing works.
-#
-# All knobs are environment-driven so behaviour can be tuned without code edits:
-#   HERMES_DISPATCHER_HOST           bind host           (default 0.0.0.0)
-#   HERMES_DISPATCHER_PORT           primary port        (default 8787)
-#   HERMES_DISPATCHER_BIND_RETRIES   retries per port    (default 5)
-#   HERMES_DISPATCHER_BIND_BACKOFF   base backoff secs   (default 0.5)
-#   HERMES_DISPATCHER_FALLBACK_PORTS comma list and/or "lo-hi" ranges
-#                                    (default "" — disabled)
-
-
-def _port_holder(host: str, port: int) -> str:
-    """Best-effort identification of the process bound to host:port.
-
-    Returns a human-readable "pid <N> (<cmd>)" string, or "" if it can't be
-    determined (e.g. insufficient privileges). Never raises.
-    """
-    try:
-        import psutil  # type: ignore
-
-        for conn in psutil.net_connections(kind="inet"):
-            if conn.laddr and conn.laddr.port == port and conn.status == psutil.CONN_LISTEN:
-                pid = conn.pid
-                if pid:
-                    try:
-                        return f"pid {pid} ({psutil.Process(pid).name()})"
-                    except Exception:
-                        return f"pid {pid}"
-                return "pid unknown"
-    except Exception:
-        pass
-
-    # Fallback: parse `ss -tlnp` output (Linux). Needs privileges to see PIDs.
-    try:
-        import re
-        import subprocess
-
-        out = subprocess.run(
-            ["ss", "-tlnp"], capture_output=True, text=True, timeout=3
-        ).stdout
-        for line in out.splitlines():
-            # Local address column ends with ":<port>"
-            if f":{port} " in line or line.rstrip().endswith(f":{port}"):
-                m = re.search(r'pid=(\d+)', line)
-                cmd = re.search(r'\(\("([^"]+)"', line)
-                if m:
-                    name = f" ({cmd.group(1)})" if cmd else ""
-                    return f"pid {m.group(1)}{name}"
-    except Exception:
-        pass
-    return ""
-
-
-def _can_bind(host: str, port: int) -> bool:
-    """True if we can bind host:port right now (probe socket, then release)."""
-    import socket
-
-    probe = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    try:
-        # No SO_REUSEADDR: we want the probe to fail exactly when uvicorn would.
-        probe.bind((host, port))
-        return True
-    except OSError:
-        return False
-    finally:
-        probe.close()
-
-
-def _parse_fallback_ports(spec: str) -> list[int]:
-    """Parse "8788,8790,8800-8805" into an ordered, de-duplicated port list."""
-    ports: list[int] = []
-    for chunk in spec.split(","):
-        chunk = chunk.strip()
-        if not chunk:
-            continue
-        if "-" in chunk:
-            try:
-                lo, hi = (int(x) for x in chunk.split("-", 1))
-            except ValueError:
-                continue
-            ports.extend(range(lo, hi + 1))
-        else:
-            try:
-                ports.append(int(chunk))
-            except ValueError:
-                continue
-    seen: set[int] = set()
-    return [p for p in ports if not (p in seen or seen.add(p))]
-
-
-def _resolve_bind_port(host: str, primary: int, retries: int, backoff: float,
-                       fallbacks: list[int], log) -> int | None:
-    """Return a bindable port, or None if every candidate is taken."""
-    import time
-
-    candidates = [primary] + [p for p in fallbacks if p != primary]
-    for idx, port in enumerate(candidates):
-        for attempt in range(1, retries + 1):
-            if _can_bind(host, port):
-                if port != primary:
-                    log.warning(
-                        "Dispatcher binding to FALLBACK port %s (primary %s was busy)",
-                        port, primary,
-                    )
-                return port
-            holder = _port_holder(host, port)
-            holder_msg = f" — held by {holder}" if holder else ""
-            if attempt < retries:
-                delay = round(backoff * (2 ** (attempt - 1)), 2)
-                log.warning(
-                    "Port %s:%s already in use%s — retry %s/%s in %ss",
-                    host, port, holder_msg, attempt, retries, delay,
-                )
-                time.sleep(delay)
-            else:
-                log.error(
-                    "Port %s:%s still in use after %s attempts%s",
-                    host, port, retries, holder_msg,
-                )
-        # exhausted retries for this candidate; try next fallback (if any)
-        if idx < len(candidates) - 1:
-            log.warning("Trying next fallback port after %s", port)
-    return None
-
-
-def _assert_port_free(host: str, port: int) -> None:
-    """Raise SystemExit(1) with an actionable message if host:port is taken.
-
-    This is the core of the pre-flight: a single probe via ``_can_bind``,
-    then — on conflict — a clear, remediation-rich error and a non-zero exit
-    so uvicorn never attempts its own bind. Pulled out of
-    ``_preflight_port_check`` (which only adds the env/opt-out gating) so it
-    can be unit-tested directly without tripping the import-time guards.
-    """
-    import logging
-
-    if _can_bind(host, port):
-        return
-
-    log = logging.getLogger("hermes.dispatcher")
-    holder = _port_holder(host, port)
-    holder_hint = f" The port is held by {holder}." if holder else ""
-    log.error(
-        "Hermes Dispatcher pre-flight check FAILED: %s:%s is already in "
-        "use.%s\n"
-        "Refusing to start (this avoids the unhandled Errno 98 bind crash, "
-        "Sentry HERMES-DISPATCHER-8).\n"
-        "To fix, either:\n"
-        "  1. Stop the conflicting process — find it with "
-        "`ss -tlnp | grep %s` and kill the listed PID "
-        "(e.g. `kill <PID>`); or\n"
-        "  2. Run the dispatcher on a different port by setting "
-        "HERMES_DISPATCHER_PORT=<free-port> (and updating the bind port "
-        "uvicorn is launched with), then restart.",
-        host, port, holder_hint, port,
-    )
-    raise SystemExit(1)
-
-
-def _preflight_port_check() -> None:
-    """Fail fast at import time if the dispatcher's bind port is already taken.
-
-    WHY THIS RUNS AT IMPORT (not under ``if __name__ == '__main__'``):
-    production launches via ``python server.py`` (see ``start-server.sh``),
-    which DOES execute the ``__main__`` block. However, the systemd unit
-    ``hermes-dashboard.service`` uses ``uvicorn server:app`` directly, which
-    imports this module without reaching ``__main__``. Running the check at
-    import time means it fires on both launch paths. A port collision
-    therefore surfaced as an unhandled OSError(Errno 98) from deep inside
-    uvicorn and was reported to Sentry (HERMES-DISPATCHER-8). Probing here,
-    before uvicorn ever calls bind(), lets us exit early with an actionable
-    message instead.
-
-    Behaviour:
-      • Reads the same env knobs as the ``__main__`` path
-        (HERMES_DISPATCHER_HOST / HERMES_DISPATCHER_PORT).
-      • If the port is bindable → returns silently; uvicorn proceeds.
-      • If the port is taken → delegates to ``_assert_port_free`` which logs a
-        clear error naming the address and the PID/command holding it, then
-        raises SystemExit(1) so uvicorn never attempts its own bind.
-
-    Opt-out (so importing this module in tests / tooling can't abort the
-    process or false-positive on a port that's legitimately in use):
-      • HERMES_DISPATCHER_SKIP_PREFLIGHT truthy, or
-      • running under pytest (PYTEST_CURRENT_TEST set / pytest imported).
-
-    There is a small TOCTOU window between this probe and uvicorn's real
-    bind (the probe binds with no SO_REUSEADDR, then releases). That is an
-    accepted trade-off: it converts the overwhelmingly common "stale/duplicate
-    instance already listening" case into a clean early exit. A genuine race
-    against a *simultaneously* starting process still falls through to
-    uvicorn's own OSError, which is no worse than today.
-    """
-    import sys
-
-    skip = os.environ.get("HERMES_DISPATCHER_SKIP_PREFLIGHT", "").strip().lower()
-    if skip in {"1", "true", "yes", "on"}:
-        return
-    # Don't abort a test process that merely imports this module.
-    if os.environ.get("PYTEST_CURRENT_TEST") or "pytest" in sys.modules:
-        return
-
-    host = os.environ.get("HERMES_DISPATCHER_HOST", "0.0.0.0")
-    try:
-        port = int(os.environ.get("HERMES_DISPATCHER_PORT", "8787"))
-    except ValueError:
-        # Malformed override — let uvicorn surface its own error downstream.
-        return
-
-    _assert_port_free(host, port)
-
-
-# Run the pre-flight as a side effect of importing this module, so it guards
-# the production ``uvicorn server:app`` entrypoint (which never reaches the
-# ``__main__`` block below). Guarded internally for test/import safety.
-_preflight_port_check()
-
 
 if __name__ == "__main__":
-    import logging
-    import sys
-
     import uvicorn  # imported locally so it doesn't execute on import
-
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
-    )
-    log = logging.getLogger("hermes.dispatcher")
 
     host = os.environ.get("HERMES_DISPATCHER_HOST", "0.0.0.0")
     port = int(os.environ.get("HERMES_DISPATCHER_PORT", "8787"))
-    retries = max(1, int(os.environ.get("HERMES_DISPATCHER_BIND_RETRIES", "5")))
-    backoff = max(0.0, float(os.environ.get("HERMES_DISPATCHER_BIND_BACKOFF", "0.5")))
-    fallbacks = _parse_fallback_ports(os.environ.get("HERMES_DISPATCHER_FALLBACK_PORTS", ""))
-
-    chosen = _resolve_bind_port(host, port, retries, backoff, fallbacks, log)
-    if chosen is None:
-        holder = _port_holder(host, port)
-        holder_hint = f" Conflicting listener: {holder}." if holder else ""
-        log.error(
-            "Could not bind the Hermes Dispatcher to %s:%s (or any configured "
-            "fallback).%s Free the port (e.g. `ss -tlnp | grep %s`, then stop "
-            "the listed PID) or set HERMES_DISPATCHER_PORT / "
-            "HERMES_DISPATCHER_FALLBACK_PORTS to an open port, and restart.",
-            host, port, holder_hint, port,
-        )
-        sys.exit(1)
-
-    log.info("Hermes Dispatcher starting on %s:%s", host, chosen)
-    uvicorn.run(app, host=host, port=chosen)
+    uvicorn.run(app, host=host, port=port)

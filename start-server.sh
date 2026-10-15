@@ -11,8 +11,6 @@ cd "$(dirname "$0")" || exit 1
 # username from the Aura console.
 set -a; [ -f .env ] && . ./.env; set +a
 # Launch through server.py's __main__ entrypoint (NOT the bare `uvicorn`
-# CLI) so the graceful EADDRINUSE / port-conflict handling runs: it probes
-# the socket, retries with backoff, optionally falls back to another port,
-# and exits with a clear message instead of an unhandled Errno 98 crash.
-# Tunables: HERMES_DISPATCHER_{PORT,BIND_RETRIES,BIND_BACKOFF,FALLBACK_PORTS}.
+# CLI) so .env variables are available when uvicorn starts.
+# Tunables: HERMES_DISPATCHER_{HOST,PORT}.
 exec ./.venv/bin/python server.py
