@@ -42,7 +42,9 @@ HAZARD_TEXT = (
 
 
 def _run(coro):
-    return asyncio.get_event_loop().run_until_complete(coro)
+    # asyncio.run() owns its loop; get_event_loop() fails once another test's
+    # asyncio.run() has closed the default loop (order-dependent failure).
+    return asyncio.run(coro)
 
 
 class _FakeSession:
@@ -59,13 +61,18 @@ class TelegramNotifyHardeningTest(unittest.TestCase):
         self.calls = []  # (parse_mode, text) per _send_telegram invocation
         self._orig_send = notify._send_telegram
         self._orig_sess = notify.aiohttp.ClientSession
-
+        # notify.TELEGRAM_BOT_TOKEN is frozen at first import; if another test
+        # module imported routes.notify first without the env var, it's "" and
+        # notify() 503s. Pin a fake token for this suite.
+        self._orig_token = notify.TELEGRAM_BOT_TOKEN
+        notify.TELEGRAM_BOT_TOKEN = "test-token-not-real"
         # Replace ClientSession with a no-op async context manager.
         notify.aiohttp.ClientSession = lambda *a, **k: _FakeSession()
 
     def tearDown(self):
         notify._send_telegram = self._orig_send
         notify.aiohttp.ClientSession = self._orig_sess
+        notify.TELEGRAM_BOT_TOKEN = self._orig_token
 
     def _install_send(self, script):
         """script: callable(parse_mode) -> (status, body)."""
