@@ -14,8 +14,6 @@ from pydantic import BaseModel
 
 router = APIRouter()
 
-_ACTIVE: dict[str, asyncio.subprocess.Process] = {}
-
 _HERMES_BIN_PATH = os.path.expanduser("~/.local/bin/hermes")
 HERMES_BIN = _HERMES_BIN_PATH if Path(_HERMES_BIN_PATH).exists() else "hermes"
 
@@ -169,15 +167,11 @@ async def chat_send(req: SendRequest):
 
 @router.post("/chat/cancel")
 async def chat_cancel(req: CancelRequest):
-    proc = _ACTIVE.get(req.session_id)
-    if proc:
-        try:
-            proc.kill()
-        except ProcessLookupError:
-            pass
-        _ACTIVE.pop(req.session_id, None)
-        return {"ok": True, "cancelled": True}
-    return {"ok": True, "cancelled": False}
+    """Cancel is not supported — the chat backend polls state.db and has no
+    subprocess to kill.  The frontend may call this endpoint; it always returns
+    a clear 'not supported' response so callers can handle it gracefully.
+    """
+    return {"ok": False, "cancelled": False, "detail": "cancel not supported"}
 
 
 def _parse_linear_args(text: str) -> dict:
