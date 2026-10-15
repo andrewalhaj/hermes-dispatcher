@@ -112,6 +112,11 @@ class TestResolve(unittest.TestCase):
 
 class TestAutocloseForCard(unittest.TestCase):
     def setUp(self):
+        # sa.KANBAN_DB is frozen at first import; another test module may have
+        # imported sentry_autoclose first with its own KANBAN_DB. Pin it here.
+        self._orig_db = sa.KANBAN_DB
+        sa.KANBAN_DB = _TMP_DB
+        self.addCleanup(setattr, sa, "KANBAN_DB", self._orig_db)
         if os.path.exists(_TMP_DB):
             os.remove(_TMP_DB)
         c = sqlite3.connect(_TMP_DB)
