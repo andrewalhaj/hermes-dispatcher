@@ -1,0 +1,5 @@
+# Test-only dependencies (not needed to run the server).
+# Install: .venv/bin/python -m pip install -r requirements.txt -r requirements-dev.txt
+pytest==9.1.1
+# starlette>=1.x TestClient (fastapi.testclient) requires httpx2
+httpx2==2.13.1

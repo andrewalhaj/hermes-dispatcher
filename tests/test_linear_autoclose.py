@@ -281,12 +281,20 @@ class KanbanWebhookTest(unittest.TestCase):
 
     def setUp(self):
         self._orig = la._graphql
+        # Both closers freeze KANBAN_DB at import; under the full suite another
+        # module may have imported them first with a different path. Pin both
+        # to this module's temp DB (same fix as AutocloseForCardTest.setUp).
+        from routes import sentry_autoclose as sa
+        self._sa = sa
+        self._orig_dbs = (la.KANBAN_DB, sa.KANBAN_DB)
+        la.KANBAN_DB = sa.KANBAN_DB = _TMP_DB
         if os.path.exists(_TMP_DB):
             os.remove(_TMP_DB)
         self.conn = _make_db(_TMP_DB)
 
     def tearDown(self):
         la._graphql = self._orig
+        la.KANBAN_DB, self._sa.KANBAN_DB = self._orig_dbs
         self.conn.close()
         if os.path.exists(_TMP_DB):
             os.remove(_TMP_DB)
