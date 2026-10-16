@@ -1,12 +1,28 @@
 import mimetypes
+import os
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
 
-from routes.workspace import _jail  # jails to ~/workspace or ~/.hermes; finding #4
-
 router = APIRouter()
+
+# Path jail (audit finding #4). Moved here from the deleted routes/workspace.py.
+_ALLOWED_ROOTS = [
+    os.path.realpath(os.path.expanduser("~/workspace")),
+    os.path.realpath(os.path.expanduser("~/.hermes")),
+]
+
+
+def _jail(path: str) -> Path:
+    """Resolve *path* and refuse anything outside _ALLOWED_ROOTS (403) or missing (404)."""
+    real = os.path.realpath(path)
+    if not any(real == r or real.startswith(r + os.sep) for r in _ALLOWED_ROOTS):
+        raise HTTPException(status_code=403, detail="Access denied")
+    p = Path(real)
+    if not p.exists():
+        raise HTTPException(status_code=404, detail="Path not found")
+    return p
 
 
 @router.get("/media")
