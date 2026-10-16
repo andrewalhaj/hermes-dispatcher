@@ -44,9 +44,6 @@ async def serve_media(path: str = "") -> FileResponse:
     # cookie. Only plain raster images are rendered inline; everything else is
     # a download, and nosniff stops the browser second-guessing the type.
     inline = mime in _INLINE_IMAGE_TYPES
-    headers = {"X-Content-Type-Options": "nosniff"}
-    if not inline:
-        headers["Content-Disposition"] = f'attachment; filename="{resolved.name}"'
-        if mime.startswith(("text/", "image/svg", "application/xhtml")):
-            mime = "application/octet-stream"
-    return FileResponse(str(resolved), media_type=mime, headers=headers)
+    # Starlette builds Content-Disposition (RFC 5987 for non-ASCII/quotes in the name).
+    return FileResponse(str(resolved), media_type=mime, headers={"X-Content-Type-Options": "nosniff"},
+                        filename=None if inline else resolved.name)
