@@ -7,7 +7,7 @@ from fastapi.responses import FileResponse
 
 router = APIRouter()
 
-_INLINE_IMAGE_TYPES = {"image/png", "image/jpeg", "image/gif", "image/webp", "image/bmp", "image/avif"}
+_INLINE_TYPES = {"image/png", "image/jpeg", "image/gif", "image/webp", "image/bmp", "image/avif", "application/pdf"}
 
 # Path jail (audit finding #4). Moved here from the deleted routes/workspace.py.
 _ALLOWED_ROOTS = [
@@ -41,9 +41,10 @@ async def serve_media(path: str = "") -> FileResponse:
     mime = mime or "application/octet-stream"
     # Audit #13: the extension comes from the client's file name. An .html/.svg
     # served inline from the dashboard origin would run script with the session
-    # cookie. Only plain raster images are rendered inline; everything else is
-    # a download, and nosniff stops the browser second-guessing the type.
-    inline = mime in _INLINE_IMAGE_TYPES
+    # cookie. Only raster images and PDFs (rendered by the browser's sandboxed
+    # viewer, not the page origin) are inline; everything else is a download,
+    # and nosniff stops the browser second-guessing the type.
+    inline = mime in _INLINE_TYPES
     # Starlette builds Content-Disposition (RFC 5987 for non-ASCII/quotes in the name).
     return FileResponse(str(resolved), media_type=mime, headers={"X-Content-Type-Options": "nosniff"},
                         filename=None if inline else resolved.name)
