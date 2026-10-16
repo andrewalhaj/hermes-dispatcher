@@ -7,6 +7,8 @@ from fastapi.responses import FileResponse
 
 router = APIRouter()
 
+_INLINE_IMAGE_TYPES = {"image/png", "image/jpeg", "image/gif", "image/webp", "image/bmp", "image/avif"}
+
 # Path jail (audit finding #4). Moved here from the deleted routes/workspace.py.
 _ALLOWED_ROOTS = [
     os.path.realpath(os.path.expanduser("~/workspace")),
@@ -36,4 +38,15 @@ async def serve_media(path: str = "") -> FileResponse:
     if not resolved.is_file():
         raise HTTPException(status_code=404, detail="not found")
     mime, _ = mimetypes.guess_type(str(resolved))
-    return FileResponse(str(resolved), media_type=mime or "application/octet-stream")
+    mime = mime or "application/octet-stream"
+    # Audit #13: the extension comes from the client's file name. An .html/.svg
+    # served inline from the dashboard origin would run script with the session
+    # cookie. Only plain raster images are rendered inline; everything else is
+    # a download, and nosniff stops the browser second-guessing the type.
+    inline = mime in _INLINE_IMAGE_TYPES
+    headers = {"X-Content-Type-Options": "nosniff"}
+    if not inline:
+        headers["Content-Disposition"] = f'attachment; filename="{resolved.name}"'
+        if mime.startswith(("text/", "image/svg", "application/xhtml")):
+            mime = "application/octet-stream"
+    return FileResponse(str(resolved), media_type=mime, headers=headers)
