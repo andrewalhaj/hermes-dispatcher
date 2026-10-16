@@ -13,7 +13,7 @@ Built and operated in production as a personal platform: one server, ~15 API rou
 - **Agent orchestration** — Kanban-based task routing dispatches work to a roster of specialized worker agents, each with a defined profile and scoped tool permissions. Card priority maps to dispatch order; agent status is visible live on the board.
 - **Autonomous incident intake** — a Sentry error alert becomes a Linear issue (deduplicated by Sentry event ID), then a prioritized Kanban card, then a Telegram notification — with no human in the loop until one is needed.
 - **Operational visibility** — token usage and cost analytics per model, system metrics (CPU/GPU/RAM/network), live log streaming over SSE, session replay, and an activity heatmap across the agent fleet.
-- **Governed memory** — a hybrid memory architecture: Supabase pgvector for semantic recall, Neo4j for a code knowledge graph, SQLite for board and session state, and markdown as the human-auditable pointer layer.
+- **Governed memory** — a hybrid memory architecture: Supabase pgvector for semantic recall, SQLite for board and session state, and markdown as the human-auditable pointer layer.
 - **Security posture** — bcrypt-hashed session auth, git-ignored secrets, webhook signature verification, CORS allowlisting, and network exposure limited to Tailscale/Cloudflare Tunnel.
 
 ---
@@ -25,7 +25,7 @@ Built and operated in production as a personal platform: one server, ~15 API rou
 | **Dashboard** | Kanban board with card detail drawer · Chat (streaming, multi-turn, model selection) · Overview (KPIs, agent breakdown, activity heatmap, system monitor) · Memory editor (MEMORY.md, USER.md, AGENTS.md, SOUL.md) · Insights (token usage, analytics) · Session browser/replay · Skill browser (100+ skills, toggle per platform) · Live log tail · Cron output viewer · Linear/Sentry feeds · Settings (theme, accent, prefs) |
 | **Webhook integrations** | GitHub (push/PR/issue/review) · Sentry (error alerts → Linear issue) · Linear (issue/comment events → Kanban + Telegram) · Figma (file/comment events) · Notion (page updates + poll sync) · Knowledge store (Supabase INSERT trigger) · Kanban status sync |
 | **Autonomous intake** | Sentry error → Linear issue (deduped by Sentry ID) → Kanban card → Telegram notify. Priority-mapped between Linear urgency and Kanban scores. |
-| **Data stores** | Supabase pgvector (primary memory — semantic search) · Neo4j (code knowledge graph) · SQLite (Kanban + sessions) · Local markdown (MEMORY.md pointer layer) |
+| **Data stores** | Supabase pgvector (primary memory — semantic search) · SQLite (Kanban + sessions) · Local markdown (MEMORY.md pointer layer) |
 
 ---
 
@@ -81,7 +81,6 @@ flowchart TB
     subgraph Host["Hermes Host (Linux x86_64)"]
         UVICORN["uvicorn :8787<br/>API + webhooks + React SPA"]
         GATEWAY["hermes-gateway<br/>(Telegram / Discord)"]
-        NEO4J["Neo4j (Docker)"]
         FIRECRAWL["Firecrawl"]
     end
 
@@ -97,7 +96,6 @@ flowchart TB
     end
 
     BROWSER --> UVICORN
-    UVICORN --> NEO4J
     UVICORN --> FIRECRAWL
     UVICORN <--> SUPABASE
     UVICORN <--> LINEAR2
@@ -106,7 +104,7 @@ flowchart TB
     UVICORN --> OLLAMA
 ```
 
-**In plain terms:** a single uvicorn process serves the API, the webhook receivers, and the pre-built React dashboard. The gateway handles chat platforms. Semantic memory lives in Supabase, the code graph in a local Neo4j container, and embeddings/local inference run on a separate GPU node reached over Tailscale. Nothing is exposed to the public internet except through the Cloudflare Tunnel.
+**In plain terms:** a single uvicorn process serves the API, the webhook receivers, and the pre-built React dashboard. The gateway handles chat platforms. Semantic memory lives in Supabase, and embeddings/local inference run on a separate GPU node reached over Tailscale. Nothing is exposed to the public internet except through the Cloudflare Tunnel.
 
 ---
 
@@ -176,7 +174,7 @@ All routes serve under `/api`. Webhooks are at `/api/hooks/{github,sentry,linear
 | `HERMES_HOME` | `~/.hermes` | Hermes data root |
 | `OLLAMA_HOST` | — | Inference-node Ollama endpoint (for embeddings) |
 
-Required secrets stored in `.env` (git-ignored): `LINEAR_API_KEY`, `SENTRY_*`, `NEO4J_*`, `SUPABASE_*`, `GITHUB_WEBHOOK_SECRET`, etc.
+Required secrets stored in `.env` (git-ignored): `LINEAR_API_KEY`, `SENTRY_*`, `SUPABASE_*`, `GITHUB_WEBHOOK_SECRET`, etc.
 
 ---
 
@@ -186,7 +184,7 @@ Required secrets stored in `.env` (git-ignored): `LINEAR_API_KEY`, `SENTRY_*`, `
 |---|---|
 | Frontend | React 18, TypeScript, Vite, Tailwind CSS, Framer Motion |
 | Backend | FastAPI (Python 3.11), uvicorn |
-| Data | SQLite, Supabase pgvector, Neo4j (code graph) |
+| Data | SQLite, Supabase pgvector |
 | Auth | Session cookie (`hd_session`), bcrypt (rounds=12) |
 | Hosting | Self-hosted on Linux x86_64 |
 

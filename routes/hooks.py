@@ -6,7 +6,7 @@ All routes here are therefore under /api/hooks/*.
 
 Current receivers:
   POST /api/hooks/knowledge   — Supabase INSERT trigger on public.knowledge;
-                                mirrors the new row to Neo4j.
+                                validates and logs the new row.
   POST /api/hooks/figma       — Figma webhook (file update, comment events).
   POST /api/hooks/github      — GitHub webhook (push, PR, issue, review events).
   POST /api/hooks/sentry      — Sentry alert webhook; creates/updates Linear issues
@@ -21,7 +21,6 @@ Current receivers:
 import asyncio
 import json
 import os
-import re
 import subprocess
 import uuid
 import hmac
@@ -71,14 +70,6 @@ def _valid_assignee(assignee: str | None) -> str:
     )
     return ASSIGNEE_FALLBACK
 
-# Neo4j graph layer — mirrors knowledge facts for relationship traversal.
-# Credentials from Hermes .env (NEO4J_URI, NEO4J_USERNAME, NEO4J_PASSWORD).
-NEO4J_URI = os.environ.get("NEO4J_URI", "")
-NEO4J_USERNAME = os.environ.get("NEO4J_USERNAME", "neo4j")
-NEO4J_PASSWORD=os.environ.get("NEO4J_PASSWORD", "")
-NEO4J_DATABASE = os.environ.get("NEO4J_DATABASE", "neo4j")
-_neo4j_drv = None  # lazy-init singleton
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -103,198 +94,6 @@ def _verify_bearer(request: Request) -> None:
                             detail="Invalid token")
 
 
-
-# ---------------------------------------------------------------------------
-# Neo4j graph layer — mirrors knowledge facts for relationship traversal.
-# Creates (:Fact) nodes with [:RELATED_TO] edges to top-3 pgvector neighbors.
-# Fire-and-forget: failures are logged, never block the response.
-# ---------------------------------------------------------------------------
-
-def _get_neo4j_driver():
-    """Lazy-init Neo4j driver singleton."""
-    global _neo4j_drv
-    if _neo4j_drv is not None:
-        return _neo4j_drv
-    if not NEO4J_URI or not NEO4J_PASSWORD:
-        logger.warning("Neo4j not configured (missing NEO4J_URI or NEO4J_PASSWORD)")
-        return None
-    try:
-        from neo4j import GraphDatabase
-        _neo4j_drv = GraphDatabase.driver(NEO4J_URI, auth=(NEO4J_USERNAME, NEO4J_PASSWORD))
-        _init_neo4j(_neo4j_drv)
-        logger.info("Neo4j driver initialized: %s", NEO4J_URI)
-        return _neo4j_drv
-    except Exception as e:
-        logger.error("Neo4j driver init failed: %s", e)
-        _neo4j_drv = None
-        return None
-
-
-def _init_neo4j(drv) -> None:
-    """Ensure Neo4j constraints exist (idempotent)."""
-    try:
-        with drv.session(database=NEO4J_DATABASE) as s:
-            s.run("CREATE CONSTRAINT fact_id IF NOT EXISTS FOR (f:Fact) REQUIRE f.id IS UNIQUE")
-            s.run("CREATE CONSTRAINT session_id IF NOT EXISTS FOR (s:Session) REQUIRE s.session_id IS UNIQUE")
-            s.run("CREATE INDEX fact_tags IF NOT EXISTS FOR (f:Fact) ON f.tags")
-    except Exception as e:
-        logger.warning("Neo4j constraint init warning: %s", e)
-
-
-def _find_similar_via_pgvector(text: str) -> list[dict]:
-    """Return up to 3 similar facts with scores from pgvector via knowledge.py search.
-
-    Returns list of {"text": str, "score": float} dicts.
-    """
-    try:
-        clean = re.sub(r"\s+", " ", text.strip())[:80]
-        result = subprocess.run(
-            ["/usr/local/lib/hermes-agent/venv/bin/python3", str(HERMES_HOME / "scripts/knowledge.py"), "search", clean, "--limit", "3"],
-            capture_output=True, text=True, timeout=8,
-            env={**os.environ, "HERMES_HOME": str(HERMES_HOME)},
-        )
-        if result.returncode != 0:
-            return []
-        # Parse knowledge.py search output — lines with [score] [priority] text
-        matches = []
-        for line in result.stdout.splitlines():
-            line = line.strip()
-            # Format: [0.4742] [high] the actual fact text here
-            if line.startswith("[") and "] [" in line:
-                # Extract score from first bracket
-                try:
-                    score_str = line[1:].split("]", 1)[0].strip()
-                    score = float(score_str)
-                except (ValueError, IndexError):
-                    score = 0.0
-                # Extract text after the second bracket
-                rest = line.split("] [", 2)[-1]
-                if "] " in rest:
-                    text_part = rest.split("] ", 1)[1].strip()
-                    if text_part:
-                        matches.append({"text": text_part, "score": score})
-        return matches[:3]
-    except Exception as e:
-        logger.warning("pgvector similarity lookup failed: %s", e)
-        return []
-
-
-def _write_to_neo4j(
-    text: str,
-    tags: list[str] | None = None,
-    priority: str = "normal",
-    source: str = "unknown",
-    context_prefix: str = "",
-    session_id: str | None = None,
-) -> None:
-    """Mirror a fact to Neo4j with [:RELATED_TO] edges to similar facts.
-
-    Args:
-        session_id: If provided, creates a [:LEARNED_IN] edge to a Session node.
-
-    Called asynchronously from webhook handlers — never blocks the response.
-    """
-    drv = _get_neo4j_driver()
-    if drv is None:
-        return
-
-    tag_list = tags or []
-    if isinstance(tag_list, str):
-        tag_list = [t.strip() for t in tag_list.split(",") if t.strip()]
-
-    fact_id = hashlib.sha256(text.encode()).hexdigest()[:16]
-    stored_at = datetime.now(timezone.utc).isoformat()
-
-    try:
-        with drv.session(database=NEO4J_DATABASE) as s:
-            # Upsert the fact node (MATCH+CREATE to avoid MERGE constraint race)
-            result = s.run(
-                "MATCH (f:Fact {id: $id}) RETURN f",
-                id=fact_id,
-            )
-            exists = result.single() is not None
-            if exists:
-                s.run(
-                    """
-                    MATCH (f:Fact {id: $id})
-                    SET f.text = $text, f.tags = $tags, f.priority = $priority,
-                        f.source = $source, f.context_prefix = $context_prefix,
-                        f.stored_at = $stored_at
-                    """,
-                    id=fact_id, text=text, tags=tag_list, priority=priority,
-                    source=source, context_prefix=context_prefix, stored_at=stored_at,
-                )
-            else:
-                s.run(
-                    """
-                    CREATE (f:Fact {id: $id})
-                    SET f.text = $text, f.tags = $tags, f.priority = $priority,
-                        f.source = $source, f.context_prefix = $context_prefix,
-                        f.stored_at = $stored_at
-                    """,
-                    id=fact_id, text=text, tags=tag_list, priority=priority,
-                    source=source, context_prefix=context_prefix, stored_at=stored_at,
-                )
-
-            # Find similar facts via pgvector and create RELATED_TO edges
-            similar = _find_similar_via_pgvector(text)
-            for sim in similar:
-                sim_text = sim["text"]
-                sim_score = sim["score"]
-                sim_id = hashlib.sha256(sim_text.encode()).hexdigest()[:16]
-                if sim_id == fact_id:
-                    continue
-                # MATCH+CREATE for similar node to avoid MERGE constraint race
-                sim_result = s.run("MATCH (similar:Fact {id: $id}) RETURN similar", id=sim_id)
-                if sim_result.single() is None:
-                    s.run("CREATE (similar:Fact {id: $id}) SET similar.text = $text",
-                          id=sim_id, text=sim_text)
-                # Create edge (MERGE on edge only, nodes already exist)
-                s.run(
-                    "MATCH (f:Fact {id: $fact_id}), (similar:Fact {id: $sim_id}) "
-                    "MERGE (f)-[r:RELATED_TO]->(similar)",
-                    fact_id=fact_id, sim_id=sim_id,
-                )
-                # Contradiction detection: high-similarity but text meaningfully differs
-                if (sim_score > 0.85
-                        and sim_text.strip().lower() not in text.strip().lower()
-                        and text.strip().lower() not in sim_text.strip().lower()):
-                    logger.warning(
-                        "potential contradiction: new=%s (score=%.3f) vs existing=%s",
-                        fact_id[:8], sim_score, sim_id[:8],
-                    )
-
-            # If tagged CORRECTION, link superseded facts
-            if "CORRECTION" in (t.upper() for t in tag_list):
-                for sim in similar:
-                    sim_text = sim["text"]
-                    sim_id = hashlib.sha256(sim_text.encode()).hexdigest()[:16]
-                    if sim_id == fact_id:
-                        continue
-                    s.run(
-                        "MATCH (f:Fact {id: $fact_id}), (old:Fact {id: $old_id}) "
-                        "MERGE (f)-[r:SUPERSEDES]->(old)",
-                        fact_id=fact_id, old_id=sim_id,
-                    )
-
-            # Create LEARNED_IN edge if session_id provided
-            if session_id:
-                s.run(
-                    "MERGE (s:Session {session_id: $session_id}) "
-                    "ON CREATE SET s.timestamp = $stored_at",
-                    session_id=session_id, stored_at=stored_at,
-                )
-                s.run(
-                    "MATCH (f:Fact {id: $fact_id}), (s:Session {session_id: $session_id}) "
-                    "MERGE (f)-[:LEARNED_IN]->(s)",
-                    fact_id=fact_id, session_id=session_id,
-                )
-
-        logger.info("neo4j: wrote fact %s with %d related", fact_id, len(similar))
-    except Exception as e:
-        logger.error("neo4j write failed for fact %s: %s", fact_id, e)
-
-
 # ---------------------------------------------------------------------------
 # Routes
 # ---------------------------------------------------------------------------
@@ -313,7 +112,6 @@ async def knowledge_insert_webhook(request: Request):
           "priority": <int | null>
         }
 
-    Mirrors the new row to Neo4j for relationship traversal.
     Always returns 200 — never 5xx on our logic errors, so Supabase doesn't retry-spam.
     """
     _verify_bearer(request)
@@ -325,7 +123,6 @@ async def knowledge_insert_webhook(request: Request):
                             detail="Invalid JSON payload")
 
     text = payload.get("text") or ""
-    tags = payload.get("tags") or []
     row_id = payload.get("id")
 
     if not text:
@@ -338,13 +135,6 @@ async def knowledge_insert_webhook(request: Request):
         datetime.now(timezone.utc).isoformat()
     )
 
-    # Mirror to Neo4j graph layer (fire-and-forget)
-    try:
-        _write_to_neo4j(text=text, tags=tags, priority="normal", source="supabase-webhook",
-                         context_prefix=str(row_id or ""))
-    except Exception as e:
-        logger.warning("neo4j mirror failed (non-fatal): %s", e)
-
     return {"status": "processed", "row_id": row_id}
 
 
@@ -353,7 +143,7 @@ async def knowledge_insert_webhook(request: Request):
 #
 # Auth: passcode in request body (Figma's shared-secret model).
 # On FILE_UPDATE / FILE_VERSION_UPDATE: fetches file variables via REST API,
-# stores tokens in knowledge store + Neo4j.
+# stores tokens in the knowledge store.
 # The endpoint is exempt from the session-cookie auth gate.
 # ---------------------------------------------------------------------------
 
@@ -408,7 +198,7 @@ async def figma_webhook(request: Request):
     if not tokens:
         return {"status": "skipped", "reason": "no_variables"}
 
-    # Store tokens in knowledge store + Neo4j
+    # Store tokens in knowledge store
     try:
         summary = f"Figma design tokens from {file_name} ({file_key}) at {timestamp}: {tokens}"
         loop = asyncio.get_event_loop()
@@ -425,13 +215,6 @@ async def figma_webhook(request: Request):
             env={**os.environ, "HERMES_HOME": str(HERMES_HOME)},
         ))
         store_id = result.stdout.strip() if result.returncode == 0 else None
-
-        # Mirror to Neo4j
-        _write_to_neo4j(
-            text=summary, tags=["figma", "design-tokens"],
-            priority="high", source="figma-webhook",
-            context_prefix=file_key,
-        )
 
         logger.info("figma webhook: stored tokens for %s id=%s", file_key, store_id)
         return {"status": "stored", "knowledge_id": store_id, "file_key": file_key}
@@ -1371,16 +1154,6 @@ async def _notion_fetch_and_store(page_id: str, page_title: str, url: str) -> di
     except Exception as e:
         logger.error("notion: knowledge store error: %s", e)
         return {"status": "error", "reason": str(e)[:200]}
-
-    # Mirror to Neo4j
-    try:
-        _write_to_neo4j(
-            text=fact, tags=["notion", "documentation"],
-            priority="normal", source="notion-webhook",
-            context_prefix=url or f"notion:{page_id}",
-        )
-    except Exception as e:
-        logger.warning("notion: neo4j mirror failed (non-fatal): %s", e)
 
     logger.info("notion: stored page %s id=%s", page_id, store_id)
     return {"status": "stored", "knowledge_id": store_id,
