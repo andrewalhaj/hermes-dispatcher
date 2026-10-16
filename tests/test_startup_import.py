@@ -49,38 +49,46 @@ class StartupImportTest(unittest.TestCase):
             self.assertFalse(client.is_active(), "Sentry client active with no DSN")
 
     def test_every_router_module_mounted(self):
-        """Every routes/*.py that defines a ``router`` must contribute at least one path."""
+        """Every routes/*.py that defines a ``router`` must be mounted under /api."""
         import pkgutil
-        from starlette.routing import Mount, Route
 
         import routes
 
-        def leaves(rs):
-            for r in rs:
-                # FastAPI ≥0.138 keeps include_router() lazy: _IncludedRouter
-                sub = getattr(r, "routes", None)
-                inner = getattr(r, "original_router", None)
-                if inner is not None:
-                    yield from leaves(inner.routes)
-                elif sub is not None and not isinstance(r, Route):
-                    yield from leaves(sub)
-                elif getattr(r, "path", None):
-                    yield r.path
-
-        paths = set(leaves(self.server.fastapi_app.routes))
+        # Public OpenAPI paths, not FastAPI's private router internals (which
+        # changed shape in 0.138 and dropped the /api prefix).
+        paths = set(self.server.fastapi_app.openapi()["paths"])
         self.assertGreater(len(paths), 20, f"only {len(paths)} routes mounted")
         self.assertIn("/api/health", paths)
 
-        # Optional routers (e.g. upload needs python-multipart) may be skipped
-        # deliberately; everything else with a `router` must import cleanly.
+        # Every module with a `router` must be mounted under /api — a dropped
+        # include_router() line would otherwise ship green and 404 in prod.
         for m in pkgutil.iter_modules(routes.__path__):
             mod = importlib.import_module(f"routes.{m.name}")
             if getattr(mod, "router", None) is None:
                 continue
-            self.assertTrue(
-                any(getattr(r, "path", None) for r in mod.router.routes),
-                f"routes.{m.name} defines a router with no routes",
-            )
+            own = {"/api" + r.path for r in mod.router.routes if getattr(r, "include_in_schema", False)}
+            self.assertTrue(own, f"routes.{m.name} defines a router with no routes")
+            self.assertTrue(own & paths, f"routes.{m.name} router is not mounted in server.py")
+
+    def test_sentry_enabled_wraps_app(self):
+        """The production branch: a DSN set → init called, app wrapped in the ASGI middleware."""
+        from unittest import mock
+
+        import sentry_sdk
+
+        # Mock init: a real client with a fake DSN would try to send events.
+        with mock.patch.dict(os.environ, {"SENTRY_DSN": "https://k@sentry.invalid/1"}), \
+                mock.patch.object(sentry_sdk, "init") as init:
+            sys.modules.pop("server", None)
+            try:
+                srv = importlib.import_module("server")
+            finally:
+                sys.modules["server"] = self.server
+        init.assert_called_once()
+        self.assertEqual(init.call_args.kwargs["dsn"], "https://k@sentry.invalid/1")
+        self.assertTrue(srv.SENTRY_ENABLED)
+        self.assertIsNot(srv.app, srv.fastapi_app)
+        self.assertIs(srv.app.app, srv.fastapi_app)
 
 
 if __name__ == "__main__":
