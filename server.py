@@ -1,20 +1,3 @@
-import os
-
-import sentry_sdk
-
-# Sentry is opt-in via the environment (EnvironmentFile for the systemd unit).
-# Unset SENTRY_DSN → no init, no middleware: tests, probes and side-port boots
-# never report as production incidents (2026-10-15: a hardcoded DSN turned a
-# verification run into 4 Sentry→Linear→kanban incidents and a swarm run).
-_SENTRY_DSN = os.environ.get("SENTRY_DSN", "").strip()
-SENTRY_ENABLED = bool(_SENTRY_DSN)
-if SENTRY_ENABLED:
-    sentry_sdk.init(
-        dsn=_SENTRY_DSN,
-        environment=os.environ.get("SENTRY_ENVIRONMENT", "production"),
-        traces_sample_rate=0.1,
-    )
-
 """
 Hermes Dispatcher — FastAPI backend
 ====================================
@@ -29,6 +12,24 @@ this file alone.
 """
 
 import os
+
+import sentry_sdk
+
+# Sentry is opt-in via the environment (EnvironmentFile=.env in the unit drop-in
+# /etc/systemd/system/hermes-dispatcher.service.d/env.conf).
+# Unset SENTRY_DSN → no init, no middleware: tests, probes and side-port boots
+# never report as production incidents (2026-10-15: a hardcoded DSN turned a
+# verification run into 4 Sentry→Linear→kanban incidents and a swarm run).
+_SENTRY_DSN = os.environ.get("SENTRY_DSN", "").strip()
+SENTRY_ENABLED = bool(_SENTRY_DSN)
+if SENTRY_ENABLED:
+    sentry_sdk.init(
+        dsn=_SENTRY_DSN,
+        environment=os.environ.get("SENTRY_ENVIRONMENT", "production"),
+        traces_sample_rate=0.1,
+    )
+
+
 import asyncio as _asyncio
 import logging as _logging
 import mimetypes
