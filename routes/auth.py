@@ -62,27 +62,6 @@ def _end_session(token: str | None) -> None:
 _FAIL_WINDOW = 60  # seconds
 _FAIL_LIMIT = 5
 _FAIL_LOG: dict[str, list[float]] = collections.defaultdict(list)
-_LOOPBACK = {"127.0.0.1", "::1"}
-
-
-def client_ip(request: Request) -> str:
-    """Real client address for rate-limit keys.
-
-    Behind the Cloudflare tunnel every request arrives from cloudflared on
-    loopback, so ``request.client.host`` was one shared bucket: five bad guesses
-    from anyone on the internet locked the owner out (audit P1). Only trust the
-    forwarding headers when the TCP peer is loopback (the tunnel); a direct
-    tailnet/LAN client can't spoof its way into a different bucket.
-    """
-    peer = request.client.host if request.client else "unknown"
-    if peer in _LOOPBACK:
-        cf = request.headers.get("cf-connecting-ip")
-        if cf:
-            return cf.strip()
-        xff = request.headers.get("x-forwarded-for")
-        if xff:
-            return xff.split(",")[0].strip()
-    return peer
 
 
 def _is_rate_limited(ip: str) -> bool:
@@ -121,7 +100,10 @@ router = APIRouter()
 
 @router.post("/auth/login")
 async def login(request: Request) -> JSONResponse:
-    ip = client_ip(request)
+    # Behind the tunnel the peer is cloudflared on 127.0.0.1; uvicorn's proxy_headers
+    # (default on, trusts 127.0.0.1 only) already swapped in the rightmost X-Forwarded-For
+    # entry, i.e. the address Cloudflare saw. Non-loopback peers can't spoof it.
+    ip = request.client.host if request.client else "unknown"
 
     if _is_rate_limited(ip):
         return JSONResponse({"ok": False, "error": "Too many attempts"}, status_code=429)
