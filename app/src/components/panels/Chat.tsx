@@ -1,12 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import {
-  INITIAL_THREADS,
   MODEL_OPTIONS,
   PAST_SESSIONS,
   PROFILE_OPTIONS,
   REASON_OPTIONS,
-  cannedReply,
   epochToWhen,
   nowTime,
 } from '../../data/chat'
@@ -283,31 +281,7 @@ interface ChatProps {
   onUnreadChange?: (total: number) => void
 }
 
-// ── Read/delivered tick (echoes reference CheckCheck / Check) ─────────────────
-
-function StatusTick({ color }: { color: string }) {
-  // Double-check "read" style tick, mirrors the reference's CheckCheck affordance.
-  return (
-    <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" style={{ flex: 'none' }}>
-      <path d="M1 13l4 4L13 7" />
-      <path d="M11 13l4 4L23 7" />
-    </svg>
-  )
-}
-
 // ── Inline icons (lucide-react translated to our inline-SVG convention) ───────
-
-function SmilePlusIcon({ size = 16, color = 'currentColor' }: { size?: number; color?: string }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ flex: 'none' }}>
-      <path d="M22 11v1a10 10 0 1 1-9-10" />
-      <path d="M8 14s1.5 2 4 2 4-2 4-2" />
-      <line x1={9} y1={9} x2={9.01} y2={9} />
-      <line x1={15} y1={9} x2={15.01} y2={9} />
-      <path d="M16 5h6M19 2v6" />
-    </svg>
-  )
-}
 
 function SearchIcon({ size = 18, color = 'currentColor' }: { size?: number; color?: string }) {
   return (
@@ -368,22 +342,11 @@ function renderSnippet(snippet: string, accent: string): ReactNode[] {
 /** ISO timestamp → relative "when" string (mirrors epochToWhen for ISO input). */
 function isoToWhen(iso: string): string {
   if (!iso) return ''
-  const d = new Date(iso)
-  if (isNaN(d.getTime())) return ''
-  const now = new Date()
-  const diffDays = Math.floor((now.getTime() - d.getTime()) / 86_400_000)
-  const timeStr = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })
-  if (diffDays === 0) return `Today · ${timeStr}`
-  if (diffDays === 1) return `Yesterday · ${timeStr}`
-  return d.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' · ' + timeStr
+  const ms = Date.parse(iso)
+  return isNaN(ms) ? '' : epochToWhen(Math.floor(ms / 1000))
 }
 
-// Quick-reaction palette for the SmilePlus picker.
-const REACTION_EMOJIS = ['👍', '🙌', '✨', '🎉', '❤️', '👀']
-
-type Reaction = { emoji: string; count: number; reacted: boolean }
-
-interface Attachment {
+type Attachment = {
   path: string
   filename: string
   mime: string
@@ -482,7 +445,6 @@ function LinearIcon({ size = 15, color = 'currentColor' }: { size?: number; colo
   )
 }
 
-const clone = <T,>(o: T): T => JSON.parse(JSON.stringify(o)) as T
 
 // ── Left sidebar: Hermes / Channels / Agents (+ collapsible Swarm) ───────────
 
@@ -730,7 +692,7 @@ function ChatSidebar({ accent, liveAgents, cronJobs, activeAgent, activeCron, ac
           </span>
         )
         if (collapsed) {
-          return railRow('cron', selected, onSelectCron, cronAvatar, 'Cron Jobs', unreadCounts['cron'] || 0)
+          return railRow('cron', selected, onSelectCron, cronAvatar, 'Cron Jobs', 0)
         }
         const now = new Date()
         const timeStr = now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })
@@ -757,17 +719,6 @@ function ChatSidebar({ accent, liveAgents, cronJobs, activeAgent, activeCron, ac
               </span>
               <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
                 <span style={{ fontSize: 12, color: '#9298ab', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{cronJobs.length} scheduled</span>
-                {(unreadCounts['cron'] || 0) > 0 && (
-                  <span style={{
-                    minWidth: 20, height: 20, borderRadius: 10,
-                    background: '#3b82f6', color: '#fff',
-                    fontSize: 11, fontWeight: 700,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    padding: '0 5px', flexShrink: 0,
-                  }}>
-                    {unreadCounts['cron']}
-                  </span>
-                )}
               </span>
             </span>
           </div>
@@ -782,7 +733,7 @@ function ChatSidebar({ accent, liveAgents, cronJobs, activeAgent, activeCron, ac
           </span>
         )
         if (collapsed) {
-          return railRow('sentry', selected, onSelectSentry, sentryAvatar, 'Sentry', unreadCounts['sentry'] || 0)
+          return railRow('sentry', selected, onSelectSentry, sentryAvatar, 'Sentry', 0)
         }
         const now = new Date()
         const timeStr = now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })
@@ -807,17 +758,6 @@ function ChatSidebar({ accent, liveAgents, cronJobs, activeAgent, activeCron, ac
               </span>
               <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
                 <span style={{ fontSize: 12, color: '#9298ab', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>Error alerts</span>
-                {(unreadCounts['sentry'] || 0) > 0 && (
-                  <span style={{
-                    minWidth: 20, height: 20, borderRadius: 10,
-                    background: '#3b82f6', color: '#fff',
-                    fontSize: 11, fontWeight: 700,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    padding: '0 5px', flexShrink: 0,
-                  }}>
-                    {unreadCounts['sentry']}
-                  </span>
-                )}
               </span>
             </span>
           </div>
@@ -832,7 +772,7 @@ function ChatSidebar({ accent, liveAgents, cronJobs, activeAgent, activeCron, ac
           </span>
         )
         if (collapsed) {
-          return railRow('linear', selected, onSelectLinear, linearAvatar, 'Linear Reports', unreadCounts['linear'] || 0)
+          return railRow('linear', selected, onSelectLinear, linearAvatar, 'Linear Reports', 0)
         }
         const now = new Date()
         const timeStr = now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })
@@ -857,17 +797,6 @@ function ChatSidebar({ accent, liveAgents, cronJobs, activeAgent, activeCron, ac
               </span>
               <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
                 <span style={{ fontSize: 12, color: '#9298ab', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>Routed issues</span>
-                {(unreadCounts['linear'] || 0) > 0 && (
-                  <span style={{
-                    minWidth: 20, height: 20, borderRadius: 10,
-                    background: '#3b82f6', color: '#fff',
-                    fontSize: 11, fontWeight: 700,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    padding: '0 5px', flexShrink: 0,
-                  }}>
-                    {unreadCounts['linear']}
-                  </span>
-                )}
               </span>
             </span>
           </div>
@@ -906,7 +835,7 @@ function ChatSidebar({ accent, liveAgents, cronJobs, activeAgent, activeCron, ac
 
 export default function Chat({ accent, isActive, onUnreadChange }: ChatProps) {
   const [activeAgent, setActiveAgent] = useState('default')
-  const [threads, setThreads] = useState<Record<string, Message[]>>(() => clone(INITIAL_THREADS))
+  const [threads, setThreads] = useState<Record<string, Message[]>>({})
   const [draft, setDraft] = useState('')
   const [running, setRunning] = useState(false)
   const [viewSession, setViewSession] = useState<PastSession | null>(null)
@@ -948,9 +877,6 @@ export default function Chat({ accent, isActive, onUnreadChange }: ChatProps) {
   const [reportsLoading, setReportsLoading] = useState(false)
 
   // Per-message emoji reactions (local UX state — not persisted to the backend).
-  const [reactions, setReactions] = useState<Record<string, Reaction[]>>({})
-  const [reactionPicker, setReactionPicker] = useState<string | null>(null)
-  const [composerEmoji, setComposerEmoji] = useState(false)
 
   // ── File / image attachments (paste + paperclip) ──────────────────────────
   const [attachments, setAttachments] = useState<Attachment[]>([])
@@ -1047,24 +973,6 @@ export default function Chat({ accent, isActive, onUnreadChange }: ChatProps) {
     exitSearch()
   }
 
-  function toggleReaction(msgId: string, emoji: string) {
-    setReactions((s) => {
-      const list = s[msgId] ? [...s[msgId]] : []
-      const idx = list.findIndex((r) => r.emoji === emoji)
-      if (idx === -1) {
-        list.push({ emoji, count: 1, reacted: true })
-      } else {
-        const r = list[idx]
-        const reacted = !r.reacted
-        const count = r.count + (reacted ? 1 : -1)
-        if (count <= 0) list.splice(idx, 1)
-        else list[idx] = { ...r, reacted, count }
-      }
-      return { ...s, [msgId]: list }
-    })
-    setReactionPicker(null)
-  }
-
   // Voice input
   const [listening, setListening] = useState(false)
   const recognitionRef = useRef<any>(null)
@@ -1123,7 +1031,6 @@ export default function Chat({ accent, isActive, onUnreadChange }: ChatProps) {
   const [modelOpts, setModelOpts] = useState<string[]>(MODEL_OPTIONS)
   const [hermesSessions, setHermesSessions] = useState<PastSession[] | null>(null)
 
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const listRef = useRef<HTMLDivElement | null>(null)
   const bottomRef = useRef<HTMLDivElement | null>(null)
   const abortRef = useRef<AbortController | null>(null)
@@ -1304,7 +1211,6 @@ export default function Chat({ accent, isActive, onUnreadChange }: ChatProps) {
 
   useEffect(() => () => {
     abortRef.current?.abort()
-    if (timerRef.current) clearTimeout(timerRef.current)
     recognitionRef.current?.stop()
     if (silenceRef.current) clearTimeout(silenceRef.current)
   }, [])
@@ -1377,7 +1283,6 @@ export default function Chat({ accent, isActive, onUnreadChange }: ChatProps) {
     setViewSession(null)
     setCronOutput([])
     setCronLoading(true)
-    setUnreadCounts((prev) => (prev['cron'] ? { ...prev, cron: 0 } : prev))
     try {
       const res = await fetch('/api/cron/output')
       const data = await res.json() as CronOutputMsg[]
@@ -1396,7 +1301,6 @@ export default function Chat({ accent, isActive, onUnreadChange }: ChatProps) {
     setViewSession(null)
     setSentryOutput([])
     setSentryLoading(true)
-    setUnreadCounts((prev) => (prev['sentry'] ? { ...prev, sentry: 0 } : prev))
     try {
       const res = await fetch('/api/sentry/messages')
       const data = await res.json() as SentryOutputMsg[]
@@ -1415,7 +1319,6 @@ export default function Chat({ accent, isActive, onUnreadChange }: ChatProps) {
     setViewSession(null)
     setLinearOutput([])
     setLinearLoadingCh(true)
-    setUnreadCounts((prev) => (prev['linear'] ? { ...prev, linear: 0 } : prev))
     try {
       const res = await fetch('/api/linear-reports/messages')
       const data = await res.json() as LinearOutputMsg[]
@@ -1669,19 +1572,11 @@ export default function Chat({ accent, isActive, onUnreadChange }: ChatProps) {
     }
     setThreads((s) => ({ ...s, [k]: [...(s[k] || []), { id: 'u' + Date.now(), role: 'user', text: t, at }] }))
     setDraft('')
-    setRunning(true)
-    if (timerRef.current) clearTimeout(timerRef.current)
-    timerRef.current = setTimeout(() => {
-      const reply = cannedReply(k)
-      setThreads((s) => ({ ...s, [k]: [...(s[k] || []), { id: 'a' + Date.now(), role: 'agent', text: reply, at: nowTime() }] }))
-      setRunning(false)
-    }, 1500)
   }
 
   function stop() {
     abortRef.current?.abort()
     fetch('/api/chat/cancel', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ session_id: sessionId }) }).catch(() => {})
-    if (timerRef.current) clearTimeout(timerRef.current)
     setRunning(false)
   }
 
@@ -1994,77 +1889,6 @@ export default function Chat({ accent, isActive, onUnreadChange }: ChatProps) {
                         <div style={{ color: '#d8dbe6', wordWrap: 'break-word', paddingLeft: 50 }}>
                           <MessageContent text={m.text} accent={accent} />
                         </div>
-
-                        {/* Status row — read tick on the user's own messages (decorative) */}
-                        {isUser && (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 7, paddingLeft: 50, fontSize: 11.5, color: '#565d72' }}>
-                            <StatusTick color={running && i === displayThread.length - 1 ? '#6a7088' : 'var(--success)'} />
-                            <span>{m.at}</span>
-                          </div>
-                        )}
-
-                        {/* Reaction pills + add-reaction affordance */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8, paddingLeft: 50, flexWrap: 'wrap', position: 'relative' }}>
-                          {(reactions[m.id] || []).map((r) => (
-                            <button
-                              key={r.emoji}
-                              onClick={() => toggleReaction(m.id, r.emoji)}
-                              title={r.reacted ? 'Remove reaction' : 'Add reaction'}
-                              style={{
-                                display: 'inline-flex', alignItems: 'center', gap: 4,
-                                padding: '2px 9px', borderRadius: 99, cursor: 'pointer',
-                                fontFamily: 'inherit', fontSize: 12, lineHeight: 1.4,
-                                color: r.reacted ? 'var(--ac)' : '#9298ab',
-                                background: r.reacted ? 'color-mix(in oklab, var(--ac) 15%, transparent)' : 'rgba(255,255,255,0.05)',
-                                border: `1px solid ${r.reacted ? 'color-mix(in oklab, var(--ac) 42%, transparent)' : 'rgba(255,255,255,0.08)'}`,
-                                transition: 'all 0.14s',
-                              }}
-                            >
-                              <span>{r.emoji}</span>
-                              <span className="mono" style={{ fontSize: 11 }}>{r.count}</span>
-                            </button>
-                          ))}
-                          <button
-                            onClick={() => setReactionPicker((p) => (p === m.id ? null : m.id))}
-                            title="Add reaction"
-                            style={{
-                              width: 24, height: 24, flex: 'none', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                              borderRadius: 99, cursor: 'pointer', border: '1px solid rgba(255,255,255,0.08)',
-                              background: reactionPicker === m.id ? 'rgba(255,255,255,0.08)' : 'transparent',
-                              color: reactionPicker === m.id ? '#e9ebf2' : '#565d72', transition: 'all 0.14s',
-                            }}
-                            onMouseEnter={(e) => { e.currentTarget.style.color = '#e9ebf2'; e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
-                            onMouseLeave={(e) => { if (reactionPicker !== m.id) { e.currentTarget.style.color = '#565d72'; e.currentTarget.style.background = 'transparent' } }}
-                          >
-                            <SmilePlusIcon size={14} />
-                          </button>
-                          {reactionPicker === m.id && (
-                            <>
-                              <div onClick={() => setReactionPicker(null)} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />
-                              <div
-                                style={{
-                                  position: 'absolute', bottom: 'calc(100% + 6px)', left: 50, zIndex: 50,
-                                  display: 'flex', gap: 2, padding: 5,
-                                  background: '#0c1119', border: '1px solid rgba(255,255,255,0.12)',
-                                  borderRadius: 12, boxShadow: '0 8px 28px rgba(0,0,0,0.55)',
-                                  animation: 'hcmdin 0.15s cubic-bezier(0.16,1,0.3,1)',
-                                }}
-                              >
-                                {REACTION_EMOJIS.map((emoji) => (
-                                  <button
-                                    key={emoji}
-                                    onClick={() => toggleReaction(m.id, emoji)}
-                                    style={{ width: 30, height: 30, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, background: 'none', border: 'none', borderRadius: 8, cursor: 'pointer' }}
-                                    onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
-                                    onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
-                                  >
-                                    {emoji}
-                                  </button>
-                                ))}
-                              </div>
-                            </>
-                          )}
-                        </div>
                       </div>
                     )
                   })()
@@ -2357,50 +2181,6 @@ export default function Chat({ accent, isActive, onUnreadChange }: ChatProps) {
                   <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" />
                 </svg>
               </button>
-
-              {/* Emoji insert button (ruixen SmilePlus, left of composer) */}
-              <div style={{ position: 'relative', flex: 'none' }}>
-                <button
-                  title="Insert emoji"
-                  onClick={() => setComposerEmoji((v) => !v)}
-                  style={{
-                    width: 30, height: 30, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                    background: composerEmoji ? 'rgba(255,255,255,0.06)' : 'none',
-                    border: 'none', borderRadius: 8,
-                    color: composerEmoji ? '#e9ebf2' : '#6a7088', cursor: 'pointer', transition: 'all 0.2s',
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.color = '#e9ebf2'; e.currentTarget.style.background = 'rgba(255,255,255,0.05)' }}
-                  onMouseLeave={(e) => { if (!composerEmoji) { e.currentTarget.style.color = '#6a7088'; e.currentTarget.style.background = 'none' } }}
-                >
-                  <SmilePlusIcon size={16} />
-                </button>
-                {composerEmoji && (
-                  <>
-                    <div onClick={() => setComposerEmoji(false)} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />
-                    <div
-                      style={{
-                        position: 'absolute', bottom: 'calc(100% + 8px)', left: 0, zIndex: 50,
-                        display: 'flex', gap: 2, padding: 5,
-                        background: '#0c1119', border: '1px solid rgba(255,255,255,0.12)',
-                        borderRadius: 12, boxShadow: '0 8px 28px rgba(0,0,0,0.55)',
-                        animation: 'hcmdin 0.15s cubic-bezier(0.16,1,0.3,1)',
-                      }}
-                    >
-                      {REACTION_EMOJIS.map((emoji) => (
-                        <button
-                          key={emoji}
-                          onMouseDown={(e) => { e.preventDefault(); setDraft((d) => d + emoji); setComposerEmoji(false) }}
-                          style={{ width: 30, height: 30, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, background: 'none', border: 'none', borderRadius: 8, cursor: 'pointer' }}
-                          onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
-                          onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
-                        >
-                          {emoji}
-                        </button>
-                      ))}
-                    </div>
-                  </>
-                )}
-              </div>
 
               {/* Voice button — hidden when SpeechRecognition is unavailable */}
               {hasSpeech && (

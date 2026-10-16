@@ -406,9 +406,9 @@ export const LANG_OPTS = [
   { value: 'ja', label: '日本語' },
 ]
 export const API_KEYS = [
-  { label: 'Anthropic API key', value: 'sk-ant-api03-7f3c9d2e8b1a4f6c5d0e9a8b' },
-  { label: 'OpenAI API key', value: 'sk-proj-2a9f8e7d6c5b4a3f1e0d9c8b' },
-  { label: 'AWS access key', value: 'AKIA4XYZ7QWE2RTY8UIO' },
+  { label: 'Anthropic API key', value: 'sk-ant-EXAMPLE00000000000000000000000' },
+  { label: 'OpenAI API key', value: 'sk-EXAMPLE0000000000000000000000000000' },
+  { label: 'AWS access key', value: 'AKIAEXAMPLE000000000000' },
 ]
 
 // ---------------------------------------------------------------------------

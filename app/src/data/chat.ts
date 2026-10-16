@@ -1,22 +1,9 @@
-import type { Message, PastSession, PlanStep, PlanStepStatus } from './types'
+import type { PastSession, PlanStep, PlanStepStatus } from './types'
 import { ACCENT } from './agents'
 
 /** Current time as a short clock string, e.g. "2:14 PM". */
 export function nowTime(): string {
   return new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })
-}
-
-/** Canned worker replies (non-Hermes agents answer after a 1.5s delay). */
-const CANNED: Record<string, string> = {
-  hermes: 'On it — routing that now.',
-  'executor': 'Queued on the GPU; I’ll report latency when the run completes.',
-  'coder-c': 'Kicked off the ETL pass — watching for row errors.',
-  'coder-d': 'Drafting that content now.',
-  'coder-e': 'Acknowledged — running the infra check.',
-}
-
-export function cannedReply(key: string): string {
-  return CANNED[key] || 'Acknowledged.'
 }
 
 /** Convert epoch seconds to a human-readable "when" string for past sessions. */
@@ -122,30 +109,6 @@ export function planStatusMeta(status: PlanStepStatus, accent: string): { ringBg
     default:
       return { ringBg: 'rgba(255,255,255,0.06)', ringColor: '#6a7088' }
   }
-}
-
-/** Seed threads keyed by agent. */
-export const INITIAL_THREADS: Record<string, Message[]> = {
-  hermes: [
-    {
-      id: 'h1',
-      role: 'user',
-      text: 'Can you look through all the different memory stores Hermes can reach and summarise what each is for?',
-      at: '2:11 PM',
-    },
-    {
-      id: 'h2',
-      role: 'agent',
-      text: 'Done — built-in, the Supabase knowledge store, and the Obsidian vault are all connected. The full breakdown is in docs/hermes-memory-stores.md if you want the details.',
-      at: '2:14 PM',
-    },
-  ],
-  'executor': [
-    { id: 'r1', role: 'agent', text: 'Benchmarking model 2 of 4 on the 3070 — latency holding under the gate so far.', at: '1:48 PM' },
-  ],
-  'coder-c': [{ id: 'a1', role: 'agent', text: 'Nightly S3 export running · 1.2M rows queued.', at: '1:20 PM' }],
-  'coder-d': [],
-  'coder-e': [],
 }
 
 /** Past chat sessions keyed by agent. */
