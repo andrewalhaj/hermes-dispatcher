@@ -54,13 +54,14 @@ _POLL_INTERVAL = 1.0   # seconds between state.db polls
 _POLL_TIMEOUT = 120.0  # max seconds to wait for the assistant reply
 
 
-def _latest_telegram_session_id(conn: sqlite3.Connection):
-    """Return the id of the most recently started, non-archived telegram session."""
+def _latest_telegram_session(conn: sqlite3.Connection):
+    """Return (id, archived) of the newest telegram session — the one the gateway
+    writes to. It ignores `archived`, so neither can we."""
     row = conn.execute(
-        "SELECT id FROM sessions WHERE source = 'telegram' AND archived = 0"
+        "SELECT id, archived FROM sessions WHERE source = 'telegram'"
         " ORDER BY started_at DESC LIMIT 1"
     ).fetchone()
-    return row[0] if row else None
+    return (row[0], bool(row[1])) if row else (None, False)
 
 
 def _latest_assistant_row(conn: sqlite3.Connection, session_id: str):
@@ -91,16 +92,22 @@ async def chat_send(req: SendRequest):
         # 1) Snapshot the active telegram session + last assistant id BEFORE
         #    injecting, so we know which reply is new.
         session_id = None
+        archived = False
         baseline_id = -1
         try:
             conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True, check_same_thread=False)
-            session_id = _latest_telegram_session_id(conn)
+            session_id, archived = _latest_telegram_session(conn)
             if session_id:
                 last = _latest_assistant_row(conn, session_id)
                 baseline_id = last[0] if last else -1
             conn.close()
         except Exception:
             session_id = None
+        if archived:
+            # The user deleted this session in the dashboard; injecting would
+            # append to it again. /new in Telegram starts a fresh one.
+            yield f"data: {json.dumps({'type': 'error', 'text': 'current Telegram session was deleted — send /new in Telegram, then retry'})}\n\n"
+            return
 
         # 2) POST the message to the gateway inject endpoint. aiohttp is present
         #    in the dashboard venv (used by the /chat/linear route); use it for a
@@ -138,7 +145,7 @@ async def chat_send(req: SendRequest):
                 conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True, check_same_thread=False)
                 # Re-resolve the session each tick: a brand-new telegram session
                 # may have been created by the inject if none existed before.
-                sid = session_id or _latest_telegram_session_id(conn)
+                sid = session_id or _latest_telegram_session(conn)[0]
                 row = _latest_assistant_row(conn, sid) if sid else None
                 conn.close()
             except Exception:
@@ -344,6 +351,7 @@ async def chat_session_messages(session_id: str):
         cur.execute(
             "SELECT id, role, content, timestamp FROM messages"
             " WHERE session_id = ? AND role IN ('user', 'assistant')"
+            " AND session_id IN (SELECT id FROM sessions WHERE archived = 0)"
             " ORDER BY timestamp ASC",
             (session_id,),
         )
