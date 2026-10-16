@@ -132,9 +132,11 @@ async def delete_session(session_id: str) -> dict[str, Any]:
         cur.execute("SELECT id FROM sessions WHERE id=?", (session_id,))
         if cur.fetchone() is None:
             raise HTTPException(status_code=404, detail="Session not found")
-        cur.execute("DELETE FROM messages WHERE session_id=?", (session_id,))
-        cur.execute("DELETE FROM sessions WHERE id=?", (session_id,))
+        # Audit #14: this used to DELETE messages + session rows from the agents'
+        # live state.db — one click, history gone, no backup. Every reader
+        # already filters archived=0, so soft-delete is the same from the UI.
+        cur.execute("UPDATE sessions SET archived=1 WHERE id=?", (session_id,))
         conn.commit()
-        return {"deleted": session_id, "ok": True}
+        return {"deleted": session_id, "archived": True, "ok": True}
     finally:
         conn.close()
