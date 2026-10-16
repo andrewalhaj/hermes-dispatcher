@@ -1,10 +1,19 @@
+import os
+
 import sentry_sdk
 
-sentry_sdk.init(
-    dsn="https://b8b278611e630a0baad50e7b7ce8c340@o4511599662399488.ingest.us.sentry.io/4511622655901696",
-    environment="production",
-    traces_sample_rate=0.1,
-)
+# Sentry is opt-in via the environment (EnvironmentFile for the systemd unit).
+# Unset SENTRY_DSN → no init, no middleware: tests, probes and side-port boots
+# never report as production incidents (2026-10-15: a hardcoded DSN turned a
+# verification run into 4 Sentry→Linear→kanban incidents and a swarm run).
+_SENTRY_DSN = os.environ.get("SENTRY_DSN", "").strip()
+SENTRY_ENABLED = bool(_SENTRY_DSN)
+if SENTRY_ENABLED:
+    sentry_sdk.init(
+        dsn=_SENTRY_DSN,
+        environment=os.environ.get("SENTRY_ENVIRONMENT", "production"),
+        traces_sample_rate=0.1,
+    )
 
 """
 Hermes Dispatcher — FastAPI backend
@@ -308,11 +317,15 @@ async def spa_fallback(full_path: str) -> FileResponse | PlainTextResponse:
 
 
 # ---------------------------------------------------------------------------
-# Sentry ASGI middleware — applied last so it wraps all other middleware
+# Sentry ASGI middleware — applied last so it wraps all other middleware.
+# Only when Sentry is enabled; otherwise `app` stays the bare FastAPI object
+# (tests can introspect app.routes directly).
 # ---------------------------------------------------------------------------
-from sentry_sdk.integrations.asgi import SentryAsgiMiddleware
+fastapi_app = app
+if SENTRY_ENABLED:
+    from sentry_sdk.integrations.asgi import SentryAsgiMiddleware
 
-app = SentryAsgiMiddleware(app)
+    app = SentryAsgiMiddleware(app)
 
 # ---------------------------------------------------------------------------
 # Entrypoint — bind the configured port and start uvicorn.
