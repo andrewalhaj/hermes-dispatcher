@@ -304,7 +304,10 @@ def _fetch_studio_metrics() -> dict:
         out = subprocess.run(
             [
                 "ssh",
-                "-o", "StrictHostKeyChecking=no",
+                # accept-new: trust known_hosts (MS01 is pinned there), add unknown
+                # hosts on first contact, REJECT a changed key — `no` accepted any
+                # key silently (audit P1, MITM on the metrics probe).
+                "-o", "StrictHostKeyChecking=accept-new",
                 "-o", "ConnectTimeout=3",
                 "-o", "BatchMode=yes",
                 "-i", os.path.expanduser("~/.ssh/id_ed25519"),
