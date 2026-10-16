@@ -59,19 +59,6 @@ def _kb_tier(tags) -> str:
     return 'knowledge'
 
 
-def _read_env() -> dict:
-    """Parse ~/.hermes/.env into a dict (same pattern as knowledge.get_supabase)."""
-    env: dict = {}
-    try:
-        for line in (HERMES_HOME / ".env").read_text().splitlines():
-            line = line.strip()
-            if '=' in line and not line.startswith('#'):
-                k, v = line.split('=', 1)
-                env[k.strip()] = v.strip().strip('"').strip("'")
-    except Exception:
-        pass
-    return env
-
 
 
 def _read_safe(path: Path) -> str:
@@ -239,16 +226,3 @@ def get_galaxy():
             pass
 
     return {"nodes": nodes, "edges": []}
-
-
-if __name__ == "__main__":
-    # Standalone entry-point for direct invocation / manual testing only.
-    # Production path: server.py imports this router and mounts it under /api.
-    import uvicorn
-    from fastapi import FastAPI
-    from fastapi.middleware.cors import CORSMiddleware
-
-    _app = FastAPI()
-    _app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
-    _app.include_router(router, prefix="/api")
-    uvicorn.run(_app, host="0.0.0.0", port=8787)

@@ -21,8 +21,6 @@ _HERMES_HOME = Path(os.environ.get("HERMES_HOME", os.path.expanduser("~/.hermes"
 # HERMES_HOME may point at a profile subdir in worker contexts; cron lives at
 # the top-level hermes home, so resolve it explicitly with a fallback.
 JOBS = _HERMES_HOME / "cron" / "jobs.json"
-if not JOBS.exists():
-    JOBS = Path(os.environ.get("HERMES_HOME", os.path.expanduser("~/.hermes"))) / "cron" / "jobs.json"
 OUTPUT_DIR = JOBS.parent / "output"
 
 
