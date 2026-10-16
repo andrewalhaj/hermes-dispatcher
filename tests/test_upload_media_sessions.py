@@ -68,6 +68,7 @@ class MediaHeadersTest(unittest.TestCase):
         (self.root / "evil.html").write_text("<script>alert(document.cookie)</script>")
         (self.root / "evil.svg").write_text("<svg onload='alert(1)'/>")
         (self.root / "pic.png").write_bytes(b"\x89PNG\r\n\x1a\n" + b"\0" * 16)
+        (self.root / "doc.pdf").write_bytes(b"%PDF-1.4\n%%EOF\n")
         self.c = _app(media.router)
 
     def _get(self, name):
@@ -97,6 +98,13 @@ class MediaHeadersTest(unittest.TestCase):
         self.assertEqual(r.status_code, 200)
         self.assertNotIn("content-disposition", r.headers)
         self.assertEqual(r.headers["content-type"], "image/png")
+        self.assertEqual(r.headers["x-content-type-options"], "nosniff")
+
+    def test_pdf_inline(self):
+        r = self._get("doc.pdf")
+        self.assertEqual(r.status_code, 200)
+        self.assertNotIn("content-disposition", r.headers)
+        self.assertEqual(r.headers["content-type"], "application/pdf")
         self.assertEqual(r.headers["x-content-type-options"], "nosniff")
 
 
