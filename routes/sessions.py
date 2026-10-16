@@ -109,7 +109,9 @@ async def get_messages(session_id: str) -> list[dict[str, Any]]:
         cur = conn.cursor()
         cur.execute(
             "SELECT role, content, timestamp FROM messages "
-            "WHERE session_id=? AND active=1 ORDER BY timestamp DESC LIMIT 50",
+            "WHERE session_id=? AND active=1"
+            " AND session_id IN (SELECT id FROM sessions WHERE archived=0)"
+            " ORDER BY timestamp DESC LIMIT 50",
             (session_id,),
         )
         rows = cur.fetchall()
@@ -133,8 +135,8 @@ async def delete_session(session_id: str) -> dict[str, Any]:
         if cur.fetchone() is None:
             raise HTTPException(status_code=404, detail="Session not found")
         # Audit #14: this used to DELETE messages + session rows from the agents'
-        # live state.db — one click, history gone, no backup. Every reader
-        # already filters archived=0, so soft-delete is the same from the UI.
+        # live state.db — one click, history gone, no backup. Every dashboard
+        # reader filters archived=0 (hidden, not erased: rows stay in state.db).
         cur.execute("UPDATE sessions SET archived=1 WHERE id=?", (session_id,))
         conn.commit()
         return {"deleted": session_id, "archived": True, "ok": True}
