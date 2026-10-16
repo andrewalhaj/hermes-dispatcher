@@ -9,6 +9,7 @@ from __future__ import annotations
 import asyncio
 import glob
 import json
+import logging
 import os
 import re
 import shutil
@@ -21,6 +22,7 @@ import psutil
 from fastapi import APIRouter
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 KANBAN_DB = Path(os.environ.get("KANBAN_DB", os.path.expanduser("~/.hermes/kanban.db")))
 
@@ -304,9 +306,8 @@ def _fetch_studio_metrics() -> dict:
         out = subprocess.run(
             [
                 "ssh",
-                # accept-new: trust known_hosts (MS01 is pinned there), add unknown
-                # hosts on first contact, REJECT a changed key — `no` accepted any
-                # key silently (audit P1, MITM on the metrics probe).
+                # accept-new: pin the key on first contact (over the tailnet), REJECT a
+                # changed key — `no` accepted any key silently (audit P1, MITM).
                 "-o", "StrictHostKeyChecking=accept-new",
                 "-o", "ConnectTimeout=3",
                 "-o", "BatchMode=yes",
@@ -319,6 +320,9 @@ def _fetch_studio_metrics() -> dict:
             text=True,
             timeout=4,
         )
+        if "Host key verification failed" in out.stderr:
+            # possible MITM — must not pass for ordinary "MS01 is down"
+            logger.error("MS01 probe: %s", out.stderr.strip())
         if out.returncode != 0 or not out.stdout.strip():
             return _unreachable_studio()
         data = json.loads(out.stdout.strip().splitlines()[-1])
