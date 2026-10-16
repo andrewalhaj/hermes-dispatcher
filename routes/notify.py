@@ -1,6 +1,7 @@
 """
 Webhook notification endpoint — sends messages to Telegram.
-Auth-exempt (localhost/internal only via firewall).
+Called in-process from hooks.py; requires a valid session cookie like all
+other /api routes (auth gate in server.py applies).
 
 Delivery hardening
 ------------------
