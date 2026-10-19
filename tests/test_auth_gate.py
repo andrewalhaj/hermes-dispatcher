@@ -107,6 +107,11 @@ class AuthGateTest(unittest.TestCase):
         self.assertIn(r.status_code, (302, 401, 404))
         self.assertNotIn("SUPABASE", r.text)
 
+    def test_overlong_password_is_401_not_500(self):
+        auth._FAIL_LOG.clear()
+        r = self.c.post("/api/auth/login", json={"password": "x" * 73})
+        self.assertEqual(r.status_code, 401)
+
 
 if __name__ == "__main__":
     unittest.main()
