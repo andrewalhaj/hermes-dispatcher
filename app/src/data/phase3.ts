@@ -405,12 +405,6 @@ export const LANG_OPTS = [
   { value: 'de', label: 'Deutsch' },
   { value: 'ja', label: '日本語' },
 ]
-export const API_KEYS = [
-  { label: 'Anthropic API key', value: 'sk-ant-EXAMPLE00000000000000000000000' },
-  { label: 'OpenAI API key', value: 'REDACTED-sk-E' },
-  { label: 'AWS access key', value: 'REDACTED-AKIA000' },
-]
-
 // ---------------------------------------------------------------------------
 // Memory Galaxy — node field
 // ---------------------------------------------------------------------------
