@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { ACCENT } from '../../data/agents'
-import { ACCENT_SWATCHES, API_KEYS, LANG_OPTS, SETTINGS_TOGGLES } from '../../data/phase3'
+import { ACCENT_SWATCHES, LANG_OPTS, SETTINGS_TOGGLES } from '../../data/phase3'
 import { lsGet, lsGetJson, lsSet } from '../../utils/localStorage'
 import '../../styles/phase3.css'
 
@@ -87,7 +87,6 @@ export default function Settings({ accent = ACCENT, onAccentChange }: SettingsPr
   const [modelOpts, setModelOpts] = useState<string[]>(MODEL_FALLBACK)
   const [ws, setWs] = useState(() => lsGet(LS_WS, '~/projects/dm-voice-board'))
   const [botName, setBotName] = useState(() => lsGet(LS_BOTNAME, 'Hermes'))
-  const [revealed, setReveal] = useState<Record<number, boolean>>({})
   const [toast, setToast] = useState<string | null>(null)
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const textDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -352,31 +351,6 @@ export default function Settings({ accent = ACCENT, onAccentChange }: SettingsPr
                   setToggles(next)
                   persist({ toggles: next })
                 }} />
-              </div>
-            ))}
-          </div>
-
-          {/* API keys */}
-          <div style={{ ...sectionStyle, animation: 'hcellin 0.45s ease backwards', animationDelay: '0.21s' }}>
-            <div style={sectionLabel}>API keys</div>
-            {API_KEYS.map((k, i) => (
-              <div key={k.label} style={i === 0 ? rowStyle : rowTopBorder}>
-                <div>
-                  <div style={rowTitle}>{k.label}</div>
-                  <div style={rowDesc}>Used for outbound model and tool calls.</div>
-                </div>
-                <div className="flex items-center" style={{ gap: 8 }}>
-                  <input
-                    readOnly
-                    type={revealed[i] ? 'text' : 'password'}
-                    value={k.value}
-                    className="mono"
-                    style={{ width: 168, background: 'var(--s4)', color: '#9aa0b4', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '8px 11px', fontSize: 12, outline: 'none' }}
-                  />
-                  <button onClick={() => setReveal((p) => ({ ...p, [i]: !p[i] }))} style={{ background: 'var(--s4)', color: '#c6cad8', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '8px 12px', fontSize: 12, fontFamily: 'inherit', cursor: 'pointer' }}>
-                    {revealed[i] ? 'Hide' : 'Reveal'}
-                  </button>
-                </div>
               </div>
             ))}
           </div>

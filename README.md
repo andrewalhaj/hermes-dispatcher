@@ -108,6 +108,16 @@ flowchart TB
 
 ---
 
+## Boundary with ~/.hermes
+
+This repo is the dashboard, API and webhook receivers (`hermes-dispatcher.service`, :8787). The agent
+itself — guards, memory provider, knowledge store, cron scripts, skills — lives in the sibling repo
+`~/.hermes` (see its README), run by `hermes-gateway.service`. The dispatcher reads that directory's state
+through `HERMES_HOME` and imports one package from it: `scripts/knowledge` (`routes/memory.py`), so a
+change there needs a dispatcher restart too.
+
+---
+
 ## Quick Start
 
 ```bash
