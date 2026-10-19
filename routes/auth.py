@@ -120,7 +120,8 @@ async def login(request: Request) -> JSONResponse:
         return JSONResponse({"ok": False, "error": "Invalid request"}, status_code=400)
 
     # Run bcrypt off the event loop so it doesn't block other requests (finding #5)
-    ok = await asyncio.to_thread(bcrypt.checkpw, submitted.encode(), _PASSWORD_HASH)
+    # bcrypt only reads 72 bytes; 5.x raises on longer input instead of truncating
+    ok = len(submitted.encode()) <= 72 and await asyncio.to_thread(bcrypt.checkpw, submitted.encode(), _PASSWORD_HASH)
     if not ok:
         _record_failure(ip)
         await asyncio.sleep(0.5)
