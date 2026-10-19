@@ -11,7 +11,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@sentry/react": "^10.60.0",
+    "@sentry/react": "^11.8.0",
     "@types/three": "^0.184.1",
     "framer-motion": "^12.40.0",
     "react": "^19.1.0",
