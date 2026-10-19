@@ -88,6 +88,6 @@ if not m2:
     fail('<div id="root"> not found in DOM dump')
 root_content = m2.group(1).strip()
 check('<div id="root"> has rendered content', bool(root_content),
-      "(empty — JS may have crashed on load)")
+      "" if root_content else "(empty — JS may have crashed on load)")
 
 print("\nAll checks passed.")
