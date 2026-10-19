@@ -478,10 +478,8 @@ interface ChatSidebarProps {
   activeCron: string | null
   activeSentry: string | null
   activeLinear: string | null
-  swarmOpen: boolean
   unreadCounts: Record<string, number>
   collapsed: boolean
-  onToggleSwarm: () => void
   onSelectAgent: (key: string) => void
   onSelectCron: () => void
   onSelectSentry: () => void
@@ -528,14 +526,11 @@ function GroupHeader({ label }: { label: string }) {
   )
 }
 
-function ChatSidebar({ accent, liveAgents, cronJobs, activeAgent, activeCron, activeSentry, activeLinear, swarmOpen, unreadCounts, collapsed, onToggleSwarm, onSelectAgent, onSelectCron, onSelectSentry, onSelectLinear, onToggleCollapsed }: ChatSidebarProps) {
+function ChatSidebar({ accent, liveAgents, cronJobs, activeAgent, activeCron, activeSentry, activeLinear, unreadCounts, collapsed, onSelectAgent, onSelectCron, onSelectSentry, onSelectLinear, onToggleCollapsed }: ChatSidebarProps) {
   const [filter, setFilter] = useState('')
   const q = filter.trim().toLowerCase()
 
   const hermes = liveAgents.find((a) => a.name === 'default')
-  const others = liveAgents.filter((a) => a.name !== 'default')
-  const nonSwarm = others.filter((a) => !a.name.startsWith('swarm-'))
-  const swarm = others.filter((a) => a.name.startsWith('swarm-'))
 
   // Apply filter — match on name or role
   const matchAgent = (a: LiveAgent, label?: string) => {
@@ -548,8 +543,6 @@ function ChatSidebar({ accent, liveAgents, cronJobs, activeAgent, activeCron, ac
   const showCron = !q || 'cron jobs'.includes(q) || 'cron'.includes(q)
   const showSentry = !q || 'sentry'.includes(q)
   const showLinear = !q || 'linear reports'.includes(q) || 'linear'.includes(q)
-  const visibleAgents = nonSwarm.filter((a) => matchAgent(a))
-  const visibleSwarm = swarm.filter((a) => matchAgent(a))
 
   // A rail-mode row — centred avatar only, accent bar on the left when active.
   const railRow = (key: string, selected: boolean, onClick: () => void, avatar: ReactNode, title: string, badge: number) => (
@@ -803,31 +796,6 @@ function ChatSidebar({ accent, liveAgents, cronJobs, activeAgent, activeCron, ac
         )
       })()}
 
-      {/* AGENTS */}
-      {!collapsed && visibleAgents.length > 0 && <GroupHeader label="Agents" />}
-      {visibleAgents.length === 0 && q && !collapsed ? (
-        <div style={{ padding: '4px 14px 8px', fontSize: 11.5, color: '#565d72' }}>No results</div>
-      ) : (
-        visibleAgents.map((a) => agentRow(a))
-      )}
-
-      {/* SWARM (collapsible in expanded mode; hidden in rail mode) */}
-      {visibleSwarm.length > 0 && !collapsed && (
-        <>
-          <div
-            onClick={onToggleSwarm}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '14px 14px 6px', cursor: 'pointer', userSelect: 'none' }}
-          >
-            <svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="#565d72" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" style={{ transform: swarmOpen ? 'rotate(90deg)' : 'none', transition: 'transform 0.16s' }}>
-              <path d="M9 6l6 6-6 6" />
-            </svg>
-            <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#565d72' }}>Swarm</span>
-            <span style={{ fontSize: 10, color: '#454b5e', fontFamily: 'IBM Plex Mono, monospace' }}>{swarm.length}</span>
-          </div>
-          {swarmOpen && visibleSwarm.map((a) => agentRow(a))}
-        </>
-      )}
-
       <div style={{ height: 12, flex: 'none' }} />
     </aside>
   )
@@ -855,7 +823,6 @@ export default function Chat({ accent, isActive, onUnreadChange }: ChatProps) {
   // ── Sidebar live data ─────────────────────────────────────────────────────
   const [liveAgents, setLiveAgents] = useState<LiveAgent[]>([])
   const [cronJobs, setCronJobs] = useState<CronJob[]>([])
-  const [swarmOpen, setSwarmOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => lsGet('chat-sidebar-collapsed', '') === '1')
   // When a cron channel is selected: 'cron'; else null (agent/Hermes mode).
   const [activeCron, setActiveCron] = useState<string | null>(null)
@@ -1593,10 +1560,8 @@ export default function Chat({ accent, isActive, onUnreadChange }: ChatProps) {
         activeCron={activeCron}
         activeSentry={activeSentry}
         activeLinear={activeLinear}
-        swarmOpen={swarmOpen}
         unreadCounts={unreadCounts}
         collapsed={sidebarCollapsed}
-        onToggleSwarm={() => setSwarmOpen((v) => !v)}
         onSelectAgent={selectAgent}
         onSelectCron={selectCron}
         onSelectSentry={selectSentry}

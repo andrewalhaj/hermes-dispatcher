@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import type { PanelId } from '../data/types'
 import { ACCENT } from '../data/agents'
-import { useAgentRows } from '../data/fleet'
 import { BrandIcon } from './icons'
 import NavItem from './NavItem'
 import { InfoProvider } from './TileInfoDrawer'
@@ -142,7 +141,6 @@ export default function Shell() {
     setAccentRaw(c)
     try { localStorage.setItem('hermes-accent', c) } catch { /* storage unavailable */ }
   }
-  const rows = useAgentRows(accent)
 
   // Track viewport breakpoint; auto-collapse the drawer below md (768px) and
   // auto-open it again when returning to a width that shows the rail inline.
@@ -240,54 +238,6 @@ export default function Shell() {
               </div>
             ))}
           </div>
-
-          {/* Live agent status list — hidden in icon-only rail mode */}
-          {!isRail && (
-          <div style={{ marginTop: 'auto', padding: '14px 12px 18px', borderTop: '1px solid var(--border)' }}>
-            <div style={{ ...groupHeaderStyle, padding: '0 5px', marginBottom: 10 }}>Agents</div>
-            <div className="flex flex-col" style={{ gap: 5 }}>
-              {rows.map((ag) => (
-                <button
-                  key={ag.key}
-                  onClick={() => setActivePanel('chat')}
-                  className="flex w-full items-center justify-between"
-                  style={{
-                    gap: 9,
-                    padding: '8px 11px',
-                    borderRadius: 10,
-                    background: 'rgba(255,255,255,0.028)',
-                    border: '1px solid rgba(255,255,255,0.07)',
-                    cursor: 'pointer',
-                    transition: 'border-color 0.15s',
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.16)')}
-                  onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)')}
-                >
-                  <span className="flex min-w-0 items-center" style={{ gap: 9 }}>
-                    <span className="flex-none" style={{ width: 7, height: 7, borderRadius: '50%', background: ag.dot, boxShadow: ag.dotGlow }} />
-                    <span className="mono overflow-hidden text-ellipsis whitespace-nowrap" style={{ fontSize: 11.5, fontWeight: 500, color: '#c6cad8' }}>
-                      {ag.name}
-                    </span>
-                  </span>
-                  <span
-                    className="flex-none"
-                    style={{
-                      fontSize: 9,
-                      fontWeight: 700,
-                      letterSpacing: '0.05em',
-                      padding: '2px 7px',
-                      borderRadius: 99,
-                      color: ag.badgeColor,
-                      background: ag.badgeBg,
-                    }}
-                  >
-                    {ag.badge}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-          )}
         </nav>
 
         {/* Main content */}
