@@ -199,11 +199,3 @@ Required secrets stored in `.env` (git-ignored): `LINEAR_API_KEY`, `SENTRY_*`, `
 | Auth | Session cookie (`hd_session`), bcrypt (rounds=12) |
 | Hosting | Self-hosted on Linux x86_64 |
 
----
-
-## Branches
-
-| Branch | Purpose |
-|---|---|
-| `master` | Dispatcher — API, webhooks, dashboard SPA |
-| `hermes-agent` | Agent-side skills, patches, and setup |
