@@ -106,6 +106,8 @@ flowchart TB
 
 **In plain terms:** a single uvicorn process serves the API, the webhook receivers, and the pre-built React dashboard. The gateway handles chat platforms. Semantic memory lives in Supabase, and embeddings/local inference run on a separate GPU node reached over Tailscale. Nothing is exposed to the public internet except through the Cloudflare Tunnel.
 
+After each deploy, run `python3 scripts/smoke_check.py` from the repo root to confirm the API is healthy, the served JS bundle matches `app/dist/assets`, and the dashboard actually renders in a headless browser.
+
 ---
 
 ## Boundary with ~/.hermes
