@@ -90,7 +90,7 @@ export default function KanbanPanel({ accent }: KanbanPanelProps) {
   useEffect(() => {
     fetch('/api/kanban/tasks')
       .then((r) => r.json())
-      .then((data: Task[]) => setTasks(data))
+      .then((data: Task[]) => { if (Array.isArray(data)) setTasks(data) })
       .catch(() => {/* server not up yet */})
 
     const es = new EventSource('/api/kanban/stream')
@@ -138,14 +138,14 @@ export default function KanbanPanel({ accent }: KanbanPanelProps) {
         // Revert on failure
         fetch('/api/kanban/tasks')
           .then((r2) => r2.json())
-          .then((data: Task[]) => setTasks(data))
+          .then((data: Task[]) => { if (Array.isArray(data)) setTasks(data) })
           .catch(() => {})
         show('Failed to move task — reverted')
       }
     }).catch(() => {
       fetch('/api/kanban/tasks')
         .then((r2) => r2.json())
-        .then((data: Task[]) => setTasks(data))
+        .then((data: Task[]) => { if (Array.isArray(data)) setTasks(data) })
         .catch(() => {})
       show('Failed to move task — reverted')
     })
@@ -217,7 +217,7 @@ export default function KanbanPanel({ accent }: KanbanPanelProps) {
           // Refresh board so the local mirror (priority/assignee) shows immediately.
           fetch('/api/kanban/tasks')
             .then((r2) => r2.json())
-            .then((data: Task[]) => setTasks(data))
+            .then((data: Task[]) => { if (Array.isArray(data)) setTasks(data) })
             .catch(() => {})
         } else {
           r.json().then((j) => show(`Triage failed: ${j.detail || r.status}`)).catch(() => show('Triage failed'))

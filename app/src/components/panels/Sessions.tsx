@@ -81,7 +81,7 @@ export default function Sessions({ accent = ACCENT, onOpenSession }: SessionsPro
         : '/api/sessions'
       fetch(url)
         .then((r) => r.json())
-        .then((data: ApiSession[]) => { setSessions(data); setLoading(false) })
+        .then((data: ApiSession[]) => { if (Array.isArray(data)) setSessions(data); setLoading(false) })
         .catch(() => setLoading(false))
     }, delay)
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
@@ -112,7 +112,7 @@ export default function Sessions({ accent = ACCENT, onOpenSession }: SessionsPro
     setMsgsLoading(true)
     fetch(`/api/sessions/${session.id}/messages`)
       .then((r) => r.json())
-      .then((data: ApiMessage[]) => { setMessages(data); setMsgsLoading(false) })
+      .then((data: ApiMessage[]) => { if (Array.isArray(data)) setMessages(data); setMsgsLoading(false) })
       .catch(() => setMsgsLoading(false))
   }
 

@@ -47,8 +47,10 @@ export default function Skills({ accent }: SkillsProps) {
     fetch('/api/skills?platform=telegram')
       .then((r) => r.json())
       .then((data: SkillSummary[]) => {
-        setSkills(data)
-        setEnabled(data.reduce((m, s) => { m[s.id] = s.enabled ?? true; return m }, {} as Record<string, boolean>))
+        if (Array.isArray(data)) {
+          setSkills(data)
+          setEnabled(data.reduce((m, s) => { m[s.id] = s.enabled ?? true; return m }, {} as Record<string, boolean>))
+        }
         setLoading(false)
       })
       .catch((e: unknown) => { setError(String(e)); setLoading(false) })
