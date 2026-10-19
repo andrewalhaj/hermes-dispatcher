@@ -14,6 +14,9 @@ updates:
       # plugin-react 6 needs Vite 8; revisit when Vite is bumped
       - dependency-name: "@vitejs/plugin-react"
         update-types: ["version-update:semver-major"]
+      # eslint-plugin-react-hooks 5.x only supports eslint up to 9
+      - dependency-name: "eslint"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: github-actions
     directory: /
     schedule:
