@@ -21,7 +21,7 @@ def _open_db():
 
 def _profile_names() -> list[str]:
     try:
-        return sorted(p.name for p in PROFILES_DIR.iterdir() if p.is_dir())
+        return sorted(p.name for p in PROFILES_DIR.iterdir() if p.is_dir() and not p.name.startswith("."))
     except Exception:
         return []
 

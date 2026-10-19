@@ -1,7 +1,3 @@
-import { useEffect, useState } from 'react'
-import type { AgentRow } from './types'
-import { ACCENT } from './agents'
-import { profileDisplayName } from './profileDisplayNames'
 
 /** Agent operations fleet data for the Agents panel. Mirrors AGENTS_OPS in the prototype. */
 export interface AgentOp {
@@ -71,42 +67,4 @@ export async function fetchFleetSummary(): Promise<FleetMetric[]> {
   } catch {
     return []
   }
-}
-
-/** Live sidebar agent list fetched from /api/agents. Top 5 by recent activity. */
-export function useAgentRows(accent = ACCENT): AgentRow[] {
-  const [rows, setRows] = useState<AgentRow[]>([])
-
-  useEffect(() => {
-    fetch('/api/agents')
-      .then((r) => (r.ok ? r.json() : []))
-      .then((data: AgentOp[]) => {
-        if (!Array.isArray(data)) return
-        const sorted = [...data].sort((a, b) => b.today - a.today || b.total - a.total)
-        setRows(
-          sorted.slice(0, 5).map((a) => {
-            const st = a.status === 'busy' ? 'run' : a.status === 'online' ? 'online' : 'idle'
-            return {
-              key: a.name,
-              name: profileDisplayName(a.name),
-              dot: a.color,
-              dotGlow: st === 'idle' ? 'none' : `0 0 8px ${a.color}`,
-              badge: (st === 'run' ? 'RUN' : st === 'online' ? 'LIVE' : 'IDLE') as AgentRow['badge'],
-              badgeColor: st === 'run' ? accent : st === 'online' ? '#4ade80' : '#818799',
-              badgeBg:
-                st === 'run'
-                  ? `color-mix(in oklab, ${accent} 12%, transparent)`
-                  : st === 'online'
-                    ? 'rgba(74,222,128,0.1)'
-                    : 'rgba(255,255,255,0.05)',
-            }
-          }),
-        )
-      })
-      .catch(() => {
-        /* keep empty on error */
-      })
-  }, [accent])
-
-  return rows
 }

@@ -37,7 +37,7 @@ export default function Agents({ accent }: AgentsProps) {
       <header style={{ flex: 'none', padding: '16px 26px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
         <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 20, color: 'var(--text-primary)' }}>Agent operations</div>
         <div style={{ fontSize: 12, color: '#6a7088', marginTop: 2 }}>
-          Live status across the worker pool — Hermes, executor, coder-c, coder-d, coder-e.
+          Live status across the worker pool.
         </div>
       </header>
 

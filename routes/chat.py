@@ -378,7 +378,7 @@ async def chat_session_messages(session_id: str):
 async def list_profiles():
     profiles_dir = Path(_hermes_home()) / "profiles"
     try:
-        dirs = sorted(p.name for p in profiles_dir.iterdir() if p.is_dir())
+        dirs = sorted(p.name for p in profiles_dir.iterdir() if p.is_dir() and not p.name.startswith("."))
         if "default" in dirs:
             dirs.remove("default")
         return ["default"] + dirs
