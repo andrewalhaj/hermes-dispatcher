@@ -17,6 +17,9 @@ updates:
       # 7.x adds the React Compiler rules: 27 new lint errors to pay down first
       - dependency-name: "eslint-plugin-react-hooks"
         update-types: ["version-update:semver-major"]
+      # Tailwind 4 is a config/PostCSS migration, not a bump
+      - dependency-name: "tailwindcss"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: github-actions
     directory: /
     schedule:
