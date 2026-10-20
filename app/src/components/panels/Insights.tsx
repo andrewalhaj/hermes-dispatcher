@@ -1,17 +1,18 @@
 import React, { useState, useEffect } from 'react'
+import { lsGet, lsSet } from '../../utils/localStorage'
 import { ACCENT } from '../../data/agents'
 import type { InfoObject } from '../../data/info'
 import { useInfo } from '../TileInfoDrawer'
 import '../../styles/phase3.css'
 
 interface InsightsAPI {
-  tasks_today: number
-  tasks_week: number
+  days: number
+  tasks_started: number
   success_rate: number
   avg_latency_s: number
   by_profile: Array<{ profile: string; completed: number; running: number; success_rate: number }>
-  sessions_today: number
-  messages_today: number
+  sessions: number
+  messages: number
   kanban_throughput: Array<{ date: string; completed: number }>
   top_skills: Array<{ skill: string; count: number }>
   tokens_input?: number
@@ -39,6 +40,9 @@ function hoverOut(e: React.MouseEvent<HTMLElement>) {
   e.currentTarget.style.boxShadow = 'none'
 }
 
+const RANGES = [{ days: 1, label: 'Last day', short: 'last 24h' }, { days: 3, label: 'Last 3 days', short: 'last 3 days' }, { days: 7, label: 'Last 7 days', short: 'last 7 days' }]
+const RANGE_KEY = 'insights.days'
+
 function fmtNum(n: number): string {
   return n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n)
 }
@@ -46,6 +50,7 @@ function fmtNum(n: number): string {
 export default function Insights({ accent = ACCENT }: InsightsProps) {
   const [data, setData] = useState<InsightsAPI | null>(null)
   const [error, setError] = useState(false)
+  const [days, setDays] = useState(() => { const d = Number(lsGet(RANGE_KEY, '7')); return RANGES.some(x => x.days === d) ? d : 7 })
   const { openInfo } = useInfo()
   const open = openInfo
 
@@ -53,7 +58,7 @@ export default function Insights({ accent = ACCENT }: InsightsProps) {
     let cancelled = false
     async function fetchData() {
       try {
-        const res = await fetch('/api/insights')
+        const res = await fetch(`/api/insights?days=${days}`)
         if (!res.ok) throw new Error('non-ok')
         const json: InsightsAPI = await res.json()
         if (!cancelled) { setData(json); setError(false) }
@@ -64,7 +69,7 @@ export default function Insights({ accent = ACCENT }: InsightsProps) {
     fetchData()
     const id = setInterval(fetchData, 30000)
     return () => { cancelled = true; clearInterval(id) }
-  }, [])
+  }, [days])
 
   if (!data) {
     return (
@@ -74,27 +79,30 @@ export default function Insights({ accent = ACCENT }: InsightsProps) {
     )
   }
 
+  const range = RANGES.find(x => x.days === days) ?? RANGES[2]
+  const win = range.short
+
   // KPI tiles
   const kpis: Array<{ label: string; value: string; accent: string; info: InfoObject }> = [
     {
-      label: 'Tasks Today', value: String(data.tasks_today), accent,
-      info: { category: 'Tasks', title: 'Tasks Today', accent, value: String(data.tasks_today), desc: 'Tasks dispatched and run today across all agents.', stats: [{ label: 'This Week', value: String(data.tasks_week) }, { label: 'Success Rate', value: `${data.success_rate}%` }] },
+      label: 'Tasks started', value: String(data.tasks_started), accent,
+      info: { category: 'Tasks', title: 'Tasks started', accent, value: String(data.tasks_started), desc: `Kanban tasks whose started_at falls in the ${win}.`, stats: [{ label: 'Success Rate', value: `${data.success_rate}%` }] },
     },
     {
-      label: 'Sessions Today', value: String(data.sessions_today), accent: '#5aa2f0',
-      info: { category: 'Sessions', title: 'Sessions Today', accent: '#5aa2f0', value: String(data.sessions_today), desc: 'Chat and worker sessions opened today.', stats: [{ label: 'Messages', value: fmtNum(data.messages_today) }] },
+      label: 'Sessions opened', value: String(data.sessions), accent: '#5aa2f0',
+      info: { category: 'Sessions', title: 'Sessions opened', accent: '#5aa2f0', value: String(data.sessions), desc: `Chat and worker sessions started in the ${win}, across all profiles.`, stats: [{ label: 'Messages', value: fmtNum(data.messages) }] },
     },
     {
-      label: 'Messages Today', value: fmtNum(data.messages_today), accent: '#2dd4bf',
-      info: { category: 'Messages', title: 'Messages Today', accent: '#2dd4bf', value: fmtNum(data.messages_today), desc: 'Messages exchanged with Hermes and worker agents today.', stats: [] },
+      label: 'Messages (all profiles)', value: fmtNum(data.messages), accent: '#2dd4bf',
+      info: { category: 'Messages', title: 'Messages (all profiles)', accent: '#2dd4bf', value: fmtNum(data.messages), desc: `Messages stored in the ${win} across the default and every profile's state.db.`, stats: [] },
     },
     {
       label: 'Success Rate', value: `${data.success_rate}%`, accent: '#9b8cff',
-      info: { category: 'Quality', title: 'Success Rate', accent: '#9b8cff', value: `${data.success_rate}%`, desc: 'Share of tasks that finished without error over the trailing window.', stats: [{ label: 'Tasks Today', value: String(data.tasks_today) }] },
+      info: { category: 'Quality', title: 'Success Rate', accent: '#9b8cff', value: `${data.success_rate}%`, desc: `Completed / terminal task runs that ended in the ${win}.`, stats: [{ label: 'Tasks started', value: String(data.tasks_started) }] },
     },
     {
-      label: 'Avg Latency', value: `${data.avg_latency_s}s`, accent: '#f6b73c',
-      info: { category: 'Latency', title: 'Avg Latency', accent: '#f6b73c', value: `${data.avg_latency_s}s`, desc: 'Mean end-to-end time from dispatch to first result across recent tasks.', stats: [] },
+      label: 'Avg Task Duration', value: `${data.avg_latency_s}s`, accent: '#f6b73c',
+      info: { category: 'Duration', title: 'Avg Task Duration', accent: '#f6b73c', value: `${data.avg_latency_s}s`, desc: `Mean of (ended_at - started_at) over completed task runs that ended in the ${win}.`, stats: [] },
     },
   ]
 
@@ -109,8 +117,8 @@ export default function Insights({ accent = ACCENT }: InsightsProps) {
     ? data.kanban_throughput.reduce((a, b) => b.completed > a.completed ? b : a)
     : { date: '—', completed: 0 }
   const activityInfo: InfoObject = {
-    category: 'Activity', title: 'Activity by Day', accent,
-    desc: 'Kanban tasks completed per day over the last 7 days.',
+    category: 'Activity', title: `Activity by ${days === 1 ? 'Hour' : 'Day'}`, accent,
+    desc: `Kanban task runs completed per ${days === 1 ? 'hour' : 'day'} over the ${win}.`,
     stats: data.kanban_throughput.map(d => ({ label: d.date, value: String(d.completed) })),
   }
 
@@ -121,7 +129,7 @@ export default function Insights({ accent = ACCENT }: InsightsProps) {
   const inputPct = tokensTotal > 0 ? (tokensInput / tokensTotal) * 100 : 50
   const tokenInfo: InfoObject = {
     category: 'Tokens', title: 'Token Breakdown', accent: '#f6b73c',
-    desc: 'Input vs output tokens used across all sessions in the time window.',
+    desc: `Input vs output tokens, summed over sessions started in the ${win} (all profiles).`,
     stats: [
       { label: 'Input tokens', value: fmtNum(tokensInput) },
       { label: 'Output tokens', value: fmtNum(tokensOutput) },
@@ -133,7 +141,7 @@ export default function Insights({ accent = ACCENT }: InsightsProps) {
   const totalSkillCount = data.top_skills.reduce((s, sk) => s + sk.count, 0)
   const skillsInfo: InfoObject = {
     category: 'Skills', title: 'Skill Usage', accent,
-    desc: 'Top skills invoked by agents, ranked by call count.',
+    desc: `Top skills loaded via skill_view in the ${win} (all profiles), ranked by call count.`,
     stats: data.top_skills.map(s => ({ label: s.skill, value: String(s.count) })),
   }
 
@@ -142,12 +150,18 @@ export default function Insights({ accent = ACCENT }: InsightsProps) {
       <header className="flex items-center justify-between" style={{ flex: 'none', padding: '16px 26px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
         <div>
           <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 20, color: 'var(--text-primary)' }}>Usage Analytics</div>
-          <div style={{ fontSize: 12, color: '#6a7088', marginTop: 2 }}>Live · last 7 days</div>
+          <div style={{ fontSize: 12, color: '#6a7088', marginTop: 2 }}>Live · {win}</div>
         </div>
-        <span className="inline-flex items-center" style={{ gap: 6, fontSize: 12, color: '#c6cad8', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 20, padding: '5px 12px' }}>
-          Live · last 7 days
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#9298ab" strokeWidth={2} aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
-        </span>
+        <div role="group" aria-label="Time range" className="inline-flex" style={{ gap: 2, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 20, padding: 2 }}>
+          {RANGES.map(x => (
+            <button
+              key={x.days}
+              aria-pressed={x.days === days}
+              onClick={() => { lsSet(RANGE_KEY, String(x.days)); setData(null); setDays(x.days) }}
+              style={{ fontSize: 12, padding: '4px 12px', borderRadius: 18, cursor: 'pointer', border: 'none', color: x.days === days ? 'var(--text-primary)' : '#9298ab', background: x.days === days ? 'rgba(255,255,255,0.12)' : 'transparent' }}
+            >{x.label}</button>
+          ))}
+        </div>
       </header>
       <div className="flex-1 overflow-y-auto" style={{ minHeight: 0, padding: '22px 26px 40px' }}>
         <div style={{ maxWidth: 1080, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16, animation: 'hpanelin 0.4s var(--ease-out)' }}>
@@ -174,7 +188,7 @@ export default function Insights({ accent = ACCENT }: InsightsProps) {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 16 }}>
             <div style={{ ...cardBase, animation: 'hcellin 0.45s ease backwards', animationDelay: '0.35s' }} onClick={() => open(activityInfo)} onMouseEnter={hoverIn} onMouseLeave={hoverOut}>
               <div className="flex items-center justify-between" style={{ marginBottom: 16 }}>
-                <div style={cardLabel}>Activity by Day</div>
+                <div style={cardLabel}>Activity by {days === 1 ? 'Hour' : 'Day'}</div>
                 <span style={{ fontSize: 10.5, color: '#2dd4bf', background: 'rgba(45,212,191,0.1)', border: '1px solid rgba(45,212,191,0.28)', borderRadius: 6, padding: '2px 8px' }}>Peak {peakEntry.date}</span>
               </div>
               <div className="flex" style={{ gap: 8 }}>
@@ -191,7 +205,7 @@ export default function Insights({ accent = ACCENT }: InsightsProps) {
                       <div className="flex items-end justify-center" style={{ width: '100%', height: 96 }}>
                         <div style={{ width: '100%', height: d.h, borderRadius: '3px 3px 0 0', background: d.bg }} />
                       </div>
-                      <span style={{ marginTop: 6, fontSize: 9.5, color: '#6a7088', letterSpacing: '0.02em' }}>{d.date}</span>
+                      <span style={{ marginTop: 6, fontSize: 9.5, color: '#6a7088', letterSpacing: '0.02em', visibility: days === 1 && i % 4 ? 'hidden' : 'visible' }}>{d.date}</span>
                     </div>
                   ))}
                 </div>
