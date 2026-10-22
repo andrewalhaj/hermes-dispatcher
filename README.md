@@ -1,203 +1,99 @@
 # Hermes Dispatcher
 
-**Self-hosted mission control for a fleet of AI worker agents — dashboard, event-driven automation, and API backend in one FastAPI service.**
+A web dashboard and FastAPI backend for operating a fleet of AI worker agents: chat, a Kanban board, a memory view, and webhook intake from Sentry, Linear and GitHub.
 
-Hermes Dispatcher is the operational hub of a multi-agent AI platform. It provides a live web dashboard over an agent swarm, and a suite of inbound webhook receivers that turn events from development tools (GitHub, Sentry, Linear, Notion, Figma) into autonomous agent actions — creating issues, routing Kanban work to agents, storing knowledge, and notifying stakeholders in real time.
+<!-- Screenshot: add docs/dashboard.png and reference it here -->
+<!-- ![Dashboard](docs/dashboard.png) -->
 
-Built and operated in production as a personal platform: one server, ~15 API routers, 7 webhook integrations, and a React SPA, running 24/7 behind Tailscale and a Cloudflare Tunnel.
-
----
-
-## Highlights
-
-- **Agent orchestration** — Kanban-based task routing dispatches work to a roster of specialized worker agents, each with a defined profile and scoped tool permissions. Card priority maps to dispatch order; agent status is visible live on the board.
-- **Autonomous incident intake** — a Sentry error alert becomes a Linear issue (deduplicated by Sentry event ID), then a prioritized Kanban card, then a Telegram notification — with no human in the loop until one is needed.
-- **Operational visibility** — token usage and cost analytics per model, system metrics (CPU/GPU/RAM/network), live log streaming over SSE, session replay, and an activity heatmap across the agent fleet.
-- **Governed memory** — a hybrid memory architecture: Supabase pgvector for semantic recall, SQLite for board and session state, and markdown as the human-auditable pointer layer.
-- **Security posture** — bcrypt-hashed session auth, git-ignored secrets, webhook signature verification, CORS allowlisting, and network exposure limited to Tailscale/Cloudflare Tunnel.
-
----
-
-## Features
-
-| Area | Capabilities |
-|---|---|
-| **Dashboard** | Kanban board with card detail drawer · Chat (streaming, multi-turn, model selection) · Overview (KPIs, agent breakdown, activity heatmap, system monitor) · Memory editor (MEMORY.md, USER.md, AGENTS.md, SOUL.md) · Insights (token usage, analytics) · Session browser/replay · Skill browser (100+ skills, toggle per platform) · Live log tail · Cron output viewer · Linear/Sentry feeds · Settings (theme, accent, prefs) |
-| **Webhook integrations** | GitHub (push/PR/issue/review) · Sentry (error alerts → Linear issue) · Linear (issue/comment events → Kanban + Telegram) · Figma (file/comment events) · Notion (page updates + poll sync) · Knowledge store (Supabase INSERT trigger) · Kanban status sync |
-| **Autonomous intake** | Sentry error → Linear issue (deduped by Sentry ID) → Kanban card → Telegram notify. Priority-mapped between Linear urgency and Kanban scores. |
-| **Data stores** | Supabase pgvector (primary memory — semantic search) · SQLite (Kanban + sessions) · Local markdown (MEMORY.md pointer layer) |
-
----
 
 ## Architecture
 
-### Event flow
-
-How an external event becomes agent work:
-
 ```mermaid
 flowchart LR
-    subgraph Sources["Event Sources"]
-        GITHUB["GitHub"]
-        SENTRY["Sentry"]
-        LINEAR["Linear"]
-        NOTION["Notion / Figma"]
+    EXT["GitHub / Sentry / Linear"] -->|webhooks| API
+    BROWSER["Browser"] --> API
+
+    subgraph Dispatcher["Hermes Dispatcher"]
+        API["FastAPI + React SPA"]
+        DB[("Kanban DB")]
+        API <--> DB
     end
 
-    subgraph Dispatcher["Hermes Dispatcher (FastAPI :8787)"]
-        HOOKS["Webhook receivers<br/>/api/hooks/*"]
-        ROUTER["Priority routing<br/>+ dedup"]
-        KANBAN["Kanban board<br/>(SQLite)"]
-    end
-
-    subgraph Agents["Agent Fleet"]
-        WORKERS["Worker agents<br/>(scoped profiles)"]
-    end
-
-    subgraph Out["Delivery"]
-        TG["Telegram"]
-        LIN["Linear issues"]
-    end
-
-    GITHUB --> HOOKS
-    SENTRY --> HOOKS
-    LINEAR --> HOOKS
-    NOTION --> HOOKS
-    HOOKS --> ROUTER
-    ROUTER --> KANBAN
-    ROUTER --> LIN
-    KANBAN --> WORKERS
-    WORKERS --> TG
+    API <--> AGENTS["Agent fleet<br/>(HERMES_HOME)"]
+    API --> OUT["Linear / Telegram"]
 ```
 
-### Deployment topology
+A single uvicorn process serves the API, the webhook receivers and the built SPA. It reads agent state from `HERMES_HOME` and writes cards to the Kanban database. Background pollers keep Linear issues, Kanban cards and Sentry alerts in sync and auto-close resolved ones. The server reports its own errors to Sentry when `SENTRY_DSN` is set.
 
-Where everything runs:
+## Features
 
-```mermaid
-flowchart TB
-    BROWSER["Browser<br/>(Tailscale / Cloudflare Tunnel)"]
+- **Kanban board**: cards carry a priority and an assignee profile and stream live over SSE.
+- **Chat**: send messages into an agent session and stream the reply; file upload and a `/linear create` slash command.
+- **Incident intake**: a Sentry alert becomes a Linear issue, then a Kanban card, then a Telegram message. Completing the card closes the Linear and Sentry issues.
+- **Memory view**: an interactive canvas map of agent memory next to an editor for the memory files.
+- **Observability**: token and cost analytics, system metrics (local, or from a metrics host over SSH), live log streaming and a session browser.
+- **Fail-closed webhooks**: HMAC-SHA256 for GitHub, Sentry and Linear; bearer secret or passcode for the rest. An unset secret rejects the request with `503`.
 
-    subgraph Host["Hermes Host (Linux x86_64)"]
-        UVICORN["uvicorn :8787<br/>API + webhooks + React SPA"]
-        GATEWAY["hermes-gateway<br/>(Telegram / Discord)"]
-        FIRECRAWL["Firecrawl"]
-    end
+## API Overview
 
-    subgraph Cloud["External Services"]
-        SUPABASE["Supabase<br/>(pgvector memory)"]
-        LINEAR2["Linear"]
-        SENTRY2["Sentry"]
-        GH2["GitHub"]
-    end
+All routes live under `/api` and require the `hd_session` cookie, except health, auth and the webhook receivers (which verify their own signatures). The full OpenAPI schema is served at `/docs`.
 
-    subgraph GPU["Inference Node (Tailscale)"]
-        OLLAMA["Ollama<br/>qwen3-embed · qwen2.5-32b"]
-    end
-
-    BROWSER --> UVICORN
-    UVICORN --> FIRECRAWL
-    UVICORN <--> SUPABASE
-    UVICORN <--> LINEAR2
-    SENTRY2 --> UVICORN
-    GH2 --> UVICORN
-    UVICORN --> OLLAMA
-```
-
-**In plain terms:** a single uvicorn process serves the API, the webhook receivers, and the pre-built React dashboard. The gateway handles chat platforms. Semantic memory lives in Supabase, and embeddings/local inference run on a separate GPU node reached over Tailscale. Nothing is exposed to the public internet except through the Cloudflare Tunnel.
-
-After each deploy, run `python3 scripts/smoke_check.py` from the repo root to confirm the API is healthy, the served JS bundle matches `app/dist/assets`, and the dashboard actually renders in a headless browser.
-
----
-
-## Boundary with ~/.hermes
-
-This repo is the dashboard, API and webhook receivers (`hermes-dispatcher.service`, :8787). The agent
-itself — guards, memory provider, knowledge store, cron scripts, skills — lives in the sibling repo
-`~/.hermes`, published as [andrewalhaj/custom-hermesagent](https://github.com/andrewalhaj/custom-hermesagent),
-run by `hermes-gateway.service`. The dispatcher reads that directory's state
-through `HERMES_HOME` and imports one package from it: `scripts/knowledge` (`routes/memory.py`), so a
-change there needs a dispatcher restart too.
-
----
-
-## Quick Start
-
-```bash
-# Backend
-cd hermes-dispatcher
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-
-# Create a password hash (required)
-python3 -c "import bcrypt; open('.dashboard_passwd_hash','wb').write(bcrypt.hashpw(b'yourpassword', bcrypt.gensalt(rounds=12)))"
-
-# Start
-bash start-server.sh
-# → Serves dashboard at http://<host>:8787
-```
-
-The dashboard SPA is pre-built in `app/dist/` and served automatically by uvicorn. For frontend development:
-
-```bash
-cd app
-npm install
-npm run dev
-```
-
----
-
-## API Surface
-
-| Router | Prefix | Purpose |
-|---|---|---|
-| `auth` | `/api/login`, `/api/logout`, `/api/session` | Session cookie auth (bcrypt) |
-| `kanban` | `/api/kanban` | Kanban board CRUD |
-| `chat` | `/api/chat/*` | Agent chat + SSE streaming |
-| `sessions` | `/api/sessions` | Past session browser |
-| `memory` | `/api/memory` | Memory editor |
-| `skills` | `/api/skills` | Skill browser + toggle |
-| `agents` | `/api/agents` | Live agent roster |
-| `overview` | `/api/overview` | Dashboard stats |
-| `insights` | `/api/insights` | Token usage + analytics |
-| `system` | `/api/system` | CPU/GPU/RAM/network metrics |
-| `logs` | `/api/logs` | Live log tail (SSE) |
-| `settings` | `/api/settings` | Dashboard preferences |
-| `search` | `/api/search` | Cross-panel search |
-| `cron` | `/api/cron` | Cron job output |
-| `hooks` | `/api/hooks/*` | Inbound webhook receivers |
-| `sentry` | `/api/sentry/messages` | Sentry alert feed |
-| `linear` | `/api/linear/*` | Linear issue views |
-| `notify` | `/api/notify` | Internal Telegram notification |
-
-All routes serve under `/api`. Webhooks are at `/api/hooks/{github,sentry,linear,figma,notion,knowledge,kanban}`.
-
----
+| Group | Purpose |
+|---|---|
+| Health / auth | Health check, login, logout, session check |
+| Kanban | Create, list and update cards; live SSE stream |
+| Linear | Issue search and triage (priority, labels) |
+| Chat | Send messages, upload files, list sessions |
+| Sessions / search | Browse, search and delete agent sessions |
+| Memory / skills | Edit memory files, memory view data, manage skills |
+| Observability | Overview, insights, system metrics, logs, cron output |
+| Webhooks | GitHub, Sentry, Linear, Figma, Notion, knowledge, kanban |
 
 ## Configuration
 
+Set secrets in a git-ignored `.env` file. These are the variables most deployments need:
+
 | Variable | Default | Purpose |
 |---|---|---|
-| `HERMES_DISPATCHER_PORT` | `8787` | Primary bind port |
-| `HERMES_DISPATCHER_BIND_RETRIES` | `3` | Retries on EADDRINUSE |
-| `HERMES_DISPATCHER_BIND_BACKOFF` | `2.0` | Seconds between retries |
-| `HERMES_DISPATCHER_FALLBACK_PORTS` | — | Comma-separated fallback ports |
-| `DASHBOARD_CORS_ORIGINS` | Tailscale + CF domains | Override CORS allowlist |
-| `HERMES_HOME` | `~/.hermes` | Hermes data root |
-| `OLLAMA_HOST` | — | Inference-node Ollama endpoint (for embeddings) |
+| `HERMES_HOME` | `~/.hermes` | Agent data root |
+| `HERMES_DISPATCHER_HOST` | all interfaces | Bind address |
+| `HERMES_DISPATCHER_PORT` | `8787` | Bind port |
+| `DASHBOARD_CORS_ORIGINS` | localhost only | Comma-separated CORS allowlist |
+| `DASHBOARD_PUBLIC_URL` | `http://localhost:8787` | Base URL used in links sent to Linear |
+| `WEBHOOK_SECRET` | none | Bearer secret for the knowledge and kanban hooks |
+| `GITHUB_WEBHOOK_SECRET` | none | GitHub HMAC secret |
+| `SENTRY_WEBHOOK_SECRET` | none | Sentry HMAC secret |
+| `LINEAR_WEBHOOK_SECRET` | none | Linear HMAC secret |
+| `LINEAR_API_KEY` | none | Linear API access |
+| `TELEGRAM_BOT_TOKEN` | none | Telegram notifications |
+| `SENTRY_DSN` | none | Error reporting for the server itself (unset = off) |
 
-Required secrets stored in `.env` (git-ignored): `LINEAR_API_KEY`, `SENTRY_*`, `SUPABASE_*`, `GITHUB_WEBHOOK_SECRET`, etc.
-
----
+Additional options (Figma, Notion, Sentry auto-close, upload limits, database paths, poll intervals) are read from the environment in [`server.py`](server.py) and [`routes/`](routes).
 
 ## Stack
 
 | Layer | Technology |
 |---|---|
-| Frontend | React 18, TypeScript, Vite, Tailwind CSS, Framer Motion |
-| Backend | FastAPI (Python 3.11), uvicorn |
-| Data | SQLite, Supabase pgvector |
-| Auth | Session cookie (`hd_session`), bcrypt (rounds=12) |
-| Hosting | Self-hosted on Linux x86_64 |
+| Frontend | React 19, TypeScript 5.8, Vite 8, Tailwind CSS 3.4, three.js |
+| Backend | Python, FastAPI 0.143, uvicorn 0.54 |
+| Data | SQLite and JSON state files |
+| Auth | Session cookie, bcrypt password hash, login rate limiting |
+| Tests | pytest, `node --test` |
 
+Run the tests with `pip install -r requirements-dev.txt && python -m pytest -q tests` and `cd app && npm test`.
+
+## Related Repository
+
+[**custom-hermesagent**](https://github.com/andrewalhaj/custom-hermesagent) is the agent-side companion: the plugins, scripts and skills that live in `HERMES_HOME`. This repository is the web service that reads that directory. Two backend routes import or call scripts from it (`routes/memory.py`, `routes/hooks.py`), so the two are best deployed together.
+
+## Status and Limitations
+
+- Early-stage (`0.1.0`), built for a single self-hosted deployment.
+- Single worker only: sessions and the login rate limiter are in memory, so a restart logs everyone out.
+- `POST /api/chat/cancel` is not implemented and always reports that cancel is unsupported.
+- Some routes assume the original deployment (an agent interpreter path and default Linear and Sentry identifiers) and need adjusting for other environments.
+- CI runs secret scanning only; the test suites are run locally.
+
+## License
+
+No license file is included yet. Until one is added, all rights are reserved by the author.
